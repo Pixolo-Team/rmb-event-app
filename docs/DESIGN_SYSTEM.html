@@ -428,6 +428,7 @@ p.sub-desc{color:var(--ink-muted); font-size:.9rem; margin:0 0 18px; max-width:6
 .chip.removable{background:var(--surface-2); border-color:var(--border);}
 .chip.removable button{background:none; border:none; color:var(--ink-faint); cursor:pointer; padding:0; display:flex;}
 .chip.removable button svg{width:13px;height:13px;}
+.chip.chapter{background:var(--accent-50); border-color:var(--accent-500); color:var(--accent-700); font-weight:700;}
 
 /* Badges / status pills */
 .badge{
@@ -968,7 +969,7 @@ footer.doc-footer p{font-size:.8rem; color:var(--ink-faint); margin:4px 0;}
       </div>
 
       <div class="gallery">
-        <div class="gallery-title"><h4>Tags &amp; chips</h4><span class="tag">looking for / offering</span></div>
+        <div class="gallery-title"><h4>Tags &amp; chips</h4><span class="tag">looking for / offering / chapter</span></div>
         <div class="gallery-body">
           <span class="chip on">Manufacturing</span>
           <span class="chip">Textiles</span>
@@ -976,6 +977,7 @@ footer.doc-footer p{font-size:.8rem; color:var(--ink-faint); margin:4px 0;}
           <span class="chip static">Bulk sourcing</span>
           <span class="chip removable">Suppliers <button><svg><use href="#i-x"/></svg></button></span>
           <span class="chip removable">Distributors <button><svg><use href="#i-x"/></svg></button></span>
+          <span class="chip chapter">RMB Ahmedabad</span>
         </div>
       </div>
 
@@ -991,8 +993,10 @@ footer.doc-footer p{font-size:.8rem; color:var(--ink-faint); margin:4px 0;}
       </div>
 
       <div class="gallery">
-        <div class="gallery-title"><h4>Avatar</h4><span class="tag">initials fallback, no photo required</span></div>
+        <div class="gallery-title"><h4>Avatar</h4><span class="tag">photo primary (from registration) &middot; initials fallback</span></div>
         <div class="gallery-body">
+          <div class="avatar av-40" style="background:linear-gradient(135deg, var(--brand-400), var(--accent-500)); color:transparent;">DS</div>
+          <div class="avatar av-56 ring" style="background:linear-gradient(135deg, var(--brand-400), var(--accent-500)); color:transparent;">RS</div>
           <div class="avatar av-24">RS</div>
           <div class="avatar av-32">DS</div>
           <div class="avatar av-40">RS</div>
@@ -1002,19 +1006,35 @@ footer.doc-footer p{font-size:.8rem; color:var(--ink-faint); margin:4px 0;}
       </div>
 
       <div class="gallery">
-        <div class="gallery-title"><h4>Match card</h4><span class="tag">People to meet</span></div>
+        <div class="gallery-title"><h4>Match card</h4><span class="tag">People to meet &middot; same &amp; cross-chapter</span></div>
         <div class="gallery-body">
           <div class="p-card">
             <div class="p-card-row">
-              <div class="avatar av-40">DS</div>
+              <div class="avatar av-40" style="background:linear-gradient(135deg, var(--brand-400), var(--accent-500)); color:transparent;">DS</div>
               <div class="body">
                 <div class="p-card-name">Deepak Sharma</div>
                 <div class="p-card-sub">TechCorp &middot; Manufacturing &middot; Table 7</div>
               </div>
             </div>
-            <div class="p-card-reason">You're both in manufacturing</div>
+            <span class="chip chapter" style="margin-top:8px;">RMB Surat</span>
+            <div class="p-card-reason">You're both in Manufacturing &mdash; he's from the Surat chapter</div>
             <div class="p-card-actions">
               <div class="icon-btn on"><svg><use href="#i-bookmark-fill"/></svg></div>
+              <button class="btn btn-secondary btn-sm" style="flex:1;">View profile</button>
+            </div>
+          </div>
+          <div class="p-card">
+            <div class="p-card-row">
+              <div class="avatar av-40">MV</div>
+              <div class="body">
+                <div class="p-card-name">Meera Verma</div>
+                <div class="p-card-sub">Verma Auto &middot; Manufacturing &middot; Table 3</div>
+              </div>
+            </div>
+            <span class="chip chapter" style="margin-top:8px;">RMB Ahmedabad</span>
+            <div class="p-card-reason">You're both in the Ahmedabad chapter</div>
+            <div class="p-card-actions">
+              <div class="icon-btn"><svg><use href="#i-bookmark"/></svg></div>
               <button class="btn btn-secondary btn-sm" style="flex:1;">View profile</button>
             </div>
           </div>
@@ -1244,7 +1264,7 @@ footer.doc-footer p{font-size:.8rem; color:var(--ink-faint); margin:4px 0;}
       <li><svg><use href="#i-check-circle"/></svg><div><b>16px minimum body text, 4.5:1 contrast minimum</b><span>Budget Android screens + bright venue lighting + a 35&ndash;55 audience. Never rely on color alone &mdash; status pills always pair a color with an icon or label.</span></div></li>
       <li><svg><use href="#i-check-circle"/></svg><div><b>Offline state is a first-class UI state, not an error</b><span>Directory, matches, check-in and scanning all render fully from cache; the warning-100 banner explains what's degraded rather than blocking the screen.</span></div></li>
       <li><svg><use href="#i-check-circle"/></svg><div><b>&lt;500KB initial bundle, &lt;3s load on 4G</b><span>Fonts are variable (two files cover 5 weights), icons are inline SVG with no icon-font request, photos auto-compress under 100KB.</span></div></li>
-      <li><svg><use href="#i-check-circle"/></svg><div><b>No feature requires a photo</b><span>Avatars default to initials on brand-100 &mdash; MSME owners without a professional headshot are still fully represented in the directory and leaderboard.</span></div></li>
+      <li><svg><use href="#i-check-circle"/></svg><div><b>A missing photo never blocks anything</b><span>Registration collects a photo from every attendee, so it's the primary avatar &mdash; but initials on brand-100 are always the graceful fallback for a missing, corrupted, or rejected upload, so nobody is ever unrepresented in the directory or leaderboard.</span></div></li>
     </ul>
   </div>
 </section>

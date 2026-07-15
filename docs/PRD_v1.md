@@ -145,12 +145,22 @@ First-of-its-kind validation that MSME owners will adopt a structured networking
 **US1.1 - Organizer imports attendee list**
 ```
 As an event organizer
-I want to upload a CSV/Excel file of pre-registered attendees (name, phone, company)
+I want to upload a CSV/Excel file of pre-registered, paid attendees
 So that I can quickly get all attendees into the system without manual entry
 Acceptance Criteria:
 - CSV/Excel upload interface on admin dashboard
-- Columns: name (required), phone (required), company (optional), industry (optional)
-- System deduplicates by phone number to prevent duplicate imports
+- Columns: name (required), email (required), phone (required), business/profession
+  name (required), RMB chapter (optional — attendee may not be an RMB member),
+  photo (optional — URL/file reference; falls back to initials avatar if missing)
+- Source is the organizer's own registration form (observed as a Google Form export:
+  Timestamp, Email Address ×2 [Google-account-captured + form-question field — use the
+  form-question value as canonical, flag mismatches for admin review], Full Name,
+  Phone Number, RMB Chapter, Business/Profession Name, photo upload, payment
+  screenshot, payment details). Payment verification happens entirely in the
+  organizer's own registration process, outside Evento — the file Evento imports is
+  expected to already contain only confirmed, paid attendees. Evento's import schema
+  has no payment fields and performs no payment verification.
+- System deduplicates by phone number and by email to prevent duplicate imports
 - Each attendee receives a unique personal QR code at import time
 - Import status shows success count, duplicates found, and any errors
 - Admin can retry failed imports
@@ -177,8 +187,8 @@ So that I can get personalized match suggestions and not have to install an app 
 Acceptance Criteria:
 - Profile form opens in a mobile web view (does not require app install yet)
 - Fields: industry (dropdown), looking for (multi-select tags), offering (multi-select tags), goals (multi-select), optional free-text bio
-- Form is 30 seconds or less to complete (4–5 fields)
-- Validation: phone number already in system (auto-filled), name is required
+- Form is 30 seconds or less to complete (4–5 fields) — name, email, phone, business/profession name, chapter and photo are already known from registration and are pre-filled/read-only, not re-asked
+- Validation: phone number and email already in system (auto-filled), name is required
 - After completion, user sees: "Great! Get suggestions by installing the app" → PWA install prompt
 - Profile is saved even if attendee doesn't install PWA
 - Tutorial video or walkthrough available (optional for attendees who want it)
@@ -198,11 +208,34 @@ Acceptance Criteria:
 - App is fully functional offline (directory, matches, and profiles load from cache)
 ```
 
+**US1.5 - Attendee logs back in without a password**
+```
+As Radha (attendee)
+I want to get back into Evento if I switch phones, clear my browser, or reinstall the app
+Without needing a password or calling anyone for help
+So that losing my session doesn't cost me time at the event
+Acceptance Criteria:
+- No passwords anywhere in the attendee experience — first-time entry is the WhatsApp
+  invite link itself (US1.2/1.3); tapping it is the login
+- Returning-attendee re-entry is a self-serve passwordless magic link: attendee enters
+  their email on a Login screen, and if it matches a registered attendee, a single-use
+  signed link (30-minute expiry) is emailed to that address
+- Response is identical whether or not the email matched ("If that email is on the
+  guest list, we've sent a link") — prevents using the login screen to check who is
+  registered
+- Rate limited (~5 sends/hour per email) to prevent inbox spam
+- Email is the only self-serve login channel — no WhatsApp-delivered login link
+- Entering someone else's email cannot grant access to their account — the
+  link only ever reaches the address on file, never whoever typed it in
+- Staff-assisted lookup (via admin Check-In Management) is the only fallback,
+  for an attendee with no working access to email at the venue
+```
+
 ---
 
 ### Feature 2: Smart Attendee Matching
 
-**Description:** Rule-based matching surfaces suggested connections based on profile tags (industry, looking for, offering, goals).
+**Description:** Rule-based matching surfaces suggested connections based on profile tags (industry, looking for, offering, goals) and RMB chapter affiliation.
 
 **User Stories**
 
@@ -215,8 +248,15 @@ So that I know who to look for at the event
 Acceptance Criteria:
 - "People to meet" list appears after profile completion (pre-event and during event)
 - Matching logic: overlap between my "looking for" tags and their "offering" tags, plus shared industry
+- Chapter is a matching signal, not a filter on relevance — cross-chapter matches are
+  surfaced deliberately, not suppressed, since same-chapter members mostly know each
+  other already and the event's value is expanding beyond one's own chapter. The match
+  reason line names the chapter relationship either way: "You're both in Manufacturing
+  — she's from the Surat chapter" (cross-chapter) or "You're both in the Ahmedabad
+  chapter" (same-chapter). Attendees with no chapter (non-RMBians) match on
+  industry/tags only, with no chapter clause in the reason line.
 - Top 10 matches shown first; full list is scrollable
-- Each person shows: name, company, industry, table number, one-line match reason ("You're both in manufacturing")
+- Each person shows: name, company, industry, chapter (if any), table number, one-line match reason
 - Match cards include a "bookmark" button
 - If no good matches found, show: "No exact matches yet. Browse the full directory."
 - Matching is available offline (computed client-side or cached)
@@ -230,9 +270,9 @@ Filtered by industry or company so I can find people beyond the top 10 suggestio
 So that I have agency to explore and might discover useful connections on my own
 Acceptance Criteria:
 - "Directory" or "All attendees" view shows full list
-- Filters: industry, company, city (if captured), checked-in status
+- Filters: industry, company, RMB chapter (including a "no chapter" bucket for non-RMBians), city (if captured), checked-in status
 - Search: by name or company
-- Each directory card shows: name, company, industry, table number
+- Each directory card shows: photo (initials avatar if photo missing), name, company, industry, chapter (if any), table number
 - Sorting: by match score, alphabetical, or random (to reduce bias)
 - Directory is available offline (cached at event start)
 ```
@@ -1024,6 +1064,9 @@ END: Event data captured and reported
 | **Venue WiFi/network capacity testing** | Unknown if offline-first assumption holds or if connectivity is completely down. | Decision: Test at venue a few days before; measure signal strength, throughput, peak load. Adjust app caching strategy if needed. |
 | **Privacy opt-out from public directory** | Some attendees may not want to be discoverable. Not currently supported. | Decision: Defer to Phase 2 or add simple toggle in profile: "Show me in directory: Yes/No". |
 | **Fixed table assignment vs. open floor plan** | Table model assumes assigned seating. Future events may be different. | Decision: Table numbers are optional; if not provided, attendee sees "Find me at the event" instead. Works for either model. |
+| **Does Evento verify payment (₹4,000 registration fee)?** | Registration form collects a payment screenshot + amount; unclear if Evento needs a review/approval step. | **Resolved:** Out of scope for Evento. The organizer's own registration process (Google Form) handles payment verification; only confirmed, paid attendees are exported into the CSV Evento imports. Evento's schema has no payment fields. |
+| **How should RMB chapter affiliation be used?** | Registration captures chapter for RMB members; unclear if it's just informational or an active product signal. | **Resolved:** Used as a matching + filtering signal, not just metadata. Cross-chapter matches are surfaced deliberately (same-chapter members likely already know each other) — see Feature 2, US2.1. Directory gets a chapter filter. Non-RMBians (no chapter) match on industry/tags only. |
+| **How does attendee login work without an SMS OTP vendor?** | No SMS vendor is budgeted for the pilot; need a passwordless mechanism for returning attendees. | **Resolved:** Passwordless magic link via email only (now a required registration field). No WhatsApp-delivered login link, no SMS OTP vendor. Staff-assisted lookup is the sole fallback for an attendee with no working email access. See Feature 1, US1.5. |
 
 ### Risks & Mitigation
 
