@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output
+apps/frontend/.next/
+apps/frontend/out/
+apps/backend/dist/
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Editor / OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# TypeScript build info
+*.tsbuildinfo
+next-env.d.ts
+
+# Test coverage
+coverage/
