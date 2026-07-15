@@ -1,0 +1,27 @@
+node_modules/
+.pnpm-store/
+
+# Next.js
+apps/web/.next/
+apps/web/out/
+
+# NestJS
+apps/api/dist/
+
+# env
+.env
+.env.local
+apps/*/.env
+apps/*/.env.local
+
+# Prisma
+apps/api/prisma/*.db
+
+# TypeScript
+*.tsbuildinfo
+
+# OS
+.DS_Store
+
+# logs
+*.log

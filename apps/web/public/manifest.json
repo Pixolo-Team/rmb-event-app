@@ -1,0 +1,17 @@
+{
+  "name": "Evento",
+  "short_name": "Evento",
+  "description": "Networking, planned.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F7FB",
+  "theme_color": "#2B6CD4",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -35,7 +35,7 @@
 Evento borrows the trust-network visual language of LinkedIn and Facebook — card-based lists, avatar-driven identity, a calm blue anchor — but every decision is re-tested against the actual user: **Radha**, 35–55, on a budget Android phone, in bright venue lighting, with ninety seconds between handshakes to get something done.
 
 1. **Blue is trust, marigold is the moment.** The brand blue carries every profile, action and link. The one accent color (marigold) is spent only on the scan button and gamification — it never becomes a generic "pretty" CTA color.
-2. **Nothing requires a photo.** Avatars default to initials. MSME owners without a professional headshot are still fully represented.
+2. **Photo-first, initials never block anyone.** Registration collects a photo from every attendee, so it's the primary avatar — a real face makes the directory, matches, and leaderboard read like the "LinkedIn/Facebook-familiar" surfaces this system is modeled on. Initials on `brand-100` remain the fallback whenever a photo is missing, corrupted, or fails to upload — never a blocking error, always a graceful default.
 3. **Offline is a designed state, not an error.** Directory, matches, check-in and scanning all have a fully-cached, fully-functional offline appearance.
 4. **44px is the floor.** Every tappable target meets 44×44px minimum, 52px on primary CTAs.
 5. **Radius signals context.** Sharper corners (6px) in dense admin/data views; softer corners (12–18px) on the social surfaces attendees swipe through.
@@ -200,10 +200,10 @@ Full rendered specimens live in `DESIGN_SYSTEM.html` §Components. Inventory:
 
 - **Buttons** — primary (`brand-500`), accent (`accent-500`, reserved for Scan QR), secondary (outline), ghost, danger, disabled. Sizes: default 44px, large 52px (primary CTAs), small 36px (admin-only, never below 44px on mobile).
 - **Inputs & forms** — text, select, multi-select tag picker, textarea, disabled/pre-filled (phone), error state with inline hint.
-- **Tags & chips** — filter chip (toggle on/off), static display chip, removable form chip.
+- **Tags & chips** — filter chip (toggle on/off), static display chip, removable form chip. Chapter renders as a static display chip (e.g. "RMB Ahmedabad") on cards and profiles, distinct in style from the industry/looking-for/offering tags so it reads as affiliation, not a matching tag a user picked themselves.
 - **Status & badges** — checked-in (success), not-checked-in (neutral), want-to-meet (accent outline), already-met (brand), offline/saved-offline (warning).
-- **Avatar** — sizes 24/32/40/56/72px, initials-first fallback on `brand-100`, optional success-ring for "checked in."
-- **Cards** — match card (People to Meet: avatar, name, company, table #, match reason, bookmark), connection card (My Connections: avatar, name, phone, note, action row), directory card, feed post card.
+- **Avatar** — sizes 24/32/40/56/72px, photo primary (from registration), initials fallback on `brand-100` for missing/broken uploads, optional success-ring for "checked in."
+- **Cards** — match card (People to Meet: avatar, name, company, chapter chip, table #, match reason — states the chapter relationship explicitly, cross- or same-chapter, when either attendee has one — bookmark), connection card (My Connections: avatar, name, phone, note, action row), directory card, feed post card.
 - **Stat tiles** — label + mono value + delta.
 - **Leaderboard row** — rank, avatar, name/company, mono count; "me" row highlighted in accent.
 - **Toasts & alerts** — success toast (auto-dismiss 3s per PRD), warning/offline toast, persistent alert banner with retry.
@@ -236,7 +236,7 @@ Full rendered specimens live in `DESIGN_SYSTEM.html` §Components. Inventory:
 | 16px minimum body text, 4.5:1 contrast minimum | Budget Android screens + bright venue lighting + a 35–55 audience. Status is never color-only — every pill pairs a color with an icon or label |
 | Offline state is a first-class UI state, not an error | Directory, matches, check-in and scanning render fully from cache; the warning banner explains what's degraded, never blocks the screen |
 | <500KB initial bundle, <3s load on 4G | Variable fonts (2 files cover 5 weights), inline SVG icons (no icon-font request), photos auto-compressed under 100KB |
-| No feature requires a photo | Avatars default to initials on `brand-100` |
+| Photo missing/broken never blocks anything | Registration collects a photo for every attendee, so it's the primary avatar; initials on `brand-100` are the graceful fallback for the rare missing/corrupted upload — MSME owners are always fully represented in the directory and leaderboard either way |
 
 ---
 

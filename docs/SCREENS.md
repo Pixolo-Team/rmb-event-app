@@ -12,7 +12,7 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 **Purpose:** Attendee answers questions about themselves to set up a profile before the event
 
 **States:**
-- **Default:** Form displayed with all empty fields except phone (pre-filled from WhatsApp link)
+- **Default:** Form displayed with industry/looking-for/offering/goals/bio empty; name, email, phone, business/profession name, chapter and photo already filled in (read-only) from registration
 - **Loading:** Spinner on "Submit" button; fields disabled while saving
 - **Success:** "Profile saved!" confirmation → auto-redirect to PWA install prompt
 - **Error:** "Something went wrong. Please try again." (with retry button)
@@ -32,21 +32,21 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 - **Leads to:** PWA Install Screen (1.2) or Thanks Screen (1.3)
 
 **Data Needed to Display:**
-- Pre-filled phone number (from WhatsApp link token)
+- Pre-filled and read-only, from registration: name, email, phone, business/profession name, RMB chapter (if any), photo (initials avatar shown if no photo on file)
 - Industry options (dropdown list)
 - "Looking for" tag options (multi-select)
 - "Offering" tag options (multi-select)
 - "Goals" tag options (multi-select)
-- Optional: Photo upload field (defer to Phase 2)
 
 **Edge Cases:**
-- Phone number already in system but no profile yet → pre-fill phone, show "Complete your profile"
+- Phone number already in system but no profile yet → pre-fill phone/email/photo/chapter, show "Complete your profile"
 - Phone number not found → show error "You're not registered for this event"
 - Session token expired (> 72 hours since WhatsApp invite) → show "Link expired. Request a new invite"
 - User goes back (browser back button) → warn "Progress will be lost" before leaving
 - Network fails mid-submit → show "Saving..." and retry when online
 - User fills only required fields and submits → save successfully, move forward
 - User fills all fields and submits → save and show success state
+- Registration photo failed to upload / file corrupted → treat as no photo, initials avatar used everywhere; no blocking error shown to attendee
 
 ---
 
@@ -155,6 +155,54 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 ---
 
 ## Module 2: Attendee App (Main Networking Experience)
+
+### Screen 2.0: Login / Get Access Link
+
+**Module:** Auth (re-entry only — first-time onboarding never sees this screen; it's reached only via the WhatsApp invite link, see Screen 1.1)
+**Purpose:** Self-serve re-entry for a returning attendee who has lost their session — new phone, cleared browser data, reinstalled the PWA. Zero staff involvement in the normal case.
+
+**Why this screen exists / how it works:**
+Evento has no passwords. An attendee's "account" is created by the organizer's import (Screen 3.3) — the registration form already collects email for every attendee, so email is a **required** import field, not something asked for later. There's nothing to log in *with* until they've been sent one thing to log in *as*. The mechanism is a passwordless magic link:
+
+1. Attendee enters their **email** on this screen.
+2. Server looks up that email against imported/profile records (case-insensitive exact match).
+3. **Regardless of whether it matched**, the UI shows the same neutral message: *"If that email is on the guest list, we've sent you a link."* This is deliberate — it stops someone from using this screen to discover who is or isn't registered for the event (email/phone enumeration).
+4. If it matched, the server issues a **single-use, signed token good for 30 minutes** and emails a link containing it.
+5. Attendee opens the email, taps the link, and lands back in the app already authenticated — the token is exchanged for a normal session and then immediately invalidated (can't be reused or forwarded).
+
+**This is also the answer to "what if someone enters another attendee's email":** it doesn't get *them* in. The link is only ever delivered to the inbox on file for that record — typing in someone else's email just sends *that person* a link, it never grants the person typing it any access. Combined with the neutral response in step 3 and rate limiting (see below), this closes both the impersonation and the enumeration concern with the same mechanism.
+
+**States:**
+- **Default:** Email input + "Send me a link" button
+- **Sending:** Button shows spinner, disabled
+- **Sent (always shown on submit, match or not):** "Check your email — if that address is on the guest list, a link is on its way." + "Didn't get it? Resend in 60s" (countdown, then re-enabled)
+- **Rate-limited:** "Too many attempts. Try again in [X] minutes." (max ~5 sends/hour per email, ~3/hour per requesting device)
+- **Link expired or already used:** On landing from an old/reused link → "This link has expired. Request a new one." → back to default state
+- **No email on file:** Not a distinct state (would leak registration status) — falls under the same neutral "sent" message
+
+**User Interactions:**
+- Type email → tap "Send me a link"
+- Tap "Resend" after cooldown
+- Tap "Ask event staff for help" (tertiary, small) → the only path that involves a person; staff can look the attendee up in Check-In Management (3.4) and trigger a resend on their behalf for the rare case where email isn't reachable at all (lost access to the inbox, typo in the registration form itself, etc.) — email is the single self-serve channel, so this is the sole fallback
+
+**Navigation:**
+- **Comes from:** App opened with no valid session (expired/cleared/new device)
+- **Leads to:** Home / Dashboard (2.1) once the emailed link is tapped and the session is established
+
+**Data Needed to Display:**
+- Nothing attendee-specific up front (this screen is intentionally identity-blind until the email is submitted)
+
+**Edge Cases:**
+- Attendee's registered email has a typo from the registration form itself (not catchable by Evento) → staff-assisted lookup is the only recourse (see Check-In Management, 3.4)
+- Attendee fat-fingers their email at login → neutral "sent" message either way; no error state that confirms a typo vs. non-registration, by design
+- Attendee spams the resend button → rate limit kicks in with a clear cooldown message, not a silent failure
+- Link opened on a different device than it was requested from → still works; the token isn't bound to a device, only to the attendee record and a 30-minute window
+- Import's two raw "Email Address" columns from the registration form (Google-account-captured vs. the form question) disagree → admin import flags the row for manual review rather than silently picking one (see Screen 3.3)
+- Attendee has no working access to email at the venue at all → staff-assisted lookup (Check-In Management, 3.4) is the only path; there is no self-serve channel beyond email for this pilot
+
+**Implementation note:** email is a required import field (Screen 3.3) — the registration form already collects it for every attendee, so there is no "optional/add-it-later" case to design for. Login is single-channel (email only); no WhatsApp-delivered login link is in scope for this screen. WhatsApp is still used elsewhere in the product (onboarding invites, reminders, follow-up — see Feature 1/9 in `FEATURES.md`), just not as a login mechanism.
+
+---
 
 ### Screen 2.1: Home / Dashboard
 
@@ -279,7 +327,7 @@ App opens
 
 **User Interactions:**
 - Scroll through list (lazy load more on scroll)
-- Tap filter icon → open filter drawer (industry, company, checked-in status)
+- Tap filter icon → open filter drawer (industry, company, RMB chapter — including a "no chapter" option for non-RMBians — checked-in status)
 - Tap search bar → open search input, type name/company
 - Tap "X" on search → clear search
 - Tap on attendee card → open Individual Profile (2.3)
@@ -291,10 +339,9 @@ App opens
 - **Leads to:** Individual Profile Screen (2.3)
 
 **Data Needed to Display:**
-- Full attendee list: name, company, industry, table number, check-in status
-- Filter options: industries list, companies list
+- Full attendee list: photo (initials avatar if none on file), name, company, industry, RMB chapter (if any), table number, check-in status
+- Filter options: industries list, companies list, chapter list (from registration data)
 - Search index (client-side for offline)
-- Attendee avatar/photo (optional, Phase 2)
 - Bookmark status for each attendee
 
 **Edge Cases:**
@@ -336,10 +383,11 @@ App opens
 - **Leads to:** QR Scanner (2.4), Note Editor, native apps (Phone, WhatsApp)
 
 **Data Needed to Display:**
-- Attendee name, company, industry, phone, email (if available)
+- Attendee name, company, industry, RMB chapter (if any), phone, email
 - Table number
-- Photo/avatar (optional)
+- Photo (from registration; initials avatar if none on file)
 - Bio/description
+- Match reason, when arrived from Matches (1.4) — states the chapter relationship explicitly: e.g. "You're both in Manufacturing — she's from the Surat chapter" (cross-chapter) or "You're both in the Ahmedabad chapter" (same-chapter); omitted if either party has no chapter
 - Meeting status (met or not)
 - Bookmark status
 - Any existing notes from current user
@@ -786,7 +834,7 @@ App opens
 
 **Navigation:**
 - **Comes from:** Admin Login (3.1)
-- **Leads to:** Check-in Management (3.3), Leaderboard, Feed Moderation (3.5), Feedback Analytics (3.6)
+- **Leads to:** Check-in Management (3.4), Leaderboard, Feed Moderation (3.5), Feedback Analytics (3.6)
 
 **Data Needed to Display:**
 - Check-ins: total checked in vs. expected (e.g., 142/200)
@@ -809,39 +857,45 @@ App opens
 **Module:** Admin  
 **Purpose:** Upload pre-registered attendee list to populate the system
 
+**Source format:** the organizer's registration form (observed as a Google Form export) produces columns beyond what Evento needs: `Timestamp`, `Email Address` (Google-account-captured), `Full Name`, `Email Address` (form question — canonical, used over the account-captured column if they differ), `Phone Number`, `RMB Chapter Name if You are a RMBian`, `Business/Profession Name`, `Upload your latest photo`, `Upload screenshot of payment`, `upload payment details of Rs.4000/- payment`. **Payment columns are ignored on import** — payment verification happens entirely in the organizer's own registration process; the file handed to Evento is expected to already contain only confirmed, paid attendees.
+
 **States:**
-- **Default:** File upload interface with drag-and-drop area
+- **Default:** File upload interface with drag-and-drop area, plus a column-mapping step (map the raw form headers above to Evento's fields: name, email, phone, business/profession name, chapter, photo)
 - **Uploading:** Progress bar with filename
 - **Success:** "Imported 198 attendees. 2 duplicates skipped."
-- **Validation Error:** "Invalid CSV format. Check columns: name, phone, company, industry"
+- **Validation Error:** "Invalid file. Check required columns: name, email, phone, business/profession name"
 - **Error:** "Upload failed. Check your connection and try again."
 
 **User Interactions:**
 - Drag and drop CSV/Excel file onto upload area
 - Tap upload area → open file picker, select file
-- Select file → file added, ready to import
+- Select file → file added, column-mapping preview shown (auto-detected from headers, editable)
 - Tap "Import" → submit file to server
 - Tap "Cancel" → discard file
-- View preview (optional) → show first 5 rows of data before importing
+- View preview (optional) → show first 5 rows of data before importing, including which rows will be flagged for review
 
 **Navigation:**
 - **Comes from:** Admin Dashboard (3.2)
-- **Leads to:** Check-in Management (3.3) or shows success and stays on screen
+- **Leads to:** Check-in Management (3.4) or shows success and stays on screen
 
 **Data Needed to Display:**
 - File upload area with drag-and-drop
 - File name, size display
-- CSV format instructions (columns required)
+- Column-mapping UI (raw header → Evento field), with sensible auto-detected defaults for the known Google Form header names
+- Format instructions: required — name, email, phone, business/profession name; optional — RMB chapter, photo
 - Progress bar during upload
-- Success/error message with counts
+- Success/error message with counts, plus a count of rows flagged for manual review (see edge cases)
 
 **Edge Cases:**
 - File too large (> 5 MB) → show "File too large. Max 5 MB."
 - Wrong file format → show "Please upload a CSV or Excel file"
-- CSV has missing columns → show "Missing columns: [list]"
+- Required columns missing after mapping → show "Missing columns: [list]"
 - CSV has empty rows → skip empty rows, show count of rows imported
 - Phone numbers have inconsistent formats → try to normalize, warn on conflicts
-- Duplicate phone numbers in same import → dedup, show count of duplicates skipped
+- Duplicate phone numbers or duplicate emails in same import → dedup, show count of duplicates skipped
+- The two raw "Email Address" columns disagree for a row → import the form-question value, flag the row in the success summary for admin's own review (does not block import)
+- Photo upload reference is broken/missing/unreadable → import the attendee anyway with no photo; initials avatar used everywhere in-app
+- RMB Chapter left blank → import as "no chapter" (attendee treated as a non-RMBian throughout matching/filtering)
 - Import succeeds but partial → show "198 imported, 2 errors" with list of failed rows
 
 ---
@@ -894,7 +948,7 @@ App opens
 
 ---
 
-### Screen 3.3: Check-In Management
+### Screen 3.4: Check-In Management
 
 **Module:** Admin  
 **Purpose:** View check-in status in real-time; manually check in attendees via QR scan
@@ -1199,7 +1253,7 @@ Admin Flow:
   Admin Dashboard (3.2) [central hub]
     ├→ Event Settings (3.2A) [configure venue location for geolocation check-in]
     ├→ Import Attendees (3.3) [pre-event]
-    ├→ Check-in Management (3.3) [real-time, with QR scanner]
+    ├→ Check-in Management (3.4) [real-time, with QR scanner]
     │   └→ Back to Event Settings (3.2A) [if venue not configured]
     ├→ Feed Moderation (3.5)
     ├→ Feedback Analytics (3.6)
@@ -1213,7 +1267,7 @@ Check-In Orchestration Flow (Detailed):
     │   ├→ Success + in radius → Auto check-in → "✓ Checked in" state
     │   └→ Fail/timeout/outside radius → Show "Check In Manually" button (orange)
     │       └→ User taps → Manual Check-In (2.1A) → Submit check-in → "✓ Checked in"
-    └→ Or: Staff scans QR at desk (Admin 3.3) → "✓ Checked in" state (both directions)
+    └→ Or: Staff scans QR at desk (Admin 3.4) → "✓ Checked in" state (both directions)
 
 Cross-Cutting:
   Network Error Banner (4.1)
@@ -1239,7 +1293,7 @@ Cross-Cutting:
 **Check-In Flow Additions:**
 - Screen 2.1A: Manual Check-In (fallback when geolocation fails)
 - Screen 3.2A: Event Settings (venue coordinates & radius configuration)
-- Screen 3.3: Check-In Management (expanded to show check-in methods + venue config warning)
+- Screen 3.4: Check-In Management (expanded to show check-in methods + venue config warning)
 
 ---
 

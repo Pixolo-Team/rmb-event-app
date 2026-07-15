@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ImportRowStatus {
+  OK
+  DUPLICATE
+  ERROR
+  FLAGGED
+}
+
+model Chapter {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  createdAt DateTime   @default(now())
+  attendees Attendee[]
+}
+
+model Attendee {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  phone     String   @unique
+  createdAt DateTime @default(now())
+
+  businessName String?
+  chapter      Chapter? @relation(fields: [chapterId], references: [id])
+  chapterId    String?
+  photoUrl     String?
+
+  // Profile — filled in during onboarding (Screen 1.1), empty until then.
+  industry           String?
+  lookingFor         String[] @default([])
+  offering           String[] @default([])
+  goals              String[] @default([])
+  bio                String?
+  profileCompletedAt DateTime?
+
+  // Signed, opaque, non-sequential — generated at import time (PRD Security & Privacy).
+  qrToken String @unique
+
+  magicLinkTokens MagicLinkToken[]
+  onboardingTokens OnboardingToken[]
+}
+
+model MagicLinkToken {
+  id         String    @id @default(uuid())
+  attendee   Attendee  @relation(fields: [attendeeId], references: [id])
+  attendeeId String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([attendeeId, createdAt])
+}
+
+// Longer-lived than a login link (72h per PRD) and reusable until the profile is
+// completed — an attendee may reopen the WhatsApp invite more than once.
+model OnboardingToken {
+  id         String   @id @default(uuid())
+  attendee   Attendee @relation(fields: [attendeeId], references: [id])
+  attendeeId String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([attendeeId])
+}
+
+model ImportBatch {
+  id             String     @id @default(uuid())
+  fileName       String
+  successCount   Int        @default(0)
+  duplicateCount Int        @default(0)
+  errorCount     Int        @default(0)
+  flaggedCount   Int        @default(0)
+  createdAt      DateTime   @default(now())
+  rows           ImportRow[]
+}
+
+model ImportRow {
+  importBatch   ImportBatch     @relation(fields: [importBatchId], references: [id])
+  importBatchId String
+  id            String          @id @default(uuid())
+  rowNumber     Int
+  rawData       Json
+  status        ImportRowStatus
+  reason        String?
+
+  @@index([importBatchId])
+}
