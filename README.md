@@ -78,4 +78,6 @@ See `apps/api/src/mail/mail.service.ts` and `apps/api/src/whatsapp/whatsapp.serv
 | My Connections (`/connections`) — cached Already Met + Want to Meet lists, sorting, Call/WhatsApp, private notes, bookmarks and non-destructive removal | Real (F4.3 + F5) |
 | Save to phone contacts — local `.vcf` generation from attendee profiles and connection cards, handed to the native Contacts flow | Real (F10.1), works offline |
 | Admin auth (Screen 3.1) | Not built — `/admin/import`, `/admin/event`, `/admin/checkin`, `/admin/badges` have no login gate yet |
-| Everything past connections (bookmarks, leaderboard, feed, analytics) | Not built yet |
+| Bookmarks (F5), leaderboard (F6), event photo feed (F7), feedback (F8), event summary/export (F9) | Real |
+| Attendee personal stats (`/profile` → "Your stats": people met, rank, bookmarks, photos, live time at event) | Real (F11.1) — `GET /attendees/me/stats`, cache-first and offline-tolerant |
+| Admin analytics dashboard + export (F11.2/F11.3) | Not built yet |

@@ -1,0 +1,84 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { PersonalStats as Stats, statsCache } from "../lib/statsCache";
+
+function formatDuration(ms: number): string {
+  if (ms <= 0) return "0m";
+  const totalMin = Math.floor(ms / 60000);
+  const hours = Math.floor(totalMin / 60);
+  const minutes = totalMin % 60;
+  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+}
+
+// F11.1 — the attendee's own stats, surfaced on the Settings/Profile screen.
+// Cache-first and offline-tolerant: renders from localStorage instantly, refreshes
+// from the network when reachable, and keeps the time-at-event timer ticking either way.
+export function PersonalStats() {
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const cached = statsCache.get();
+    if (cached) setStats(cached);
+    fetch("/api/attendees/me/stats", { credentials: "include" })
+      .then(async (res) => {
+        if (!res.ok) throw new Error("unavailable");
+        const data = (await res.json()) as Stats;
+        statsCache.set(data);
+        setStats(data);
+      })
+      .catch(() => {
+        /* offline / unreachable — keep the cached value */
+      });
+  }, []);
+
+  // Minute granularity is enough for a "time at event" readout.
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (!stats) return null;
+
+  const checkedIn = stats.checkedInAt !== null;
+  const timeAtEvent = checkedIn
+    ? formatDuration(
+        Math.min(now, stats.eventEndAt ? new Date(stats.eventEndAt).getTime() : now) -
+          new Date(stats.checkedInAt as string).getTime(),
+      )
+    : null;
+
+  return (
+    <section className="profile-section stats-section" aria-label="Your stats">
+      <h2>Your stats</h2>
+      <div className="stats-grid">
+        <StatTile value={stats.peopleMet} label="People met" />
+        <StatTile value={`#${stats.rank}`} sub={`of ${stats.totalRanked}`} label="Rank" />
+        <StatTile value={stats.bookmarks} label="Bookmarks" />
+        <StatTile value={stats.photos} label="Photos posted" />
+        <StatTile value={timeAtEvent ?? "—"} label={checkedIn ? "Time at event" : "Not checked in yet"} wide />
+      </div>
+    </section>
+  );
+}
+
+function StatTile({
+  value,
+  label,
+  sub,
+  wide,
+}: {
+  value: React.ReactNode;
+  label: string;
+  sub?: string;
+  wide?: boolean;
+}) {
+  return (
+    <div className={`stat-tile${wide ? " stat-tile-wide" : ""}`}>
+      <strong>{value}</strong>
+      {sub && <em>{sub}</em>}
+      <span>{label}</span>
+    </div>
+  );
+}
