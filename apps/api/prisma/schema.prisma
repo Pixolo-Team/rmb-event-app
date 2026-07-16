@@ -54,6 +54,23 @@ model Attendee {
 
   magicLinkTokens MagicLinkToken[]
   onboardingTokens OnboardingToken[]
+  bookmarksMade   Bookmark[] @relation("BookmarksMade")
+  bookmarksOnMe   Bookmark[] @relation("BookmarksOnMe")
+  photos          Photo[]
+  likes           Like[]
+  comments        Comment[]
+}
+
+model Bookmark {
+  attendee   Attendee @relation("BookmarksMade", fields: [attendeeId], references: [id])
+  attendeeId String
+  target     Attendee @relation("BookmarksOnMe", fields: [targetId], references: [id])
+  targetId   String
+  createdAt  DateTime @default(now())
+
+  @@id([attendeeId, targetId])
+  @@index([attendeeId, createdAt])
+  @@index([targetId])
 }
 
 model MagicLinkToken {
@@ -102,4 +119,63 @@ model ImportRow {
   reason        String?
 
   @@index([importBatchId])
+}
+
+model Photo {
+  id         String   @id @default(uuid())
+  attendee   Attendee @relation(fields: [attendeeId], references: [id])
+  attendeeId String
+  // Relative path served by the API's static route, e.g. "/uploads/photos/<uuid>.jpg" —
+  // stored relative so the frontend resolves it through the same-origin Next.js
+  // rewrite regardless of environment.
+  url        String
+  caption    String?
+  createdAt  DateTime @default(now())
+
+  likes    Like[]
+  comments Comment[]
+
+  @@index([attendeeId])
+  @@index([createdAt])
+}
+
+model Like {
+  photo      Photo    @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  photoId    String
+  attendee   Attendee @relation(fields: [attendeeId], references: [id])
+  attendeeId String
+  createdAt  DateTime @default(now())
+
+  @@id([photoId, attendeeId])
+  @@index([attendeeId])
+}
+
+model Comment {
+  id         String   @id @default(uuid())
+  photo      Photo    @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  photoId    String
+  attendee   Attendee @relation(fields: [attendeeId], references: [id])
+  attendeeId String
+  message    String
+  createdAt  DateTime @default(now())
+
+  @@index([photoId, createdAt])
+}
+
+// Standalone audit snapshot for admin feed moderation's "deleted-post history log".
+// Photo rows are hard-deleted on admin delete (disappears exactly like a self-delete,
+// no placeholder state), so this is a snapshot table, not a soft-delete flag on Photo.
+model DeletedPhotoLog {
+  id           String   @id @default(uuid())
+  photoId      String // original Photo.id — no FK, row no longer exists
+  attendeeId   String // original poster's id — no FK, same reason
+  attendeeName String // denormalized snapshot at delete time
+  caption      String?
+  photoUrl     String
+  postedAt     DateTime
+  deletedAt    DateTime @default(now())
+  // No admin identity captured yet — admin auth (PF3) isn't built anywhere in this app.
+  deletedBy    String   @default("admin")
+
+  @@index([deletedAt])
 }

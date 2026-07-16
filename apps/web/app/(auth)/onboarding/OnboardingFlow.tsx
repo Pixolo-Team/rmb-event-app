@@ -46,10 +46,8 @@ export function OnboardingFlow() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
 
-  // Session-based (SCREENS.md Screen 1.1 "Comes from: Login 2.0") — the
-  // attendee arrives already authenticated by their magic link. No session →
-  // back to Login; this page never handles tokens itself.
   useEffect(() => {
     Promise.all([
       fetch("/api/attendees/me", { credentials: "include" }),
@@ -68,8 +66,7 @@ export function OnboardingFlow() {
         setStep("form");
       })
       .catch(() => router.replace("/login"));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [router]);
 
   async function submitProfile() {
     const errors: Record<string, string> = {};
@@ -98,6 +95,7 @@ export function OnboardingFlow() {
         setSubmitError("Couldn't save your profile. Please try again.");
         return;
       }
+      setProfileSaved(true);
       setStep("install");
     } catch {
       setSubmitError("Couldn't reach the server. Check your connection and try again.");
@@ -138,7 +136,7 @@ export function OnboardingFlow() {
             </button>
           ) : (
             <p style={{ fontSize: ".78rem" }}>
-              Your browser doesn&rsquo;t support one-tap install here — use &ldquo;Add to Home Screen&rdquo; from your browser menu instead.
+              Your browser doesn&rsquo;t support one-tap install here - use &ldquo;Add to Home Screen&rdquo; from your browser menu instead.
             </p>
           )}
           <button className="link-muted" onClick={() => setStep("thanks")}>
@@ -160,15 +158,20 @@ export function OnboardingFlow() {
           <div className="ring ok">✓</div>
           <h2>Your profile is set up!</h2>
           <p>
-            See you at the event — keep an eye on the group for updates. Matches and the rest of the app land with the
-            next features.
+            {profileSaved
+              ? "You can open the app now. The first-time tutorial will guide you through the basics."
+              : "See you at the event. If you skipped profile setup, we'll bring you back here on your next login."}
           </p>
+          {profileSaved ? (
+            <button className="btn-primary" style={{ width: "auto", padding: "0 24px" }} onClick={() => router.push("/tutorial")}>
+              Open app
+            </button>
+          ) : null}
         </div>
       </div>
     );
   }
 
-  // step === "form"
   return (
     <div className="card" style={{ maxWidth: 440 }}>
       <div className="wordmark">

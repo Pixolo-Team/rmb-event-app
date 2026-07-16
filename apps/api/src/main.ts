@@ -1,12 +1,19 @@
 import "dotenv/config";
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
+import { NestExpressApplication } from "@nestjs/platform-express";
 import { ValidationPipe } from "@nestjs/common";
 import cookieParser from "cookie-parser";
+import fs from "fs";
+import path from "path";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  const uploadsRoot = path.join(process.cwd(), "uploads");
+  fs.mkdirSync(path.join(uploadsRoot, "photos"), { recursive: true });
+  app.useStaticAssets(uploadsRoot, { prefix: "/uploads" });
 
   app.use(cookieParser());
   app.useGlobalPipes(

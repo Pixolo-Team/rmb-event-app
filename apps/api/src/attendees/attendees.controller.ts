@@ -8,7 +8,6 @@ import {
   Post,
   Req,
   Res,
-  UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
 import type { Response } from "express";
@@ -70,10 +69,15 @@ export class AttendeesController {
     };
   }
 
+  @Get("directory")
+  @UseGuards(SessionGuard)
+  async directory(@Req() req: RequestWithAttendee) {
+    return this.attendees.getDirectoryForAttendee(req.attendeeId);
+  }
+
   @Patch("me/profile")
   @UseGuards(SessionGuard)
   async updateProfile(@Req() req: RequestWithAttendee, @Body() dto: UpdateProfileDto) {
-    if (!req.attendeeId) throw new UnauthorizedException();
     const attendee = await this.attendees.updateProfile(req.attendeeId, dto);
     return { status: "ok", profileCompletedAt: attendee.profileCompletedAt };
   }
