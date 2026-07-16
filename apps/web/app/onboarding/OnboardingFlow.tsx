@@ -159,10 +159,10 @@ export function OnboardingFlow() {
         <div className="center-state">
           <div className="ring ok">✓</div>
           <h2>Your profile is set up!</h2>
-          <p>
-            See you at the event — keep an eye on the group for updates. Matches and the rest of the app land with the
-            next features.
-          </p>
+          <p>See you at the event — keep an eye on the group for updates.</p>
+          <button className="btn-primary" style={{ width: "auto", padding: "0 24px" }} onClick={() => router.replace("/home")}>
+            Go to your dashboard
+          </button>
         </div>
       </div>
     );

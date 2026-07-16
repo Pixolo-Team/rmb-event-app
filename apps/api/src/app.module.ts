@@ -6,6 +6,8 @@ import { SessionModule } from "./session/session.module";
 import { AuthModule } from "./auth/auth.module";
 import { AdminImportModule } from "./admin-import/admin-import.module";
 import { AttendeesModule } from "./attendees/attendees.module";
+import { EventModule } from "./event/event.module";
+import { CheckinModule } from "./checkin/checkin.module";
 import { AppController } from "./app.controller";
 
 @Module({
@@ -17,6 +19,8 @@ import { AppController } from "./app.controller";
     AuthModule,
     AdminImportModule,
     AttendeesModule,
+    EventModule,
+    CheckinModule,
   ],
   controllers: [AppController],
 })

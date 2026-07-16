@@ -55,4 +55,10 @@ export class AuthController {
 
     return { status: "ok", attendee: result.attendee };
   }
+
+  @Post("logout")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  logout(@Res({ passthrough: true }) res: Response) {
+    this.session.clearSessionCookie(res);
+  }
 }
