@@ -3,19 +3,43 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AttendeeMenu, type MenuAttendee } from "./AttendeeMenu";
+import { profileCache } from "../lib/profileCache";
 
 export function AttendeePageShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [attendee, setAttendee] = useState<MenuAttendee | null>(null);
 
   useEffect(() => {
+    // Fall back to the cached profile so the app (and the offline QR on the
+    // profile screen) still render when the API is unreachable. Only redirect to
+    // login on an actual auth failure (401/403) — never on a network error or a
+    // 5xx from an unreachable API proxy, which are not sign-outs.
+    function useCacheOrLogin() {
+      const cached = profileCache.get();
+      if (cached?.profileCompletedAt) {
+        setAttendee({
+          name: cached.name,
+          businessName: cached.businessName,
+          chapterName: cached.chapterName,
+          photoUrl: cached.photoUrl,
+        });
+      } else {
+        router.replace("/login");
+      }
+    }
+
     fetch("/api/attendees/me", { credentials: "include" })
       .then(async (response) => {
-        if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
           router.replace("/login");
           return;
         }
+        if (!response.ok) {
+          useCacheOrLogin();
+          return;
+        }
         const me = await response.json();
+        profileCache.set(me);
         if (!me.profileCompletedAt) {
           router.replace("/onboarding");
           return;
@@ -27,7 +51,7 @@ export function AttendeePageShell({ children }: { children: ReactNode }) {
           photoUrl: me.photoUrl,
         });
       })
-      .catch(() => router.replace("/login"));
+      .catch(useCacheOrLogin);
   }, [router]);
 
   if (!attendee) {

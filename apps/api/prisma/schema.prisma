@@ -84,6 +84,28 @@ model Attendee {
   magicLinkTokens MagicLinkToken[]
   onboardingTokens OnboardingToken[]
   checkIn          CheckIn?
+  meetingsA        Meeting[]        @relation("MeetingsA")
+  meetingsB        Meeting[]        @relation("MeetingsB")
+}
+
+// F4 — a confirmed meeting between two attendees, created by one QR scan (the
+// unified card exchange). Stored as a canonical *unordered* pair: the service
+// always writes the two ids in sorted order, so (a scans b) and (b scans a) map
+// to the same row. The @@unique on that pair IS the duplicate-pair protection —
+// a second scan in either direction hits the constraint instead of double-counting.
+model Meeting {
+  id          String   @id @default(uuid())
+  attendeeA   Attendee @relation("MeetingsA", fields: [attendeeAId], references: [id])
+  attendeeAId String
+  attendeeB   Attendee @relation("MeetingsB", fields: [attendeeBId], references: [id])
+  attendeeBId String
+  // Who initiated the scan (audit/analytics; both parties get the connection).
+  scannedById String
+  createdAt   DateTime @default(now())
+
+  @@unique([attendeeAId, attendeeBId])
+  @@index([attendeeAId])
+  @@index([attendeeBId])
 }
 
 // Single-row config for the pilot's one event — F3.1 (Screen 3.2A). Not configured

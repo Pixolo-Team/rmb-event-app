@@ -21,12 +21,13 @@ type MenuItem = {
 
 const MENU_ITEMS: MenuItem[] = [
   { href: "/home", label: "Home", icon: HomeIcon, available: true },
+  { href: "/scan", label: "Scan a Code", icon: ScanIcon, available: true },
   { label: "People to Meet", icon: SparkIcon, available: false },
   { href: "/directory", label: "Attendee Directory", icon: DirectoryIcon, available: true, activePrefixes: ["/attendees/"] },
   { label: "My Connections", icon: ConnectionsIcon, available: false },
   { label: "Leaderboard", icon: TrophyIcon, available: false },
-  { label: "My Profile", icon: ProfileIcon, available: false },
-  { label: "Show My QR", icon: QrIcon, available: false },
+  { href: "/profile", label: "My Profile", icon: ProfileIcon, available: true },
+  { href: "/profile?qr=1", label: "Show My QR", icon: QrIcon, available: true },
 ];
 
 const SHOW_PLANNED_ITEMS = process.env.NODE_ENV !== "production";
@@ -241,6 +242,10 @@ function ProfileIcon() {
 
 function QrIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v6h-4v-2h-2" /></svg>;
+}
+
+function ScanIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16" /></svg>;
 }
 
 function SparkIcon() {

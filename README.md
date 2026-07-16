@@ -2,7 +2,7 @@
 
 MSME event networking PWA. See [`docs/`](./docs) for the full PRD, screen specs, feature breakdown, design system, and development plan.
 
-**Current build status:** see `docs/FEATURES.md`'s Feature Index for the authoritative per-feature status. Done so far: PF1 (PWA shell), PF2 (email magic-link auth), PF4 (offline sync engine), F1.1 (admin CSV import), F1.2 (profile setup form), F1.3 (PWA install prompt), F1.4 (thanks screen), F3.1–F3.5 (venue settings, check-in, staff QR scan, badge printing — including offline queuing). Everything else (admin login gate, matching, QR business-card exchange, leaderboard, feed, analytics) is still spec-only.
+**Current build status:** see `docs/FEATURES.md`'s Feature Index for the authoritative per-feature status. Done so far: PF1 (PWA shell), PF2 (email magic-link auth), PF4 (offline sync engine), PF8 (dropdown reference data), F1.1 (admin CSV import), F1.2 (profile setup form), F1.3 (PWA install prompt), F1.4 (thanks screen), F2.1 (matching engine), F2.4 (attendee directory), F2.5 (individual profile + match reason), F3.1–F3.5 (venue settings, check-in, staff QR scan, badge printing — including offline queuing), F4.1 (Settings/Profile + own business-card QR), F4.2 (QR scan → card exchange + confirmed meeting). Everything else (admin login gate, pre-event matches screen, My Connections list, leaderboard, feed, analytics) is still spec-only.
 
 ## Stack
 
@@ -71,5 +71,9 @@ See `apps/api/src/mail/mail.service.ts` and `apps/api/src/whatsapp/whatsapp.serv
 | Actual email delivery | Stubbed — logs to console instead of calling Postmark/Resend |
 | Actual WhatsApp delivery | Stubbed — logs to console instead of calling a WhatsApp Business API vendor |
 | Payment verification | Explicitly out of scope — see `docs/PRD_v1.md`'s Open Questions |
+| Attendee directory + individual profile (`/directory`, `/attendees/[id]`) with search/filter/sort and offline cache | Real |
+| Smart matching — decoupled engine (`apps/api/src/matching/`) computing looking-for/offering overlap, shared category, same/cross-chapter reasoning; surfaced as the "Why you're a match" reason on a profile | Real (F2.1 engine + F2.5 display). The pre-event "People to meet" list (F2.3) and day-3 pre-compute cache (F2.2) still consume this engine but aren't built |
+| Settings/Profile screen (`/profile`) with the attendee's own business-card QR — offline-rendered from their signed token, tap-to-enlarge with brightness boost | Real (F4.1) |
+| QR scan → card exchange + confirmed meeting (`/scan`) — one scan logs a `Meeting` (canonical unordered pair, duplicate-pair protected), self-scan/unknown-code guards, offline-queued via PF4 | Real (F4.2). The **My Connections** list that reads these meetings back (F4.3) isn't built yet |
 | Admin auth (Screen 3.1) | Not built — `/admin/import`, `/admin/event`, `/admin/checkin`, `/admin/badges` have no login gate yet |
-| Everything past check-in (matching, QR business-card exchange, leaderboard, feed, analytics) | Not built yet |
+| Everything past the scan (My Connections list, leaderboard, feed, analytics) | Not built yet |

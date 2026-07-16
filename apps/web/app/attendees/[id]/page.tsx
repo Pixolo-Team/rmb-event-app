@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AttendeePageShell } from "../../components/AttendeePageShell";
 import { DirectoryAvatar } from "../../components/DirectoryAvatar";
+import { ContactRows } from "../../components/ContactRows";
 import { directoryCache, type AttendeeProfile } from "../../lib/directoryCache";
 
 export default function AttendeeProfilePage({ params }: { params: { id: string } }) {
@@ -71,9 +72,21 @@ function ProfileContent({ profile }: { profile: AttendeeProfile }) {
         {canShare && <button className="profile-action" type="button" onClick={() => navigator.share({ title: profile.name, text: `${profile.name} · ${profile.businessName ?? "Evento attendee"}` })}>Share</button>}
       </div>
 
+      {profile.match && (
+        <section className="match-reason" aria-label="Why you're a match">
+          <p className="match-reason-eyebrow">Why you’re a match</p>
+          <p className="match-reason-headline">{profile.match.headline}</p>
+          {profile.match.reasons.length > 1 && (
+            <ul className="match-reason-list">
+              {profile.match.reasons.map((reason) => <li key={reason}>{reason}</li>)}
+            </ul>
+          )}
+        </section>
+      )}
+
       {profile.bio && <ProfileSection title="About"><p className="profile-bio">{profile.bio}</p></ProfileSection>}
       <div className="profile-details-grid">
-        <ProfileSection title="Contact"><dl className="profile-contact"><div><dt>Phone</dt><dd><a href={`tel:${profile.phone}`}>{profile.phone}</a></dd></div><div><dt>Email</dt><dd><a href={`mailto:${profile.email}`}>{profile.email}</a></dd></div></dl></ProfileSection>
+        <ProfileSection title="Contact"><ContactRows phone={profile.phone} email={profile.email} tableNumber={profile.tableNumber} /></ProfileSection>
         <ProfileSection title="Networking goals"><TagList values={profile.goals} empty="No goals added yet" /></ProfileSection>
         <ProfileSection title="Looking for"><TagList values={profile.lookingFor} empty="Not specified" /></ProfileSection>
         <ProfileSection title="Offering"><TagList values={profile.offering} empty="Not specified" /></ProfileSection>

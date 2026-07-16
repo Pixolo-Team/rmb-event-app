@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { SessionService } from "../session/session.service";
+import { MatchingService } from "../matching/matching.service";
+import type { MatchProfile } from "../matching/matching.types";
 import { hashToken } from "../common/tokens";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { GOALS_TAGS, LOOKING_FOR_TAGS, OFFERING_TAGS } from "./profile-options";
@@ -29,6 +31,7 @@ export class AttendeesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly session: SessionService,
+    private readonly matching: MatchingService,
   ) {}
 
   async resolveOnboardingToken(rawToken: string): Promise<ResolveOnboardingResult> {
@@ -194,28 +197,43 @@ export class AttendeesService {
     };
   }
 
-  async getDirectoryProfile(attendeeId: string) {
-    const attendee = await this.prisma.attendee.findUnique({
-      where: { id: attendeeId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        businessName: true,
-        businessCategory: true,
-        city: true,
-        photoUrl: true,
-        tableNumber: true,
-        lookingFor: true,
-        offering: true,
-        goals: true,
-        bio: true,
-        chapter: { select: { name: true } },
-        checkIn: { select: { createdAt: true } },
-      },
-    });
+  async getDirectoryProfile(viewerId: string, targetId: string) {
+    const matchSelect = {
+      businessCategory: true,
+      lookingFor: true,
+      offering: true,
+      chapter: { select: { name: true } },
+    } as const;
+
+    const [attendee, viewer] = await Promise.all([
+      this.prisma.attendee.findUnique({
+        where: { id: targetId },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          businessName: true,
+          city: true,
+          photoUrl: true,
+          tableNumber: true,
+          goals: true,
+          bio: true,
+          checkIn: { select: { createdAt: true } },
+          ...matchSelect,
+        },
+      }),
+      viewerId === targetId
+        ? Promise.resolve(null)
+        : this.prisma.attendee.findUnique({ where: { id: viewerId }, select: { id: true, ...matchSelect } }),
+    ]);
     if (!attendee) throw new NotFoundException("Attendee not found");
+
+    // F2.5 personalised match reason, via the decoupled F2.1 engine. Absent when
+    // viewing your own profile or when there is no meaningful match to explain.
+    const match = viewer
+      ? this.matching.computeMatch(toMatchProfile(viewer), toMatchProfile(attendee))
+      : null;
 
     return {
       ...attendee,
@@ -223,6 +241,7 @@ export class AttendeesService {
       chapter: undefined,
       checkedIn: Boolean(attendee.checkIn),
       checkIn: undefined,
+      match: match && match.headline ? match : null,
     };
   }
 
@@ -240,4 +259,21 @@ export class AttendeesService {
       qrToken: a.qrToken,
     }));
   }
+}
+
+// Adapts a Prisma attendee row to the matching engine's schema-independent input.
+function toMatchProfile(row: {
+  id: string;
+  businessCategory: string | null;
+  lookingFor: string[];
+  offering: string[];
+  chapter: { name: string } | null;
+}): MatchProfile {
+  return {
+    id: row.id,
+    businessCategory: row.businessCategory,
+    lookingFor: row.lookingFor,
+    offering: row.offering,
+    chapterName: row.chapter?.name ?? null,
+  };
 }
