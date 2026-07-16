@@ -5,13 +5,14 @@ import { useEffect, useMemo, useState } from "react";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { DirectoryAvatar } from "../components/DirectoryAvatar";
 import { Connection, ConnectionsResponse, connectionsCache } from "../lib/connectionsCache";
+import { SaveContactButton } from "../components/SaveContactButton";
 
 type SortOption = "recent" | "name";
 
 const PREVIEW_DATA: ConnectionsResponse = { connections: [
-  { id: "preview-1", name: "Aarav Mehta", phone: "+919810012345", businessName: "Mehta Packaging Solutions", businessCategory: "Manufacturing", bio: "Helping growing brands switch to sustainable packaging without increasing production costs.", tableNumber: "12", photoUrl: null, metAt: "2026-07-16T09:42:00.000Z", note: "Interested in eco-friendly packaging. Follow up next week." },
-  { id: "preview-2", name: "Neha Kapoor", phone: "+919820067890", businessName: "Kapoor Digital", businessCategory: "Marketing & Advertising", bio: "Performance marketing and brand strategy for founder-led businesses.", tableNumber: "7", photoUrl: null, metAt: "2026-07-16T08:25:00.000Z", note: "" },
-  { id: "preview-3", name: "Vikram Shah", phone: "+919930054321", businessName: "Shah Industrial Systems", businessCategory: "Engineering", bio: null, tableNumber: "18", photoUrl: null, metAt: "2026-07-16T07:50:00.000Z", note: "Met near registration desk." },
+  { id: "preview-1", name: "Aarav Mehta", phone: "+919810012345", email: "aarav@example.com", businessName: "Mehta Packaging Solutions", businessCategory: "Manufacturing", bio: "Helping growing brands switch to sustainable packaging without increasing production costs.", tableNumber: "12", photoUrl: null, metAt: "2026-07-16T09:42:00.000Z", note: "Interested in eco-friendly packaging. Follow up next week." },
+  { id: "preview-2", name: "Neha Kapoor", phone: "+919820067890", email: "neha@example.com", businessName: "Kapoor Digital", businessCategory: "Marketing & Advertising", bio: "Performance marketing and brand strategy for founder-led businesses.", tableNumber: "7", photoUrl: null, metAt: "2026-07-16T08:25:00.000Z", note: "" },
+  { id: "preview-3", name: "Vikram Shah", phone: "+919930054321", email: "vikram@example.com", businessName: "Shah Industrial Systems", businessCategory: "Engineering", bio: null, tableNumber: "18", photoUrl: null, metAt: "2026-07-16T07:50:00.000Z", note: "Met near registration desk." },
 ] };
 
 export default function ConnectionsPage() {
@@ -147,6 +148,7 @@ function ConnectionCard({ connection, offline, onNote, onRemove }: { connection:
       <a href={`tel:${connection.phone}`}><CallIcon /> Call</a>
       <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noreferrer"><WhatsAppIcon /> WhatsApp</a>
     </div>
+    <SaveContactButton contact={{ name: connection.name, phone: connection.phone, email: connection.email, company: connection.businessName, note: connection.note || "Met at Evento" }} />
   </article>;
 }
 

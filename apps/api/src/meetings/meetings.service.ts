@@ -55,8 +55,8 @@ export class MeetingsService {
       },
       orderBy: { createdAt: "desc" },
       include: {
-        attendeeA: { select: { id: true, name: true, phone: true, businessName: true, businessCategory: true, bio: true, tableNumber: true, photoUrl: true } },
-        attendeeB: { select: { id: true, name: true, phone: true, businessName: true, businessCategory: true, bio: true, tableNumber: true, photoUrl: true } },
+        attendeeA: { select: { id: true, name: true, phone: true, email: true, businessName: true, businessCategory: true, bio: true, tableNumber: true, photoUrl: true } },
+        attendeeB: { select: { id: true, name: true, phone: true, email: true, businessName: true, businessCategory: true, bio: true, tableNumber: true, photoUrl: true } },
       },
     });
 
