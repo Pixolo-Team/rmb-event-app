@@ -179,11 +179,16 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
-| F6.1 | Leaderboard aggregate endpoint + polling (top 20 + own rank, 5–10s refresh, no per-scan flicker) | — | P1 | Read: yes | F4.2 | ⬜ Not started |
-| F6.2 | Mobile leaderboard screen (personal stat, tap to expand, own row highlighted) | Screen 2.5 | P1 | Read: yes | F6.1 | ⬜ Not started |
-| F6.3 | Venue display leaderboard view (public screen, no login) | — | P1 | Read: yes | F6.1 | ⬜ Not started |
+| F6.1 | Leaderboard aggregate endpoint + polling (top 20 + own rank, 5–10s refresh, no per-scan flicker) | — | P1 | Read: yes | F4.2 | ✅ Done |
+| F6.2 | Mobile leaderboard screen (personal stat, tap to expand, own row highlighted) | Screen 2.5 | P1 | Read: yes | F6.1 | ✅ Done |
+| F6.3 | Venue display leaderboard view (public screen, no login) | — | P1 | Read: yes | F6.1 | ✅ Done |
 
 **Feeds into:** F9 (rank in summary), F11 (admin analytics). No tiered badges/sponsor prizes in this pilot (Phase 2).
+
+**F6 build notes:**
+- `GET /leaderboard` returns the authenticated attendee's rank plus the top 20; `GET /leaderboard/venue` is a deliberately public, contact-free display endpoint. Both aggregate confirmed `Meeting` pairs over checked-in attendees and share a five-second server cache.
+- Ties share a rank and are ordered alphabetically. The mobile `/leaderboard` screen highlights the caller, caches the last successful response for offline viewing, refreshes every 10 seconds and provides a manual refresh action.
+- `/leaderboard/venue` is a responsive large-display surface with the top 20, check-in count and 10-second polling. Design-system marigold is reserved for the podium/gamification treatment; ordinary rows and the attendee's own row retain the brand-blue language.
 
 ---
 
