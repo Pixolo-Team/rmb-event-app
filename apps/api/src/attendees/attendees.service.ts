@@ -26,6 +26,19 @@ export type ResolveOnboardingResult =
     }
   | { kind: "expired" };
 
+export type DirectoryAttendee = {
+  id: string;
+  name: string;
+  businessName: string | null;
+  chapterName: string | null;
+  city: string | null;
+  businessCategory: string | null;
+  bio: string | null;
+  phone: string;
+  photoUrl: string | null;
+  bookmarked: boolean;
+};
+
 @Injectable()
 export class AttendeesService {
   constructor(
@@ -71,6 +84,38 @@ export class AttendeesService {
     });
     if (!attendee) throw new NotFoundException("Attendee not found");
     return attendee;
+  }
+
+  async getDirectoryForAttendee(attendeeId: string): Promise<DirectoryAttendee[]> {
+    const [attendees, bookmarks] = await Promise.all([
+      this.prisma.attendee.findMany({
+        where: {
+          NOT: { id: attendeeId },
+          profileCompletedAt: { not: null },
+        },
+        include: { chapter: true },
+        orderBy: { name: "asc" },
+      }),
+      this.prisma.bookmark.findMany({
+        where: { attendeeId },
+        select: { targetId: true },
+      }),
+    ]);
+
+    const bookmarkedIds = new Set(bookmarks.map((bookmark) => bookmark.targetId));
+
+    return attendees.map((attendee) => ({
+      id: attendee.id,
+      name: attendee.name,
+      businessName: attendee.businessName,
+      chapterName: attendee.chapter?.name ?? null,
+      city: attendee.city,
+      businessCategory: attendee.businessCategory,
+      bio: attendee.bio,
+      phone: attendee.phone,
+      photoUrl: attendee.photoUrl,
+      bookmarked: bookmarkedIds.has(attendee.id),
+    }));
   }
 
   async updateProfile(attendeeId: string, dto: UpdateProfileDto) {

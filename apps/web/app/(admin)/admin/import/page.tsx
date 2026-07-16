@@ -72,7 +72,7 @@ export default function AdminImportPage() {
       </div>
       <h1 className="title">Import attendees</h1>
       <p className="copy">
-        Upload the registration export (CSV). Columns are auto-detected by header keyword — name, email, phone,
+        Upload the registration export (CSV). Columns are auto-detected by header keyword - name, email, phone,
         business/profession, and RMB chapter (optional). Payment columns are ignored; see docs/SCREENS.md Screen 3.3.
       </p>
 
@@ -141,7 +141,7 @@ export default function AdminImportPage() {
                   <tr key={row.rowNumber} style={{ borderTop: "1px solid var(--border)" }}>
                     <Td mono>{row.rowNumber}</Td>
                     <Td>{STATUS_LABEL[row.status]}</Td>
-                    <Td>{row.reason ?? "—"}</Td>
+                    <Td>{row.reason ?? "-"}</Td>
                   </tr>
                 ))}
               </tbody>

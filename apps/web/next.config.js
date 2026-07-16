@@ -6,6 +6,10 @@ const nextConfig = {
         source: "/api/:path*",
         destination: `${process.env.API_ORIGIN ?? "http://localhost:4000"}/:path*`,
       },
+      {
+        source: "/uploads/:path*",
+        destination: `${process.env.API_ORIGIN ?? "http://localhost:4000"}/uploads/:path*`,
+      },
     ];
   },
 };
