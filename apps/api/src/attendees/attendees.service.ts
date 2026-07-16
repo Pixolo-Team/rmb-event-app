@@ -83,4 +83,19 @@ export class AttendeesService {
       },
     });
   }
+
+  // F3.5 (Print Badges) — qrToken is otherwise never exposed over the API.
+  async listForBadges() {
+    const attendees = await this.prisma.attendee.findMany({
+      select: { id: true, name: true, businessName: true, qrToken: true, chapter: { select: { name: true } } },
+      orderBy: { name: "asc" },
+    });
+    return attendees.map((a) => ({
+      id: a.id,
+      name: a.name,
+      businessName: a.businessName,
+      chapterName: a.chapter?.name ?? null,
+      qrToken: a.qrToken,
+    }));
+  }
 }

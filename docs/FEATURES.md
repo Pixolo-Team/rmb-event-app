@@ -37,11 +37,18 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 | PF1 | PWA shell & installability (manifest, icon, service worker, install-prompt wiring) | — | P0 | Yes (shell) | — | ✅ Done |
 | PF2 | Auth — email magic link (request + verify, session cookie) | Screen 2.0 | P0 | No | — | ✅ Done |
 | PF3 | Admin login (password + session, 30-min idle timeout) | Screen 3.1 | P0 | No | — | ⬜ Not started |
-| PF4 | Offline sync engine — IndexedDB write queue + background sync | — | P0 | Yes | PF1 | ⬜ Not started |
+| PF4 | Offline sync engine — IndexedDB write queue + background sync | — | P0 | Yes | PF1 | ✅ Done |
 | PF5 | QR signing & verification (shared utility — signed opaque JWT payload, server-side verify) | — | P0 | — | — | ⬜ Not started |
 | PF6 | API hardening — rate limiting, CORS, input validation, CSRF (currently only on auth endpoints) | — | P0 | — | — | 🟡 Partial |
 
 **Known gap:** F1.1 (Admin CSV Import) is live at `/admin/import` with no login gate yet — PF3 needs to land and get wired in front of every `/admin/*` route before real attendee data goes through it.
+
+**PF4 build notes:**
+- Implemented client-side only, per the architecture note in `DEVELOPMENT_PLAN.md` ("offline-first is a client concern, not a backend one"): a small Dexie (IndexedDB) write queue (`apps/web/app/lib/offlineQueue.ts`) that queues a POST when it can't reach the server, and replays it on the `online` event / every 15s while online / on next page load. No Background Sync API (spotty cross-browser support, notably Safari) — deliberate, matches the PRD's iOS Safari testing requirement.
+- Endpoints are safe to queue because they're already idempotent (F3's check-in endpoints dedupe on `attendeeId`).
+- The attendee client also caches the venue's lat/lng/radius (`GET /event`, a new public — non-admin — endpoint) so it can decide "am I in radius" client-side when offline, since the server-side distance check in F3.2 can't be reached without a network round-trip.
+- This resolves the offline gap flagged on F3.2/F3.3/F3.4 — see their updated status below.
+- Not built: full app-shell/route pre-caching for a cold start while offline (that's a PF1 follow-up, not PF4) — this covers the PRD's actual test scenario ("force airplane mode mid-session"), where the page is already loaded before connectivity drops.
 
 ---
 
@@ -80,13 +87,18 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
-| F3.1 | Admin event settings — venue lat/lng/radius config, validated (lat ±90, long ±180, radius 100–5000m) | Screen 3.2A | P0 | No | PF3 | ⬜ Not started |
-| F3.2 | Home/Dashboard — silent geolocation auto-check-in (5s timeout, configured radius) | Screen 2.1 | P0 | Partial (queued, synced later) | F3.1, F1.1, PF4 | ⬜ Not started |
-| F3.3 | Manual check-in fallback button + retry on network error | Screen 2.1A | P0 | Partial | F3.2 | ⬜ Not started |
-| F3.4 | Admin check-in management — staff-assisted QR scan at desk + live dashboard (counter, method breakdown, straggler list) | Screen 3.4 | P0 | Partial (staff scan works offline, syncs later) | F3.1, PF5 | ⬜ Not started |
-| F3.5 | Print badges (QR codes) — the fallback-of-the-fallback for dead/lost phones | Screen 3.7 | P0 | — | PF5 | ⬜ Not started |
+| F3.1 | Admin event settings — venue lat/lng/radius config, validated (lat ±90, long ±180, radius 100–5000m) | Screen 3.2A | P0 | No | PF3 | ✅ Done |
+| F3.2 | Home/Dashboard — silent geolocation auto-check-in (5s timeout, configured radius) | Screen 2.1 | P0 | Yes (queued via PF4, synced later) | F3.1, F1.1, PF4 | ✅ Done |
+| F3.3 | Manual check-in fallback button + retry on network error | Screen 2.1A | P0 | Yes (queued via PF4) | F3.2 | ✅ Done |
+| F3.4 | Admin check-in management — staff-assisted QR scan at desk + live dashboard (counter, method breakdown, straggler list) | Screen 3.4 | P0 | Yes (staff scan queued via PF4, syncs later) | F3.1, PF5 | ✅ Done |
+| F3.5 | Print badges (QR codes) — the fallback-of-the-fallback for dead/lost phones | Screen 3.7 | P0 | — | PF5 | ✅ Done |
 
 **Feeds into:** F4 (meetings only make sense for present attendees), F6/F11 (analytics baseline).
+
+**Build notes:**
+- F3.1–F3.5 are built and working, including offline queuing now that PF4 exists. QR verification (PF5) was folded directly into F3.4/F3.5 rather than built as a separate JWT-signing layer — staff scan and badge printing both use the existing opaque `qrToken` (DB lookup), consistent with how this codebase already handles magic-link/onboarding tokens, so PF5 is effectively covered in practice.
+- Admin routes added (`/admin/event`, `/admin/checkin`, `/admin/badges`, `GET /admin/attendees`) are **not yet gated by PF3** (Admin Login) — same known gap as F1.1. All of `/admin/*` should sit behind PF3 before real attendee data goes near it.
+- **F3.2/F3.3 revised after design feedback:** `/home` is a full-page layout (no floating card — see `globals.css` `.full-page*` classes), responsive from phone to iPad. Geolocation now only *detects* arrival; the attendee taps "Check in" to actually confirm (was silent auto-checkin in the original PRD draft) — see `PRD_v1.md` US3.1's updated acceptance criteria and `SCREENS.md` Screen 2.1 for the reasoning. The confirmed "Checked in" screen is deliberately plain (name, time, method) with no QR code — it's what the attendee shows at the registration counter, not a scannable credential (that's F4's own-QR display, a different screen). Screen 2.1A (manual fallback) is folded into the same full-page flow as a state, not a separate modal/route.
 
 ---
 

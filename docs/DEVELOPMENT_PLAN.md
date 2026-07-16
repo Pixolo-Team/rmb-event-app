@@ -2,7 +2,7 @@
 
 Turns [`PRD_v1.md`](./PRD_v1.md), [`FEATURES.md`](./FEATURES.md), [`SCREENS.md`](./SCREENS.md) and [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) into an executable build plan: architecture, data model, API surface, a granular build sequence against the PRD's under-1-month window, and the pre-event/event-day/post-event runbook.
 
-`FEATURES.md`'s Feature Index is the source of truth for what's actually built vs. not — see its ✅/🟡/⬜ status per feature (currently: Platform Foundations PF1/PF2 and F1.1–F1.4 are done; everything else is spec-only). This plan's job is to sequence and pace what's left, not to re-describe scope already captured there.
+`FEATURES.md`'s Feature Index is the source of truth for what's actually built vs. not — see its ✅/🟡/⬜ status per feature (currently: Platform Foundations PF1/PF2/PF4 and F1.1–F1.4, F3.1–F3.5 are done — including offline queuing now that PF4 exists; everything else is spec-only). This plan's job is to sequence and pace what's left, not to re-describe scope already captured there.
 
 ---
 
@@ -197,7 +197,7 @@ Mirrors `FEATURES.md`'s [Suggested Build Sequence](./FEATURES.md#suggested-build
 - Repo scaffolded, CI running lint/typecheck/build on every push
 - Postgres provisioned, Prisma schema drafted from the Data Model section, first migration committed
 - Design tokens ported from `DESIGN_SYSTEM.md` into a Tailwind config — unblocks every screen after
-- **PF1** ✅ · **PF2** ✅ · **PF5** · **PF4** · **PF6** (partial — extend rate limiting/CORS/validation past the auth endpoints)
+- **PF1** ✅ · **PF2** ✅ · **PF5** · **PF4** ✅ · **PF6** (partial — extend rate limiting/CORS/validation past the auth endpoints)
 - **Exit criteria:** an empty Next.js page and an empty NestJS `/health` endpoint both deployed to staging
 
 ### Days 3–6: F1 (Attendee Onboarding & Import) + PF3
@@ -205,8 +205,8 @@ Mirrors `FEATURES.md`'s [Suggested Build Sequence](./FEATURES.md#suggested-build
 - **Exit criteria:** a test attendee can be imported (behind admin login), open the generic app link, request a magic link by email, complete a profile, and install the PWA
 
 ### Days 7–11: F3 (Attendance & Check-In)
-- **F3.1** · **F3.2** · **F3.3** · **F3.4** · **F3.5**
-- **Exit criteria:** two test attendees can check in (one via geolocation, one manually), staff can QR-scan a badge at the desk, and the live dashboard shows a correct counter/method breakdown
+- **F3.1** ✅ · **F3.2** ✅ · **F3.3** ✅ · **F3.4** ✅ · **F3.5** ✅ — all five done, including offline queuing via PF4
+- **Exit criteria:** two test attendees can check in (one via geolocation, one manually), staff can QR-scan a badge at the desk, the live dashboard shows a correct counter/method breakdown, and all three still work with connectivity dropped mid-session (queued, synced on reconnect) — ✅ met
 
 ### Days 12–16: F4 (QR Exchange & Met Detection — the core loop)
 - **F4.1** · **F4.2** · **F4.3**

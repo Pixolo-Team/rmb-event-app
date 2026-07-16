@@ -19,6 +19,12 @@ enum ImportRowStatus {
   FLAGGED
 }
 
+enum CheckInMethod {
+  GEOLOCATION
+  MANUAL
+  STAFF_QR
+}
+
 model Chapter {
   id        String     @id @default(uuid())
   name      String     @unique
@@ -54,6 +60,31 @@ model Attendee {
 
   magicLinkTokens MagicLinkToken[]
   onboardingTokens OnboardingToken[]
+  checkIn          CheckIn?
+}
+
+// Single-row config for the pilot's one event — F3.1 (Screen 3.2A). Not configured
+// (venueLat/venueLng null) means geolocation check-in is disabled, manual-only.
+model Event {
+  id             String    @id @default(uuid())
+  name           String    @default("Evento")
+  venueLat       Float?
+  venueLng       Float?
+  checkinRadiusM Int       @default(500)
+  startAt        DateTime?
+  endAt          DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+// One row per attendee ever (single-day pilot event) — the unique constraint on
+// attendeeId itself *is* the duplicate-checkin protection (F3.2/F3.3/F3.4).
+model CheckIn {
+  id         String        @id @default(uuid())
+  attendee   Attendee      @relation(fields: [attendeeId], references: [id])
+  attendeeId String        @unique
+  method     CheckInMethod
+  createdAt  DateTime      @default(now())
 }
 
 model MagicLinkToken {

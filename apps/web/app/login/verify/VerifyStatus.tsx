@@ -3,8 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-type VerifyState = "checking" | "ok" | "expired";
-
 // The token is single-use, so the verify request must fire exactly once per
 // token even if the effect re-runs (React StrictMode remounts, fast refresh) —
 // a re-run would consume the token and then see its own retry as "expired".
@@ -28,16 +26,21 @@ function verifyOnce(token: string): Promise<Response> {
 export function VerifyStatus() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get("token");
-
-  const [state, setState] = useState<VerifyState>("checking");
-  const [attendeeName, setAttendeeName] = useState<string | null>(null);
+  // Captured once on mount, not read reactively: stripping the token from the
+  // URL below syncs into useSearchParams (Next 14.2+), and a reactive read
+  // would re-run the effect with token=null mid-verification.
+  const [token] = useState(() => searchParams.get("token"));
 
   useEffect(() => {
     if (!token) {
       router.replace("/login?expired=1");
       return;
     }
+
+    // Strip the token from the address bar immediately (PRD Security & Privacy):
+    // it's single-use, so once captured in state it has no business lingering in
+    // browser history — especially on a shared/family device.
+    window.history.replaceState(null, "", "/login/verify");
 
     let cancelled = false;
 
@@ -51,13 +54,12 @@ export function VerifyStatus() {
           return;
         }
         // Post-login routing per SCREENS.md Screen 2.0: first-timers (no
-        // completed profile) go to Profile Setup; returners land here.
+        // completed profile) go to Profile Setup; returners go to Home.
         if (!body.attendee?.profileCompletedAt) {
           router.replace("/onboarding");
           return;
         }
-        setAttendeeName(body.attendee?.name ?? null);
-        setState("ok");
+        router.replace("/home");
       })
       .catch(() => {
         if (!cancelled) router.replace("/login?expired=1");
@@ -69,21 +71,6 @@ export function VerifyStatus() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  if (state === "checking") {
-    return (
-      <div className="card">
-        <div className="wordmark">
-          <span className="dot" />
-          Evento
-        </div>
-        <div className="center-state">
-          <span className="spinner" style={{ borderTopColor: "var(--brand-500)", borderColor: "var(--border)" }} />
-          <p>Signing you in&hellip;</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="card">
       <div className="wordmark">
@@ -91,9 +78,8 @@ export function VerifyStatus() {
         Evento
       </div>
       <div className="center-state">
-        <div className="ring ok">✓</div>
-        <h2>You&rsquo;re in{attendeeName ? `, ${attendeeName.split(" ")[0]}` : ""}</h2>
-        <p>Login is the only feature built so far — the rest of the app lands with the next features.</p>
+        <span className="spinner" style={{ borderTopColor: "var(--brand-500)", borderColor: "var(--border)" }} />
+        <p>Signing you in&hellip;</p>
       </div>
     </div>
   );

@@ -39,9 +39,17 @@
   --ink-on-brand: #f5f8ff;
 
   --brand-700: #14458c;
+  --brand-600: #1b54a6;
   --brand-500: #2b6cd4;
+  --brand-400: #4e85e0;
   --brand-100: #dce7fb;
   --brand-50: #eef4fe;
+
+  --accent-700: #b96a1b;
+  --accent-600: #d67a22;
+  --accent-500: #e5892b;
+  --accent-100: #fbe6cc;
+  --accent-50: #fdf2e3;
 
   --success-100: #dbf0e5;
   --success-700: #166b49;
@@ -72,9 +80,17 @@
     --ink-on-brand: #f5f8ff;
 
     --brand-700: #3568b8;
+    --brand-600: #4e85e0;
     --brand-500: #6fa1f2;
+    --brand-400: #8bb4f5;
     --brand-100: #1e355c;
     --brand-50: #182a49;
+
+    --accent-700: #f0a552;
+    --accent-600: #ec9a3e;
+    --accent-500: #e5892b;
+    --accent-100: #402a12;
+    --accent-50: #2c1e10;
 
     --success-100: #123527;
     --success-700: #35b37e;
@@ -346,6 +362,76 @@ p.copy {
   color: var(--ink-faint);
   cursor: not-allowed;
 }
+
+.btn-warning {
+  width: 100%;
+  margin-top: 14px;
+  height: 50px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--warning-700);
+  color: var(--ink-on-brand);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.btn-warning:disabled {
+  background: var(--surface-2);
+  color: var(--ink-faint);
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  width: 100%;
+  margin-top: 14px;
+  height: 50px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--brand-600);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.btn-secondary:disabled {
+  color: var(--ink-faint);
+  border-color: var(--border);
+  cursor: not-allowed;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+}
+.badge-success {
+  background: var(--success-100);
+  color: var(--success-700);
+}
+.badge-warning {
+  background: var(--warning-100);
+  color: var(--warning-700);
+}
+.badge-neutral {
+  background: var(--surface-2);
+  color: var(--ink-muted);
+  border: 1px solid var(--border);
+}
 .spinner {
   width: 16px;
   height: 16px;
@@ -404,6 +490,15 @@ p.copy {
   background: var(--warning-100);
   color: var(--warning-700);
 }
+.ring.info {
+  background: var(--brand-50);
+  color: var(--brand-700);
+}
+.ring.lg {
+  width: 88px;
+  height: 88px;
+  font-size: 2rem;
+}
 .center-state h2 {
   font-family: var(--font-display);
   font-weight: 800;
@@ -449,8 +544,143 @@ p.copy {
   border: 1px solid var(--warning-700);
   color: var(--warning-700);
 }
+.banner.ok {
+  background: var(--success-100);
+  border: 1px solid var(--success-700);
+  color: var(--success-700);
+}
+.banner.info {
+  background: var(--brand-50);
+  border: 1px solid var(--brand-500);
+  color: var(--brand-700);
+}
 .banner b {
   display: block;
   color: var(--ink);
   font-size: 0.82rem;
+}
+
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(2.4in, 1fr));
+  gap: 0.2in;
+}
+.badge-card {
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 0.2in;
+  text-align: center;
+  break-inside: avoid;
+}
+.badge-qr {
+  width: 1.2in;
+  height: 1.2in;
+  margin: 0 auto 0.12in;
+  display: block;
+}
+.badge-name {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--ink);
+}
+.badge-sub {
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+  margin-top: 2px;
+}
+.badge-chapter {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent-700);
+  margin-top: 4px;
+}
+
+@media print {
+  .badge-print-page .no-print {
+    display: none !important;
+  }
+  .badge-card {
+    border-color: #000;
+  }
+}
+
+/* Full-page screens (check-in and similar) — deliberately not the centered
+   .screen/.card pattern used by login/onboarding. Edge-to-edge on phones,
+   with a wider-but-still-borderless content column on tablets. */
+.full-page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.full-page-header {
+  padding: 16px 20px 0;
+}
+.full-page-band {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 36px 24px 32px;
+}
+.full-page-band.tone-info {
+  background: var(--brand-50);
+}
+.full-page-band.tone-success {
+  background: var(--success-100);
+}
+.full-page-band.tone-warning {
+  background: var(--warning-100);
+}
+.full-page-band h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.3rem;
+  margin: 0;
+}
+.full-page-body {
+  flex: 1;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 28px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+@media (min-width: 700px) {
+  .full-page-band {
+    padding: 56px 40px 48px;
+  }
+  .full-page-band h1 {
+    font-size: 1.6rem;
+  }
+  .full-page-body {
+    max-width: 560px;
+    padding-top: 36px;
+  }
+}
+
+/* Admin surfaces: full-width by default, but still usable on a tablet (Staff
+   Console) or a phone in a pinch — not just desktop. */
+.admin-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 28px 16px;
+}
+@media (min-width: 640px) {
+  .admin-page {
+    padding: 40px 24px;
+  }
+}
+.two-col-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+@media (max-width: 700px) {
+  .two-col-grid {
+    grid-template-columns: 1fr;
+  }
 }
