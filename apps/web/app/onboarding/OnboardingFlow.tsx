@@ -20,6 +20,8 @@ interface AttendeePrefill {
 
 interface ProfileOptions {
   businessCategories: readonly string[];
+  cities: readonly { value: string; name: string; stateOrUt: string }[];
+  chapters: readonly string[];
   lookingFor: readonly string[];
   offering: readonly string[];
   goals: readonly string[];
@@ -74,7 +76,9 @@ export function OnboardingFlow() {
   async function submitProfile() {
     const errors: Record<string, string> = {};
     if (!businessCategory) errors.businessCategory = "Choose your business category";
-    if (!city.trim()) errors.city = "Enter your city";
+    if (!city.trim() || !options?.cities.some((option) => option.value === city.trim())) {
+      errors.city = "Choose a city from the list";
+    }
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
@@ -217,14 +221,20 @@ export function OnboardingFlow() {
         <label htmlFor="city">City</label>
         <input
           id="city"
+          list="indian-city-options"
           maxLength={100}
-          placeholder="e.g. Ahmedabad"
+          placeholder="Search city or state/UT"
           value={city}
           onChange={(e) => {
             setCity(e.target.value);
             setFieldErrors(({ city: _drop, ...rest }) => rest);
           }}
         />
+        <datalist id="indian-city-options">
+          {options?.cities.map((option) => (
+            <option key={`${option.name}-${option.stateOrUt}`} value={option.value} />
+          ))}
+        </datalist>
         {fieldErrors.city && <div className="hint err">{fieldErrors.city}</div>}
       </div>
 

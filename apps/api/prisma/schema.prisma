@@ -28,8 +28,30 @@ enum CheckInMethod {
 model Chapter {
   id        String     @id @default(uuid())
   name      String     @unique
+  active    Boolean    @default(true)
+  sortOrder Int        @default(0)
   createdAt DateTime   @default(now())
   attendees Attendee[]
+}
+
+model BusinessCategoryOption {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model CityOption {
+  id        String   @id @default(uuid())
+  name      String
+  stateOrUt String
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([name, stateOrUt])
+  @@index([active, stateOrUt, name])
 }
 
 model Attendee {
@@ -40,6 +62,7 @@ model Attendee {
   createdAt DateTime @default(now())
 
   businessName String?
+  tableNumber  String?
   chapter      Chapter? @relation(fields: [chapterId], references: [id])
   chapterId    String?
   photoUrl     String?
