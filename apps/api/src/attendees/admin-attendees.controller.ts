@@ -1,9 +1,9 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get, UseGuards } from "@nestjs/common";
+import { AdminGuard } from "../admin-auth/admin.guard";
 import { AttendeesService } from "./attendees.service";
 
-// Not yet behind an admin login gate — see PF3 (Admin Login) in FEATURES.md,
-// same known gap as /admin/import.
 @Controller("admin/attendees")
+@UseGuards(AdminGuard)
 export class AdminAttendeesController {
   constructor(private readonly attendees: AttendeesService) {}
 

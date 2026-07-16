@@ -1,10 +1,10 @@
-import { Body, Controller, Get, Patch } from "@nestjs/common";
+import { Body, Controller, Get, Patch, UseGuards } from "@nestjs/common";
+import { AdminGuard } from "../admin-auth/admin.guard";
 import { EventService } from "./event.service";
 import { UpdateEventDto } from "./dto/update-event.dto";
 
-// Not yet behind an admin login gate — see PF3 (Admin Login) in FEATURES.md,
-// same known gap as /admin/import.
 @Controller("admin/event")
+@UseGuards(AdminGuard)
 export class EventController {
   constructor(private readonly eventService: EventService) {}
 

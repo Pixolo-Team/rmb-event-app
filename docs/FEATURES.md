@@ -36,14 +36,19 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 |---|---|---|---|---|---|---|
 | PF1 | PWA shell & installability (manifest, icon, service worker, install-prompt wiring) | — | P0 | Yes (shell) | — | ✅ Done |
 | PF2 | Auth — email magic link (request + verify, session cookie) | Screen 2.0 | P0 | No | — | ✅ Done |
-| PF3 | Admin login (password + session, 30-min idle timeout) | Screen 3.1 | P0 | No | — | ⬜ Not started |
+| PF3 | Admin login (password + session, 30-min idle timeout) | Screen 3.1 | P0 | No | — | ✅ Done |
 | PF4 | Offline sync engine — IndexedDB write queue + background sync | — | P0 | Yes | PF1 | ✅ Done |
 | PF5 | QR signing & verification (shared utility — signed opaque JWT payload, server-side verify) | — | P0 | — | — | ⬜ Not started |
 | PF6 | API hardening — rate limiting, CORS, input validation, CSRF (currently only on auth endpoints) | — | P0 | — | — | 🟡 Partial |
 | PF7 | Authenticated attendee navigation shell — flat side-menu drawer, identity header, active state, auth/onboarding visibility gate, accessible close/back behavior, shared route inventory | All attendee screens | P0 | Yes (shell) | PF1, PF2 | 🟡 Partial |
 | PF8 | Database-backed dropdown reference data — business categories, nationwide Indian cities with state/UT labels, active/sort controls, and existing Chapter options | Screen 1.1, Directory filters | P0 | Cacheable | F1.2 | ✅ Done |
 
-**Known gap:** F1.1 (Admin CSV Import) is live at `/admin/import` with no login gate yet — PF3 needs to land and get wired in front of every `/admin/*` route before real attendee data goes through it.
+**PF3 build notes:**
+- A single shared organizer credential (`ADMIN_USERNAME` / `ADMIN_PASSWORD` from env; dev falls back to `admin` / `evento-admin`, and production refuses to start the login flow without an explicit `ADMIN_PASSWORD`). Password comparison is constant-time. This is intentionally a single login for the pilot's one organizer — not per-user admin accounts (Phase 2).
+- Separate admin session from the attendee session: its own JWT cookie (`evento_admin_session`, httpOnly/sameSite-lax/secure-in-prod) signed with a **30-minute expiry**. `AdminGuard` re-issues a fresh 30-minute cookie on every authenticated admin request, so the window is a **sliding idle timeout** — 30 minutes of inactivity logs the organizer out, but active use never expires. `AdminAuthModule` is `@Global`, exporting `AdminGuard`/`AdminSessionService` so any admin controller can gate itself.
+- Every `/admin/*` API route is now behind `AdminGuard`: `admin/import` (F1.1), `admin/attendees`, `admin/event` (F3.1), `admin/checkin/*` (F3.4 staff scan + dashboard), `admin/photos` (F7.3), `admin/feedback` (F8.2). The attendee-facing routes those features share are unaffected. `POST /admin/auth/login`, `POST /admin/auth/logout` and the guard-protected `GET /admin/auth/me` (used by the web gate) are the only ungated/self-gating admin endpoints.
+- Failed logins are rate-limited per IP (reusing `RateLimiterService`): after too many failures the endpoint returns `429` and the screen shows "Too many failed attempts. Try again later.", matching Screen 3.1's Account-Locked state. A wrong password returns `401` "Invalid credentials. Try again."
+- Web: a shared client `AdminGate` wraps both admin route groups (`app/admin/*` and `app/(admin)/admin/*`) via their layouts — it checks `GET /api/admin/auth/me`, redirects to `/admin/login` on `401`, and lets the login route through. `/admin/login` (Screen 3.1) has username/password fields, a masked password, Caps-Lock warning, offline handling, loading spinner, and skips straight to the hub if a session is already active. A new `/admin` hub is the post-login landing, linking the admin tools with a Sign out action.
 
 **PF7 build notes:**
 - Implemented on Home: authenticated-only drawer, attendee identity with initials fallback, flat finalized inventory, active Home state, focus trap, Escape/backdrop/browser-Back close, scroll lock and working Sign Out.
@@ -71,7 +76,7 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
-| F1.1 | Admin CSV/Excel import + column-mapping UI, dedup by phone+email, per-row result report (success/duplicate/error/flagged), retry-on-failure | Screen 3.3 | P0 | No | PF3 (not yet wired) | ✅ Done |
+| F1.1 | Admin CSV/Excel import + column-mapping UI, dedup by phone+email, per-row result report (success/duplicate/error/flagged), retry-on-failure | Screen 3.3 | P0 | No | PF3 (now wired) | ✅ Done |
 | F1.2 | Profile Setup Form — business category (dropdown), city, looking-for/offering (multi-select dropdowns, shared taxonomy), goals, optional bio | Screen 1.1 | P0 | No | PF2 | ✅ Done |
 | F1.3 | PWA install prompt (Install Now / Install Later / Skip) | Screen 1.2 | P0 | Yes | PF1, F1.2 | ✅ Done |
 | F1.4 | Thanks & welcome screen | Screen 1.3 | P2 | Yes | F1.3 | ✅ Done |
@@ -128,7 +133,7 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 
 **Build notes:**
 - F3.1–F3.5 are built and working, including offline queuing now that PF4 exists. QR verification (PF5) was folded directly into F3.4/F3.5 rather than built as a separate JWT-signing layer — staff scan and badge printing both use the existing opaque `qrToken` (DB lookup), consistent with how this codebase already handles magic-link/onboarding tokens, so PF5 is effectively covered in practice.
-- Admin routes added (`/admin/event`, `/admin/checkin`, `/admin/badges`, `GET /admin/attendees`) are **not yet gated by PF3** (Admin Login) — same known gap as F1.1. All of `/admin/*` should sit behind PF3 before real attendee data goes near it.
+- Admin routes added (`/admin/event`, `/admin/checkin`, `/admin/badges`, `GET /admin/attendees`) are **now gated by PF3** (Admin Login) — every `/admin/*` API route sits behind `AdminGuard`, and the web admin pages behind `AdminGate`.
 - **F3.2/F3.3 revised after design feedback:** `/home` is a full-page layout (no floating card — see `globals.css` `.full-page*` classes), responsive from phone to iPad. Geolocation now only *detects* arrival; the attendee taps "Check in" to actually confirm (was silent auto-checkin in the original PRD draft) — see `PRD_v1.md` US3.1's updated acceptance criteria and `SCREENS.md` Screen 2.1 for the reasoning. The confirmed "Checked in" screen is deliberately plain (name, time, method) with no QR code — it's what the attendee shows at the registration counter, not a scannable credential (that's F4's own-QR display, a different screen). Screen 2.1A (manual fallback) is folded into the same full-page flow as a state, not a separate modal/route.
 
 ---

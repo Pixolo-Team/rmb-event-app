@@ -4,6 +4,7 @@ import { MailModule } from "./mail/mail.module";
 import { WhatsAppModule } from "./whatsapp/whatsapp.module";
 import { SessionModule } from "./session/session.module";
 import { AuthModule } from "./auth/auth.module";
+import { AdminAuthModule } from "./admin-auth/admin-auth.module";
 import { AdminImportModule } from "./admin-import/admin-import.module";
 import { AttendeesModule } from "./attendees/attendees.module";
 import { BookmarksModule } from "./bookmarks/bookmarks.module";
@@ -25,6 +26,7 @@ import { FeedbackModule } from "./feedback/feedback.module";
     WhatsAppModule,
     SessionModule,
     AuthModule,
+    AdminAuthModule,
     AdminImportModule,
     AttendeesModule,
     BookmarksModule,

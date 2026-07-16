@@ -1,7 +1,9 @@
-import { Controller, Delete, Get, Param } from "@nestjs/common";
+import { Controller, Delete, Get, Param, UseGuards } from "@nestjs/common";
+import { AdminGuard } from "../admin-auth/admin.guard";
 import { PhotosService } from "./photos.service";
 
 @Controller("admin/photos")
+@UseGuards(AdminGuard)
 export class AdminPhotosController {
   constructor(private readonly photos: PhotosService) {}
 

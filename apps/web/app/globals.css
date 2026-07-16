@@ -1820,6 +1820,19 @@ a.contact-row:active { background: var(--brand-100); }
     padding: 40px 24px;
   }
 }
+
+/* PF3 — admin login gate + console hub. */
+.admin-gate-loading { max-width: 860px; margin: 0 auto; padding: 48px 16px; color: var(--ink-muted); text-align: center; }
+.caps-warning { margin: 7px 0 0; color: #c67c0b; font-size: .78rem; font-weight: 650; }
+.admin-hub-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+.admin-hub-head h1 { margin: 3px 0 0; font-family: var(--font-display); }
+.admin-hub-head .btn-secondary { width: auto; min-height: 40px; margin: 0; padding: 0 16px; flex: 0 0 auto; }
+.admin-hub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.admin-tool-card { position: relative; display: block; padding: 18px 40px 18px 18px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); color: inherit; text-decoration: none; }
+.admin-tool-card:hover { border-color: var(--border-strong); }
+.admin-tool-card b { display: block; font: 700 1.02rem var(--font-display); }
+.admin-tool-card span { display: block; margin-top: 4px; color: var(--ink-muted); font-size: .82rem; }
+.admin-tool-card em { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--brand-600); font-size: 1.5rem; font-style: normal; }
 .two-col-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
