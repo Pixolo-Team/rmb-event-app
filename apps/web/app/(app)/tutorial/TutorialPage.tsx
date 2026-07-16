@@ -498,7 +498,7 @@ export function TutorialPage() {
           </main>
         ) : null}
 
-        {view === "feed" ? <FeedView attendee={attendee} photos={photos} setPhotos={setPhotos} /> : null}
+        {view === "feed" ? <FeedView attendee={attendee} photos={photos} setPhotos={setPhotos} demoMode={TEMP_BYPASS_LOGIN} /> : null}
 
         {view === "settings" ? (
           <main className="app-content">

@@ -75,7 +75,7 @@ See `apps/api/src/mail/mail.service.ts` and `apps/api/src/whatsapp/whatsapp.serv
 | Smart matching — decoupled engine (`apps/api/src/matching/`) computing looking-for/offering overlap, shared category, same/cross-chapter reasoning; surfaced as the "Why you're a match" reason on a profile | Real (F2.1 engine + F2.5 display). The pre-event "People to meet" list (F2.3) and day-3 pre-compute cache (F2.2) still consume this engine but aren't built |
 | Settings/Profile screen (`/profile`) with the attendee's own business-card QR — offline-rendered from their signed token, tap-to-enlarge with brightness boost | Real (F4.1) |
 | QR scan → card exchange + confirmed meeting (`/scan`) — one scan logs a `Meeting` (canonical unordered pair, duplicate-pair protected), self-scan/unknown-code guards, offline-queued via PF4 | Real (F4.2) |
-| My Connections (`/connections`) — cached Already Met list, sorting, Call/WhatsApp, per-attendee private notes and non-destructive removal | Real (F4.3). Want to Meet/bookmarks are F5 |
+| My Connections (`/connections`) — cached Already Met + Want to Meet lists, sorting, Call/WhatsApp, private notes, bookmarks and non-destructive removal | Real (F4.3 + F5) |
 | Save to phone contacts — local `.vcf` generation from attendee profiles and connection cards, handed to the native Contacts flow | Real (F10.1), works offline |
 | Admin auth (Screen 3.1) | Not built — `/admin/import`, `/admin/event`, `/admin/checkin`, `/admin/badges` have no login gate yet |
 | Everything past connections (bookmarks, leaderboard, feed, analytics) | Not built yet |

@@ -26,6 +26,7 @@ const MENU_ITEMS: MenuItem[] = [
   { href: "/directory", label: "Attendee Directory", icon: DirectoryIcon, available: true, activePrefixes: ["/attendees/"] },
   { href: "/connections", label: "My Connections", icon: ConnectionsIcon, available: true },
   { href: "/leaderboard", label: "Leaderboard", icon: TrophyIcon, available: true },
+  { href: "/feed", label: "Event Photos", icon: PhotoIcon, available: true },
   { href: "/profile", label: "My Profile", icon: ProfileIcon, available: true },
   { href: "/profile?qr=1", label: "Show My QR", icon: QrIcon, available: true },
 ];
@@ -262,4 +263,8 @@ function ConnectionsIcon() {
 
 function TrophyIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v4c0 3-1.3 5-4 6-2.7-1-4-3-4-6V4ZM8 6H4v2c0 2 1.3 3 4 3M16 6h4v2c0 2-1.3 3-4 3M12 14v4M8 20h8" /></svg>;
+}
+
+function PhotoIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h4l1.5-2h5L16 6h4v14H4V6Z" /><circle cx="12" cy="13" r="4" /></svg>;
 }

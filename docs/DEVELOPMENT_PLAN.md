@@ -232,13 +232,13 @@ For F2.4/F2.5, both directory endpoints require an attendee session. `GET /atten
 `POST /meetings/scan` (the unified QR exchange — idempotent on the attendee pair) · `GET /attendees/me/connections` (met + bookmarked)
 
 **bookmarks** — *F5.1, F5.2*
-`POST /bookmarks` · `DELETE /bookmarks/:id` · `PATCH /bookmarks/:id/note`
+`GET /bookmarks` · `POST /bookmarks` (legacy toggle) · `PUT /bookmarks/:attendeeId` · `DELETE /bookmarks/:attendeeId`
 
 **leaderboard** — *F6.1, F6.2, F6.3*
 `GET /leaderboard` (top 20 + requester's own rank; polled every 5–10s)
 
 **feed** — *F7.1, F7.2, F7.3*
-`POST /feed/posts` (multipart photo upload) · `GET /feed/posts` · `DELETE /feed/posts/:id` (self or admin) · `POST /feed/posts/:id/like` · `POST /feed/posts/:id/comments`
+`POST /photos` (multipart photo upload) · `GET /photos` · `DELETE /photos/:id` (self) · `POST /photos/:id/like` · `POST /photos/:id/comments` · admin moderation under `/admin/photos`
 
 **feedback** — *F8.1, F8.2*
 `POST /feedback` · `GET /admin/feedback` (analytics + CSV export)

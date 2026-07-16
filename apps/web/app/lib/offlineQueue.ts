@@ -8,13 +8,14 @@ import { useCallback, useEffect, useState } from "react";
 // locally and replayed once connectivity returns. All endpoints this is used
 // against (checkin/*) are idempotent, so replaying is always safe.
 
-export type QueueKind = "checkin-geolocation" | "checkin-manual" | "checkin-qr-scan" | "meeting-scan";
+export type QueueKind = "checkin-geolocation" | "checkin-manual" | "checkin-qr-scan" | "meeting-scan" | "bookmark-add" | "bookmark-remove";
 
 export interface QueuedWrite {
   id?: number;
   kind: QueueKind;
   url: string;
   body: string;
+  method?: "POST" | "PUT" | "DELETE";
   createdAt: number;
 }
 
@@ -38,8 +39,8 @@ class OfflineDB extends Dexie {
 
 const db = new OfflineDB();
 
-export async function enqueueWrite(kind: QueueKind, url: string, body: unknown): Promise<void> {
-  await db.queue.add({ kind, url, body: JSON.stringify(body), createdAt: Date.now() });
+export async function enqueueWrite(kind: QueueKind, url: string, body: unknown, method: "POST" | "PUT" | "DELETE" = "POST"): Promise<void> {
+  await db.queue.add({ kind, url, body: JSON.stringify(body), method, createdAt: Date.now() });
 }
 
 export async function pendingCount(): Promise<number> {
@@ -58,7 +59,7 @@ export async function flushQueue(onSynced?: (kind: QueueKind, response: unknown)
     let res: Response;
     try {
       res = await fetch(item.url, {
-        method: "POST",
+        method: item.method ?? "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: item.body,

@@ -8,6 +8,7 @@ export interface DirectoryAttendee {
   tableNumber: string | null;
   chapterName: string | null;
   checkedIn: boolean;
+  bookmarked: boolean;
 }
 
 export interface DirectoryFacets {

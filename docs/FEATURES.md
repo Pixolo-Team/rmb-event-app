@@ -169,8 +169,12 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
-| F5.1 | One-tap bookmark/unbookmark from any directory or match card | Directory/Match cards | P1 | Yes (synced later) | F2.3, F2.4 | ⬜ Not started |
-| F5.2 | My Connections — Want to Meet tab (completes the two-tab screen alongside F4.3) | Screen 2.6 (complete) | P1 | Yes | F5.1, F4.3 | ⬜ Not started |
+| F5.1 | One-tap bookmark/unbookmark from any directory or match card | Directory/Match cards | P1 | Yes (synced later) | F2.3, F2.4 | ✅ Done |
+| F5.2 | My Connections — Want to Meet tab (completes the two-tab screen alongside F4.3) | Screen 2.6 (complete) | P1 | Yes | F5.1, F4.3 | ✅ Done |
+
+**F5 build notes:**
+- Directory cards and attendee profiles expose the same optimistic bookmark control, backed by explicit idempotent add/remove endpoints. Network failures queue the intended final state for safe replay.
+- My Connections now has functional Already Met and Want to Meet tabs. Saved attendees retain direct Call/WhatsApp actions and can be removed in place; the last successful combined result remains available offline.
 
 ---
 
@@ -197,9 +201,14 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
-| F7.1 | Post photo — camera/library, basic edit (crop/brightness/filter), caption (200 chars, emoji) | Screen 2.7 | P2 | No | F3.2 | ⬜ Not started |
-| F7.2 | Event photo feed — chronological view, like, flat comments, self-serve delete | Screen 2.8 | P2 | Read: yes | F7.1 | ⬜ Not started |
-| F7.3 | Admin feed moderation — view-all, instant delete, deleted-post history log | Screen 3.5 | P2 | No | F7.2 | ⬜ Not started |
+| F7.1 | Post photo — camera/library, basic edit (crop/brightness/filter), caption (200 chars, emoji) | Screen 2.7 | P2 | No | F3.2 | ✅ Done |
+| F7.2 | Event photo feed — chronological view, like, flat comments, self-serve delete | Screen 2.8 | P2 | Read: yes | F7.1 | ✅ Done |
+| F7.3 | Admin feed moderation — view-all, instant delete, deleted-post history log | Screen 3.5 | P2 | No | F7.2 | ✅ Done |
+
+**F7 build notes:**
+- `/feed` is an authenticated attendee route linked from the shared navigation. It loads newest-first with pagination, likes, flat comments, full-screen viewing and owner-only deletion.
+- The composer accepts camera/library input, a 200-character caption, centered square crop, brightness and warm/monochrome filters; edits are rendered to a capped 1600px JPEG before upload.
+- `/admin/feed` provides organizer-wide moderation and the API records deleted-post history.
 
 ---
 

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { DirectoryAvatar } from "../components/DirectoryAvatar";
 import { directoryCache, type DirectoryAttendee, type DirectoryResponse } from "../lib/directoryCache";
+import { BookmarkButton } from "../components/BookmarkButton";
 
 type SortOption = "name" | "company";
 type CheckinFilter = "all" | "checked-in" | "not-checked-in";
@@ -123,7 +124,11 @@ export default function DirectoryPage() {
               <DirectoryState title="No attendees found" body={query ? `No matches found for “${query}”.` : "Try removing one or more filters."} />
             ) : (
               <div className="directory-grid">
-                {attendees.map((attendee) => <AttendeeCard key={attendee.id} attendee={attendee} />)}
+                {attendees.map((attendee) => <AttendeeCard key={attendee.id} attendee={attendee} onBookmark={(bookmarked) => {
+                  if (!data) return;
+                  const next = { ...data, attendees: data.attendees.map((item) => item.id === attendee.id ? { ...item, bookmarked } : item) };
+                  setData(next); directoryCache.set(next);
+                }} />)}
               </div>
             )}
           </>
@@ -148,9 +153,9 @@ export default function DirectoryPage() {
   );
 }
 
-function AttendeeCard({ attendee }: { attendee: DirectoryAttendee }) {
+function AttendeeCard({ attendee, onBookmark }: { attendee: DirectoryAttendee; onBookmark: (value: boolean) => void }) {
   return (
-    <Link className="directory-card" href={`/attendees/${attendee.id}`}>
+    <article className="directory-card-wrap"><Link className="directory-card" href={`/attendees/${attendee.id}`}>
       <DirectoryAvatar name={attendee.name} photoUrl={attendee.photoUrl} />
       <div className="directory-card-body">
         <div className="directory-name-row"><h2>{attendee.name}</h2>{attendee.checkedIn && <span className="status-dot" title="Checked in" />}</div>
@@ -159,7 +164,7 @@ function AttendeeCard({ attendee }: { attendee: DirectoryAttendee }) {
         <div className="card-tags">{attendee.chapterName && <span>{attendee.chapterName}</span>}{attendee.tableNumber && <span>Table {attendee.tableNumber}</span>}</div>
       </div>
       <span className="card-arrow" aria-hidden="true">›</span>
-    </Link>
+    </Link><BookmarkButton attendeeId={attendee.id} initialBookmarked={Boolean(attendee.bookmarked)} compact onChange={onBookmark} /></article>
   );
 }
 

@@ -182,7 +182,7 @@ export class AttendeesService {
   }
 
   async listDirectory(currentAttendeeId: string) {
-    const [attendees, businessCategories, cities, chapters] = await this.prisma.$transaction([
+    const [attendees, businessCategories, cities, chapters, bookmarks] = await this.prisma.$transaction([
       this.prisma.attendee.findMany({
         where: { id: { not: currentAttendeeId } },
         select: {
@@ -213,7 +213,10 @@ export class AttendeesService {
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
         select: { name: true },
       }),
+      this.prisma.bookmark.findMany({ where: { attendeeId: currentAttendeeId }, select: { targetId: true } }),
     ]);
+
+    const bookmarkedIds = new Set(bookmarks.map((bookmark) => bookmark.targetId));
 
     const directory = attendees.map((attendee) => ({
       id: attendee.id,
@@ -225,6 +228,7 @@ export class AttendeesService {
       tableNumber: attendee.tableNumber,
       chapterName: attendee.chapter?.name ?? null,
       checkedIn: Boolean(attendee.checkIn),
+      bookmarked: bookmarkedIds.has(attendee.id),
     }));
 
     const unique = (values: Array<string | null>) =>
@@ -250,7 +254,7 @@ export class AttendeesService {
       chapter: { select: { name: true } },
     } as const;
 
-    const [attendee, viewer] = await Promise.all([
+    const [attendee, viewer, bookmark] = await Promise.all([
       this.prisma.attendee.findUnique({
         where: { id: targetId },
         select: {
@@ -271,6 +275,9 @@ export class AttendeesService {
       viewerId === targetId
         ? Promise.resolve(null)
         : this.prisma.attendee.findUnique({ where: { id: viewerId }, select: { id: true, ...matchSelect } }),
+      viewerId === targetId
+        ? Promise.resolve(null)
+        : this.prisma.bookmark.findUnique({ where: { attendeeId_targetId: { attendeeId: viewerId, targetId } } }),
     ]);
     if (!attendee) throw new NotFoundException("Attendee not found");
 
@@ -287,6 +294,7 @@ export class AttendeesService {
       checkedIn: Boolean(attendee.checkIn),
       checkIn: undefined,
       match: match && match.headline ? match : null,
+      bookmarked: Boolean(bookmark),
     };
   }
 

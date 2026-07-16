@@ -7,6 +7,7 @@ import { DirectoryAvatar } from "../../components/DirectoryAvatar";
 import { ContactRows } from "../../components/ContactRows";
 import { directoryCache, type AttendeeProfile } from "../../lib/directoryCache";
 import { SaveContactButton } from "../../components/SaveContactButton";
+import { BookmarkButton } from "../../components/BookmarkButton";
 
 export default function AttendeeProfilePage({ params }: { params: { id: string } }) {
   const [profile, setProfile] = useState<AttendeeProfile | null>(null);
@@ -68,6 +69,7 @@ function ProfileContent({ profile }: { profile: AttendeeProfile }) {
       </section>
 
       <div className="profile-actions">
+        <BookmarkButton attendeeId={profile.id} initialBookmarked={Boolean(profile.bookmarked)} onChange={(bookmarked) => directoryCache.setProfile(profile.id, { ...profile, bookmarked })} />
         <a className="profile-action primary" href={`tel:${profile.phone}`}>Call</a>
         <a className="profile-action" href={`https://wa.me/${whatsappNumber}?text=${whatsappText}`} target="_blank" rel="noreferrer">WhatsApp</a>
         {canShare && <button className="profile-action" type="button" onClick={() => navigator.share({ title: profile.name, text: `${profile.name} · ${profile.businessName ?? "Evento attendee"}` })}>Share</button>}

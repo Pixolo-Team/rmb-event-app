@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
-import { AttendeeMe, FeedCommentData, FeedPhotoData, TEMP_BYPASS_LOGIN } from "./TutorialPage";
+import { FeedAttendee, FeedCommentData, FeedPhotoData } from "../../lib/feedTypes";
 
 type FeedPageResponse = {
   photos: FeedPhotoData[];
@@ -20,6 +20,38 @@ function formatTimestamp(iso: string) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function previewFilter(brightness: number, filter: "none" | "warm" | "mono") {
+  const tone = filter === "warm" ? "sepia(.25) saturate(1.2)" : filter === "mono" ? "grayscale(1)" : "";
+  return `brightness(${brightness}%) ${tone}`.trim();
+}
+
+async function processPhoto(file: File, cropSquare: boolean, brightness: number, filter: "none" | "warm" | "mono"): Promise<File> {
+  const sourceUrl = URL.createObjectURL(file);
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const element = new Image();
+      element.onload = () => resolve(element);
+      element.onerror = reject;
+      element.src = sourceUrl;
+    });
+    let sourceX = 0, sourceY = 0, sourceWidth = image.naturalWidth, sourceHeight = image.naturalHeight;
+    if (cropSquare) {
+      const side = Math.min(sourceWidth, sourceHeight);
+      sourceX = (sourceWidth - side) / 2; sourceY = (sourceHeight - side) / 2;
+      sourceWidth = side; sourceHeight = side;
+    }
+    const scale = Math.min(1, 1600 / Math.max(sourceWidth, sourceHeight));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(sourceWidth * scale); canvas.height = Math.round(sourceHeight * scale);
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Image editing unavailable");
+    context.filter = previewFilter(brightness, filter);
+    context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error("Image conversion failed")), "image/jpeg", .88));
+    return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+  } finally { URL.revokeObjectURL(sourceUrl); }
 }
 
 function uploadPhotoWithProgress(
@@ -60,22 +92,27 @@ export function FeedView({
   attendee,
   photos,
   setPhotos,
+  demoMode = false,
 }: {
-  attendee: AttendeeMe;
+  attendee: FeedAttendee;
   photos: FeedPhotoData[];
   setPhotos: Dispatch<SetStateAction<FeedPhotoData[]>>;
+  demoMode?: boolean;
 }) {
   const [feedState, setFeedState] = useState<"loading" | "ready" | "error">(
-    TEMP_BYPASS_LOGIN ? "ready" : "loading",
+    demoMode ? "ready" : "loading",
   );
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [caption, setCaption] = useState("");
+  const [cropSquare, setCropSquare] = useState(false);
+  const [brightness, setBrightness] = useState(100);
+  const [filter, setFilter] = useState<"none" | "warm" | "mono">("none");
   const [composerStatus, setComposerStatus] = useState<"idle" | "uploading" | "error" | "success">("idle");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [composerError, setComposerError] = useState<string | null>(null);
@@ -86,7 +123,7 @@ export function FeedView({
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (TEMP_BYPASS_LOGIN) return;
+    if (demoMode) return;
 
     let cancelled = false;
     async function load() {
@@ -111,38 +148,45 @@ export function FeedView({
     return () => {
       cancelled = true;
     };
-  }, [setPhotos]);
+  }, [demoMode, setPhotos]);
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0] ?? null;
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setSelectedFile(file);
-    setPreviewUrl(file ? URL.createObjectURL(file) : null);
-    setComposerError(null);
+    const files = Array.from(event.target.files ?? []).slice(0, 5);
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    setSelectedFiles(files);
+    setPreviewUrls(files.map((file) => URL.createObjectURL(file)));
+    setComposerError((event.target.files?.length ?? 0) > 5 ? "You can post up to 5 photos at a time." : null);
     setComposerStatus("idle");
   }
 
   function resetComposer() {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
     if (fileInputRef.current) fileInputRef.current.value = "";
-    setSelectedFile(null);
-    setPreviewUrl(null);
+    setSelectedFiles([]);
+    setPreviewUrls([]);
     setCaption("");
+    setCropSquare(false);
+    setBrightness(100);
+    setFilter("none");
     setComposerStatus("idle");
     setUploadProgress(0);
   }
 
   async function handlePost() {
-    if (!selectedFile) {
-      setComposerError("Choose a photo first.");
+    if (selectedFiles.length === 0) {
+      setComposerError("Choose at least one photo first.");
       return;
     }
     setComposerError(null);
 
-    if (TEMP_BYPASS_LOGIN) {
-      const newPhoto: FeedPhotoData = {
-        id: `demo-photo-${Date.now()}`,
-        url: URL.createObjectURL(selectedFile),
+    const uploadFiles = await Promise.all(selectedFiles.map(async (file) => {
+      try { return await processPhoto(file, cropSquare, brightness, filter); } catch { return file; }
+    }));
+
+    if (demoMode) {
+      const newPhotos: FeedPhotoData[] = uploadFiles.map((uploadFile, index) => ({
+        id: `demo-photo-${Date.now()}-${index}`,
+        url: URL.createObjectURL(uploadFile),
         caption: caption.trim() || null,
         createdAt: new Date().toISOString(),
         attendeeId: attendee.id,
@@ -152,8 +196,8 @@ export function FeedView({
         commentCount: 0,
         likedByMe: false,
         comments: [],
-      };
-      setPhotos((current) => [newPhoto, ...current]);
+      }));
+      setPhotos((current) => [...newPhotos, ...current]);
       setComposerStatus("success");
       resetComposer();
       return;
@@ -163,8 +207,12 @@ export function FeedView({
     setUploadProgress(0);
 
     try {
-      const created = await uploadPhotoWithProgress(selectedFile, caption, setUploadProgress);
-      setPhotos((current) => [created, ...current]);
+      const created: FeedPhotoData[] = [];
+      for (let index = 0; index < uploadFiles.length; index += 1) {
+        const photo = await uploadPhotoWithProgress(uploadFiles[index], caption, (percent) => setUploadProgress(Math.round(((index + percent / 100) / uploadFiles.length) * 100)));
+        created.push(photo);
+      }
+      setPhotos((current) => [...created, ...current]);
       setComposerStatus("success");
       resetComposer();
     } catch {
@@ -174,7 +222,7 @@ export function FeedView({
   }
 
   async function handleToggleLike(photo: FeedPhotoData) {
-    if (TEMP_BYPASS_LOGIN) {
+    if (demoMode) {
       setPhotos((current) =>
         current.map((item) =>
           item.id === photo.id
@@ -217,7 +265,7 @@ export function FeedView({
     const message = (commentDrafts[photoId] ?? "").trim();
     if (!message) return;
 
-    if (TEMP_BYPASS_LOGIN) {
+    if (demoMode) {
       const newComment: FeedCommentData = {
         id: `demo-comment-${Date.now()}`,
         name: attendee.name,
@@ -265,7 +313,7 @@ export function FeedView({
     if (typeof window !== "undefined" && !window.confirm("Delete this photo?")) return;
     setOpenMenuId(null);
 
-    if (TEMP_BYPASS_LOGIN) {
+    if (demoMode) {
       setPhotos((current) => current.filter((item) => item.id !== photoId));
       if (enlargedPhotoId === photoId) setEnlargedPhotoId(null);
       return;
@@ -320,39 +368,48 @@ export function FeedView({
           </div>
         ) : null}
 
-        <section className="composer-card">
-          <h1 className="settings-title">Share a photo</h1>
-          <p className="settings-copy">Post a photo from tonight and let others see what's happening.</p>
+        <div className="feed-heading"><div><p className="eyebrow">Event community</p><h1>Event Photos</h1></div></div>
 
-          <div className="field" style={{ marginTop: 16 }}>
-            <label htmlFor="photo-input">Photo</label>
+        <section className="composer-card feed-composer">
+          <div className="composer-person">
+            <div className="hero-avatar composer-avatar" aria-hidden="true">{getInitials(attendee.name)}</div>
+            <div><strong>{attendee.name}</strong><span>Share a moment with attendees</span></div>
+          </div>
+
+          <div className="field composer-caption">
+            <label className="sr-only" htmlFor="photo-caption">Caption</label>
+            <textarea id="photo-caption" maxLength={200} value={caption} onChange={(event) => setCaption(event.target.value)} placeholder="What would you like to share?" />
+            <small>{caption.length}/200</small>
+          </div>
+
+          <div className="composer-actions">
+            <button className="composer-photo-button" type="button" onClick={() => fileInputRef.current?.click()}><PhotoAddIcon />{selectedFiles.length ? `${selectedFiles.length} selected` : "Add photos"}</button>
             <input
+              className="sr-only"
               id="photo-input"
               ref={fileInputRef}
               type="file"
               accept="image/*"
+              multiple
               capture="environment"
               onChange={handleFileChange}
             />
+            <button className="btn-primary composer-post-button" type="button" disabled={composerStatus === "uploading" || selectedFiles.length === 0} onClick={handlePost}>
+              {composerStatus === "uploading" ? `${uploadProgress}%` : "Post"}
+            </button>
           </div>
 
-          {previewUrl ? (
-            <div className="photo-card-media" style={{ marginTop: 12 }}>
-              <img src={previewUrl} alt="Selected preview" />
+          {previewUrls.length ? (
+            <div className={`composer-preview-grid count-${Math.min(previewUrls.length, 4)}`}>
+              {previewUrls.map((url, index) => <div className="composer-preview" key={url}><img src={url} alt={`Selected preview ${index + 1}`} style={{ filter: previewFilter(brightness, filter) }} /></div>)}
             </div>
           ) : null}
 
-          <div className="field" style={{ marginTop: 12 }}>
-            <label htmlFor="photo-caption">Caption</label>
-            <textarea
-              id="photo-caption"
-              maxLength={200}
-              value={caption}
-              onChange={(event) => setCaption(event.target.value)}
-              placeholder="Say something about this moment..."
-            />
-            <small className="person-line muted">{caption.length}/200</small>
-          </div>
+          {previewUrls.length ? <div className="photo-editor" aria-label="Photo adjustments">
+            <label><input type="checkbox" checked={cropSquare} onChange={(event) => setCropSquare(event.target.checked)} /> Square crop</label>
+            <label><span>Brightness</span><input type="range" min="60" max="140" value={brightness} onChange={(event) => setBrightness(Number(event.target.value))} /><output>{brightness}%</output></label>
+            <label><span>Filter</span><select value={filter} onChange={(event) => setFilter(event.target.value as "none" | "warm" | "mono")}><option value="none">Original</option><option value="warm">Warm</option><option value="mono">Black & white</option></select></label>
+          </div> : null}
 
           {composerStatus === "uploading" ? (
             <div className="upload-progress-bar" style={{ marginTop: 12 }}>
@@ -369,15 +426,6 @@ export function FeedView({
             </div>
           ) : null}
 
-          <button
-            className="btn-primary"
-            type="button"
-            disabled={composerStatus === "uploading"}
-            onClick={handlePost}
-            style={{ marginTop: 16 }}
-          >
-            {composerStatus === "uploading" ? `Uploading... ${uploadProgress}%` : "Post photo"}
-          </button>
         </section>
 
         {feedState === "loading" ? (
@@ -419,7 +467,7 @@ export function FeedView({
             ))
           : null}
 
-        {!TEMP_BYPASS_LOGIN && nextCursor ? (
+        {!demoMode && nextCursor ? (
           <button className="btn-primary" type="button" disabled={loadingMore} onClick={handleLoadMore}>
             {loadingMore ? "Loading..." : "Load more"}
           </button>
@@ -468,8 +516,8 @@ export function FeedView({
                   if (event.key === "Enter") handleAddComment(enlargedPhoto.id);
                 }}
               />
-              <button className="btn-primary" type="button" onClick={() => handleAddComment(enlargedPhoto.id)}>
-                Send
+              <button className="comment-send" type="button" onClick={() => handleAddComment(enlargedPhoto.id)} aria-label="Send comment">
+                <SendIcon />
               </button>
             </div>
           </div>
@@ -550,10 +598,10 @@ function PhotoCard({
 
       <div className="person-actions">
         <button className={`like-btn${photo.likedByMe ? " active" : ""}`} type="button" disabled={busyLike} onClick={onToggleLike}>
-          {photo.likedByMe ? "Liked" : "Like"} ({photo.likeCount})
+          <LikeIcon /><span>{photo.likeCount}</span><span className="sr-only">{photo.likedByMe ? "Unlike" : "Like"}</span>
         </button>
-        <button className="person-link" type="button" onClick={onEnlarge}>
-          {photo.commentCount} comment{photo.commentCount === 1 ? "" : "s"}
+        <button className="person-link" type="button" onClick={onEnlarge} aria-label={`${photo.commentCount} comments`}>
+          <CommentIcon /><span>{photo.commentCount}</span>
         </button>
       </div>
 
@@ -581,10 +629,15 @@ function PhotoCard({
             if (event.key === "Enter") onSubmitComment();
           }}
         />
-        <button className="btn-primary" type="button" onClick={onSubmitComment}>
-          Send
+        <button className="comment-send" type="button" onClick={onSubmitComment} aria-label="Send comment" disabled={!commentDraft.trim()}>
+          <SendIcon />
         </button>
       </div>
     </article>
   );
 }
+
+function PhotoAddIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h4l1.5-2h5L16 6h4v14H4V6Z" /><circle cx="12" cy="13" r="4" /></svg>; }
+function LikeIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.7A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" /></svg>; }
+function CommentIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v11H9l-4 3V5Z" /></svg>; }
+function SendIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 5 16 7-16 7 3-7-3-7Zm3 7h13" /></svg>; }
