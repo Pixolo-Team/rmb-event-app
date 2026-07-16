@@ -1,8 +1,8 @@
 # EVENTO — Development Plan
 
-Turns [`PRD_v1.md`](./PRD_v1.md), [`FEATURES.md`](./FEATURES.md), [`SCREENS.md`](./SCREENS.md) and [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) into an executable build plan: architecture, data model, API surface, a week-by-week schedule against the PRD's under-1-month window, and the pre-event/event-day/post-event runbook.
+Turns [`PRD_v1.md`](./PRD_v1.md), [`FEATURES.md`](./FEATURES.md), [`SCREENS.md`](./SCREENS.md) and [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) into an executable build plan: architecture, data model, API surface, a granular build sequence against the PRD's under-1-month window, and the pre-event/event-day/post-event runbook.
 
-No code exists in this repo yet — this plan assumes a build starting from zero.
+`FEATURES.md`'s Feature Index is the source of truth for what's actually built vs. not — see its ✅/🟡/⬜ status per feature (currently: Platform Foundations PF1/PF2 and F1.1–F1.4 are done; everything else is spec-only). This plan's job is to sequence and pace what's left, not to re-describe scope already captured there.
 
 ---
 
@@ -13,7 +13,7 @@ No code exists in this repo yet — this plan assumes a build starting from zero
 3. [Repository Structure](#repository-structure)
 4. [Data Model](#data-model)
 5. [API Surface](#api-surface)
-6. [Week-by-Week Plan](#week-by-week-plan)
+6. [Build Sequence & Pacing](#build-sequence--pacing)
 7. [Testing & QA Plan](#testing--qa-plan)
 8. [Environments & Deployment](#environments--deployment)
 9. [Pre-Event, Event-Day & Post-Event Runbook](#pre-event-event-day--post-event-runbook)
@@ -148,95 +148,91 @@ Entities, in build order (matches the dependency chain in `FEATURES.md`):
 
 ## API Surface
 
-Grouped by NestJS module. All attendee-facing writes are idempotent (safe to retry from the offline queue).
+Grouped by NestJS module. All attendee-facing writes are idempotent (safe to retry from the offline queue). Each group is tagged with the `FEATURES.md` ID(s) it belongs to.
 
-**auth**
+**auth** — *PF2, PF3*
 `POST /auth/magic-link` (request a link — email or phone) · `POST /auth/magic-link/verify` (exchange token for session) · `POST /admin/auth/login` · `POST /admin/auth/logout`
 
-**attendees / import**
+**attendees / import** — *F1.1, F1.2, F2.4*
 `POST /admin/import` (upload + column mapping) · `GET /admin/import/:batchId` (status/report) · `GET /attendees/me` · `PATCH /attendees/me/profile` · `GET /attendees` (directory, filterable by businessCategory/chapter/company/checkedIn) · `GET /attendees/:id`
 
-**matching**
+**matching** — *F2.1, F2.2, F2.3*
 `GET /attendees/me/matches` (top-10 + reasons, cacheable/offline)
 
-**checkin**
+**checkin** — *F3.2, F3.3, F3.4*
 `POST /checkin/geolocation` · `POST /checkin/manual` · `POST /admin/checkin/qr-scan` (staff) · `GET /admin/checkin/status` (live counter + breakdown)
 
-**meetings**
+**meetings** — *F4.2, F4.3*
 `POST /meetings/scan` (the unified QR exchange — idempotent on the attendee pair) · `GET /attendees/me/connections` (met + bookmarked)
 
-**bookmarks**
+**bookmarks** — *F5.1, F5.2*
 `POST /bookmarks` · `DELETE /bookmarks/:id` · `PATCH /bookmarks/:id/note`
 
-**leaderboard**
+**leaderboard** — *F6.1, F6.2, F6.3*
 `GET /leaderboard` (top 20 + requester's own rank; polled every 5–10s)
 
-**feed**
+**feed** — *F7.1, F7.2, F7.3*
 `POST /feed/posts` (multipart photo upload) · `GET /feed/posts` · `DELETE /feed/posts/:id` (self or admin) · `POST /feed/posts/:id/like` · `POST /feed/posts/:id/comments`
 
-**feedback**
+**feedback** — *F8.1, F8.2*
 `POST /feedback` · `GET /admin/feedback` (analytics + CSV export)
 
-**summary**
+**summary** — *F9.1, F9.2, F10.1*
 `GET /attendees/me/summary` (post-event stats) · `GET /attendees/me/connections/export` (CSV/vCard)
 
-**admin analytics**
+**admin analytics** — *F11.2, F11.3*
 `GET /admin/analytics/overview` (check-ins, meetings, avg/attendee, engagement %) · `GET /admin/analytics/export` (CSV/PDF)
 
-**admin — event settings**
+**admin — event settings** — *F3.1, F3.5*
 `PATCH /admin/event` (venue lat/lng/radius, start/end times) · `GET /admin/badges` (PDF generation)
 
 ---
 
-## Week-by-Week Plan
+## Build Sequence & Pacing
 
-Mapped directly onto `FEATURES.md`'s suggested build sequence, turned into calendar weeks. Assumes a ~4.5 week build window ending with a pre-event buffer, per the PRD's "under 1 month" constraint. Compress or parallelize across people if more than one engineer is available — the dependency chain below is what actually gates ordering, not the week numbers.
+Mirrors `FEATURES.md`'s [Suggested Build Sequence](./FEATURES.md#suggested-build-sequence) — same IDs, same dependency order — mapped onto calendar days. Assumes a ~4.5 week build window ending with a pre-event buffer, per the PRD's "under 1 month" constraint. Each ID is one build unit, roughly 0.5–1.5 days for one engineer; compress or parallelize across people if more than one is available. **✅ marks IDs already done in this repo** — pick up wherever the ✅s stop.
 
-### Week 0 (Day 0–2): Kickoff
+### Day 0–2: Kickoff + Platform Foundations
 - Vendor decisions locked (see table above); email domain verification submitted **immediately** (email is the only attendee entry channel)
-- Repo scaffolded (monorepo structure above), CI running lint/typecheck/build on every push
+- Repo scaffolded, CI running lint/typecheck/build on every push
 - Postgres provisioned, Prisma schema drafted from the Data Model section, first migration committed
-- Design tokens ported from `DESIGN_SYSTEM.md` into a Tailwind config — this unblocks every screen after
-- NestJS `auth` module skeleton (JWT issuing/verification, no providers wired yet)
+- Design tokens ported from `DESIGN_SYSTEM.md` into a Tailwind config — unblocks every screen after
+- **PF1** ✅ · **PF2** ✅ · **PF5** · **PF4** · **PF6** (partial — extend rate limiting/CORS/validation past the auth endpoints)
 - **Exit criteria:** an empty Next.js page and an empty NestJS `/health` endpoint both deployed to staging
 
-### Week 1: Platform Foundations + F1 (Attendee Import & Onboarding)
-- Service worker + Dexie.js offline write-queue scaffold (even if only one write type uses it yet)
-- QR signing (`qrcode` + JWT payload) and verification
-- Admin CSV import with column-mapping UI (Screen 3.3), dedup by phone+email, per-row error/flag reporting
-- Profile Setup Form (Screen 1.1) — pre-filled read-only fields + business category/looking-for/offering dropdowns/goals/bio
-- PWA install prompt (Screen 1.2), Thanks screen (1.3)
-- Login / magic link (Screen 2.0) — email only, serves both first-time sign-up (via the generic group link) and re-entry; rate limiting, neutral response, post-auth routing (no profile → 1.1, profile → 2.1)
-- **Exit criteria:** a test attendee can be imported, open the generic app link, request a magic link by email, complete a profile, install the PWA, and log back in from a second device the same way
+### Days 3–6: F1 (Attendee Onboarding & Import) + PF3
+- **F1.1** ✅ · **PF3** (build this and wire it in front of `/admin/*` — F1.1 currently has no login gate) · **F1.2** ✅ · **F1.3** ✅ · **F1.4** ✅ · **F1.5**
+- **Exit criteria:** a test attendee can be imported (behind admin login), open the generic app link, request a magic link by email, complete a profile, and install the PWA
 
-### Week 2: F3 (Attendance & Check-In) + F4 (QR Exchange & Met Detection)
-- Home/Dashboard (2.1) with geolocation auto-check-in + manual fallback (2.1A)
-- Admin venue config (lat/lng/radius) and live check-in dashboard (3.4) with method breakdown
-- Staff QR check-in scan flow
-- QR Scanner screen (2.4), unified scan → exchange + meeting log, duplicate-pair protection
-- Own-QR display at the top of Profile/Settings (2.11) — offline-rendered, tap-to-enlarge with brightness boost, name below the code
-- My Connections base view (2.6) — Already Met tab only for now (Want to Meet lands with F5 next week)
-- **Exit criteria:** two test attendees can check in (one via geolocation, one manually), scan each other's QR, see the exchange confirmation, and a repeat scan is correctly rejected as a duplicate
+### Days 7–11: F3 (Attendance & Check-In)
+- **F3.1** · **F3.2** · **F3.3** · **F3.4** · **F3.5**
+- **Exit criteria:** two test attendees can check in (one via geolocation, one manually), staff can QR-scan a badge at the desk, and the live dashboard shows a correct counter/method breakdown
 
-### Week 3: F6 (Leaderboard) + F2 (Matching, incl. chapter) + F5 (Bookmarks)
-- Leaderboard aggregate query + polling endpoint, mobile leaderboard screen (2.5), venue display view
-- Matching engine module (tag overlap + same/cross-chapter reasoning), Day -3 pre-computation job
-- Directory (2.2) with business category/company/chapter/checked-in filters, search
-- Individual Profile screen (2.3) with match-reason display
-- Bookmarks wired into My Connections' Want to Meet tab (2.6 complete)
-- **Exit criteria:** a test attendee sees a ranked match list with correct same-/cross-chapter reasoning, can bookmark someone from the directory, and the leaderboard updates within 10s of a new scan
+### Days 12–16: F4 (QR Exchange & Met Detection — the core loop)
+- **F4.1** · **F4.2** · **F4.3**
+- **Exit criteria:** two test attendees scan each other's QR, see the exchange confirmation, and a repeat scan is correctly rejected as a duplicate
 
-### Week 4: F11 (Analytics) + F8 (Feedback) + F9 (Summary/Follow-up) + F10 (Save as Contact)
-- Admin analytics overview (3.2) — check-ins, meetings, avg/attendee, engagement %, CSV export
-- Feedback prompt (2.9) + admin feedback analytics (3.6)
-- Event Summary screen (2.10), CSV/vCard export, WhatsApp share (`wa.me` deep link — no vendor)
-- (No Day+1 follow-up scheduler to build — the follow-up nudge is a manual admin post in the group, per the runbook)
-- vCard "Save to Contacts" (2.3/2.6 action)
-- **F7 Photo Feed if time allows** — cut first under schedule pressure, per the PRD's own framing of it as secondary engagement
-- **Exit criteria:** the full attendee journey (import → onboard → check in → scan → match → bookmark → feedback → summary → follow-up) runs end-to-end against staging with no manual database intervention
+### Days 17–19: F6 (Leaderboard)
+- **F6.1** · **F6.2** · **F6.3**
+- **Exit criteria:** the leaderboard updates within 10s of a new scan; venue display and mobile screens both read correctly
 
-### Week 4.5 (buffer): Hardening & Pre-Event Validation
-See the [Runbook](#pre-event-event-day--post-event-runbook) below — this week is QA, device testing, and the venue dry run, not new features.
+### Days 20–24: F2 (Matching) + F5 (Bookmarks), in parallel
+- **F2.1** · **F2.2** · **F2.3** · **F2.4** · **F2.5** — and separately **F5.1** · **F5.2**
+- **Exit criteria:** a test attendee sees a ranked match list with correct same-/cross-chapter reasoning, can browse the full directory, and can bookmark someone from it
+
+### Days 25–28: F8 (Feedback) + F11 (Analytics)
+- **F8.1** · **F8.2** · **F11.1** · **F11.2** · **F11.3**
+- **Exit criteria:** admin analytics overview reflects live check-in/meeting/feedback data, with CSV export
+
+### Days 29–31: F9 (Summary & Follow-Up) + F10 (Save as Contact)
+- **F9.1** · **F9.2** · **F10.1** — no Day+1 follow-up scheduler to build, the nudge is a manual admin group post per the Runbook
+- **Exit criteria:** the full attendee journey (import → onboard → check in → scan → match → bookmark → feedback → summary) runs end-to-end against staging with no manual database intervention
+
+### Days 32+ (cut first under schedule pressure): F7 (Photo Feed)
+- **F7.1** · **F7.2** · **F7.3** — per the PRD's own framing of this as secondary engagement
+
+### Final buffer: Hardening & Pre-Event Validation
+See the [Runbook](#pre-event-event-day--post-event-runbook) below — this stretch is QA, device testing, and the venue dry run, not new features.
 
 ---
 
@@ -307,11 +303,11 @@ Carried from the PRD's own risk table, restated as build-phase actions rather th
 
 | Risk | When it bites | Build-plan mitigation |
 |---|---|---|
-| Magic-link emails land in spam (email is now the only entry channel) | Week 0–1, felt hardest on event day | Verify SPF/DKIM/DMARC on Day 0; use a reputable transactional provider; test deliverability against Gmail (the dominant inbox for this audience) before the Day -5 group post |
-| QR scanning unreliable in venue lighting/crowd noise | Week 2, confirmed at the venue dry run | Test with the actual printed badge size (1-inch) under venue lighting before event day, not just on a laptop screen |
-| Venue WiFi fails entirely | Event day | Offline-first is architected from Week 1 (service worker + IndexedDB), not bolted on later — this is why it's in the Week 1 exit criteria, not Week 4 |
-| Matching quality feels weak to attendees | Week 3, felt on event day | Ship the "browse full directory" fallback in the same week as matching, never matching alone |
-| Timeline slips past 1 month | Any week | The build sequence is ordered so that cutting from the *end* (F7 Photo Feed first, then F10, F9) still leaves a demoable, valuable pilot — never cut from the *start* (Foundations, F1, F3, F4) |
+| Magic-link emails land in spam (email is now the only entry channel) | Days 0–6 (PF2/F1), felt hardest on event day | Verify SPF/DKIM/DMARC on Day 0; use a reputable transactional provider; test deliverability against Gmail (the dominant inbox for this audience) before the Day -5 group post |
+| QR scanning unreliable in venue lighting/crowd noise | Days 7–16 (F3/F4), confirmed at the venue dry run | Test with the actual printed badge size (1-inch) under venue lighting before event day, not just on a laptop screen |
+| Venue WiFi fails entirely | Event day | Offline-first (PF4) is architected in the first build phase, not bolted on later — this is why it's in the Days 0–2 exit criteria, not the final buffer |
+| Matching quality feels weak to attendees | Days 20–24 (F2), felt on event day | Ship the "browse full directory" fallback (F2.4) in the same batch as matching, never matching alone |
+| Timeline slips past 1 month | Any phase | The build sequence is ordered so that cutting from the *end* (F7 Photo Feed first, then F10, F9) still leaves a demoable, valuable pilot — never cut from the *start* (Foundations, F1, F3, F4) |
 
 ---
 

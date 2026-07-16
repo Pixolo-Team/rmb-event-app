@@ -2,7 +2,7 @@
 
 MSME event networking PWA. See [`docs/`](./docs) for the full PRD, screen specs, feature breakdown, design system, and development plan.
 
-**Current build status:** Login (Screen 2.0) and F1 — Attendee Import & Onboarding (Screens 1.1–1.3, 3.3) are implemented. Everything else in `docs/FEATURES.md` (matching, check-in, QR scan, leaderboard, feed, admin dashboard beyond import) is still spec-only.
+**Current build status:** see `docs/FEATURES.md`'s Feature Index for the authoritative per-feature status. Done so far: PF1 (PWA shell), PF2 (email magic-link auth), F1.1 (admin CSV import), F1.2 (profile setup form), F1.3 (PWA install prompt), F1.4 (thanks screen). Everything else (admin login gate, matching, check-in, QR scan, leaderboard, feed, analytics) is still spec-only.
 
 ## Stack
 
