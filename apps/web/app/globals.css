@@ -1601,10 +1601,9 @@ p.copy {
 .stat-tile em { display: block; margin-top: 2px; color: var(--ink-faint); font-style: normal; font-size: .72rem; }
 .stat-tile span { display: block; margin-top: 4px; color: var(--ink-muted); font-size: .72rem; }
 .stat-tile-wide { grid-column: 1 / -1; }
-.profile-contact { margin: 0; }
-.profile-contact > div + div { margin-top: 12px; }
-.profile-contact dt { color: var(--ink-faint); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; }
-.profile-contact dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+.profile-contact { margin: 0; display: grid; gap: 16px; }
+.profile-contact dt { color: var(--ink-faint); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.profile-contact dd { margin: 5px 0 0; overflow-wrap: anywhere; line-height: 1.35; }
 .profile-contact a { color: var(--brand-600); }
 
 /* Contact rows — tappable phone/email/table with an icon badge (F2.5 + F4.1) */
