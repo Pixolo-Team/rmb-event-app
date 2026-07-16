@@ -1191,6 +1191,10 @@ a.contact-row:active { background: var(--brand-100); }
 .connection-actions a, .connection-actions button { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--surface); color: var(--brand-600); font: 700 .78rem var(--font-body); text-decoration: none; cursor: pointer; }
 .connection-actions a { gap: 7px; }
 .connection-actions svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.save-contact-button { width: 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin-top: 9px; padding: 0 14px; border: 1.5px solid var(--brand-500); border-radius: var(--radius-md); background: var(--brand-50); color: var(--brand-700); font: 700 .8rem var(--font-body); cursor: pointer; }
+.save-contact-button:hover { background: var(--brand-100); }
+.save-contact-button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.profile-section .save-contact-button { margin-top: 12px; }
 .connection-actions button:disabled { cursor: not-allowed; opacity: .45; }
 .note-editor { margin-top: 14px; }
 .note-editor label { display: block; margin-bottom: 6px; font-size: .78rem; font-weight: 700; }

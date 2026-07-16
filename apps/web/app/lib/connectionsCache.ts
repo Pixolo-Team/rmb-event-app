@@ -2,6 +2,7 @@ export type Connection = {
   id: string;
   name: string;
   phone: string;
+  email: string;
   businessName: string | null;
   businessCategory: string | null;
   bio: string | null;

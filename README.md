@@ -2,7 +2,7 @@
 
 MSME event networking PWA. See [`docs/`](./docs) for the full PRD, screen specs, feature breakdown, design system, and development plan.
 
-**Current build status:** see `docs/FEATURES.md`'s Feature Index for the authoritative per-feature status. Done so far: PF1 (PWA shell), PF2 (email magic-link auth), PF4 (offline sync engine), PF8 (dropdown reference data), F1.1 (admin CSV import), F1.2 (profile setup form), F1.3 (PWA install prompt), F1.4 (thanks screen), F2.1 (matching engine), F2.4 (attendee directory), F2.5 (individual profile + match reason), F3.1–F3.5 (venue settings, check-in, staff QR scan, badge printing — including offline queuing), and F4.1–F4.3 (own QR, QR exchange, confirmed meetings and My Connections). Everything else (admin login gate, pre-event matches screen, bookmarks, leaderboard, feed, analytics) is still spec-only.
+**Current build status:** see `docs/FEATURES.md`'s Feature Index for the authoritative per-feature status. Done so far: PF1 (PWA shell), PF2 (email magic-link auth), PF4 (offline sync engine), PF8 (dropdown reference data), F1.1 (admin CSV import), F1.2 (profile setup form), F1.3 (PWA install prompt), F1.4 (thanks screen), F2.1 (matching engine), F2.4 (attendee directory), F2.5 (individual profile + match reason), F3.1–F3.5 (venue settings, check-in, staff QR scan, badge printing — including offline queuing), F4.1–F4.3 (own QR, QR exchange, confirmed meetings and My Connections), and F10.1 (offline vCard contact hand-off). Everything else (admin login gate, pre-event matches screen, bookmarks, leaderboard, feed, analytics) is still spec-only.
 
 ## Stack
 
@@ -75,6 +75,7 @@ See `apps/api/src/mail/mail.service.ts` and `apps/api/src/whatsapp/whatsapp.serv
 | Smart matching — decoupled engine (`apps/api/src/matching/`) computing looking-for/offering overlap, shared category, same/cross-chapter reasoning; surfaced as the "Why you're a match" reason on a profile | Real (F2.1 engine + F2.5 display). The pre-event "People to meet" list (F2.3) and day-3 pre-compute cache (F2.2) still consume this engine but aren't built |
 | Settings/Profile screen (`/profile`) with the attendee's own business-card QR — offline-rendered from their signed token, tap-to-enlarge with brightness boost | Real (F4.1) |
 | QR scan → card exchange + confirmed meeting (`/scan`) — one scan logs a `Meeting` (canonical unordered pair, duplicate-pair protected), self-scan/unknown-code guards, offline-queued via PF4 | Real (F4.2) |
-| My Connections (`/connections`) — cached Already Met list, sorting, Call/WhatsApp, per-attendee private notes and non-destructive removal | Real (F4.3). Want to Meet/bookmarks are F5; native Save to Contacts is F10 |
+| My Connections (`/connections`) — cached Already Met list, sorting, Call/WhatsApp, per-attendee private notes and non-destructive removal | Real (F4.3). Want to Meet/bookmarks are F5 |
+| Save to phone contacts — local `.vcf` generation from attendee profiles and connection cards, handed to the native Contacts flow | Real (F10.1), works offline |
 | Admin auth (Screen 3.1) | Not built — `/admin/import`, `/admin/event`, `/admin/checkin`, `/admin/badges` have no login gate yet |
 | Everything past connections (bookmarks, leaderboard, feed, analytics) | Not built yet |

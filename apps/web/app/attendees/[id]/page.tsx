@@ -6,6 +6,7 @@ import { AttendeePageShell } from "../../components/AttendeePageShell";
 import { DirectoryAvatar } from "../../components/DirectoryAvatar";
 import { ContactRows } from "../../components/ContactRows";
 import { directoryCache, type AttendeeProfile } from "../../lib/directoryCache";
+import { SaveContactButton } from "../../components/SaveContactButton";
 
 export default function AttendeeProfilePage({ params }: { params: { id: string } }) {
   const [profile, setProfile] = useState<AttendeeProfile | null>(null);
@@ -86,7 +87,7 @@ function ProfileContent({ profile }: { profile: AttendeeProfile }) {
 
       {profile.bio && <ProfileSection title="About"><p className="profile-bio">{profile.bio}</p></ProfileSection>}
       <div className="profile-details-grid">
-        <ProfileSection title="Contact"><ContactRows phone={profile.phone} email={profile.email} tableNumber={profile.tableNumber} /></ProfileSection>
+        <ProfileSection title="Contact"><ContactRows phone={profile.phone} email={profile.email} tableNumber={profile.tableNumber} /><SaveContactButton contact={{ name: profile.name, phone: profile.phone, email: profile.email, company: profile.businessName, note: "Connected through Evento" }} /></ProfileSection>
         <ProfileSection title="Networking goals"><TagList values={profile.goals} empty="No goals added yet" /></ProfileSection>
         <ProfileSection title="Looking for"><TagList values={profile.lookingFor} empty="Not specified" /></ProfileSection>
         <ProfileSection title="Offering"><TagList values={profile.offering} empty="Not specified" /></ProfileSection>

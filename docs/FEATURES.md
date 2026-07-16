@@ -227,7 +227,12 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
-| F10.1 | One-tap vCard (.vcf) generation + native contact hand-off, "contact exists — update?" handling | Action on Screen 2.3/2.6 | P2 | Yes | F4.3 | ⬜ Not started |
+| F10.1 | One-tap vCard (.vcf) generation + native contact hand-off, "contact exists — update?" handling | Action on Screen 2.3/2.6 | P2 | Yes | F4.3 | ✅ Done |
+
+**F10.1 build notes:**
+- Attendee profiles and Already Met connection cards generate a standards-compatible vCard locally with name, mobile number, email, company and an Evento note. No network request is required, so the action works offline.
+- The `.vcf` is handed to the device through the browser download/open flow. iOS/Android Contacts owns the final create-versus-update prompt; web apps cannot inspect the address book to pre-detect an existing contact.
+- The action uses the design system's outlined contact icon and a separate full-width utility row, preserving the two-button Call/WhatsApp communication layout.
 
 ---
 
