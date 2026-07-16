@@ -192,6 +192,61 @@ p.copy {
 .field select {
   height: 46px;
 }
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.photo-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 140px;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-md);
+  border: 1.5px dashed var(--border-strong);
+  background: var(--surface-2);
+  overflow: hidden;
+  cursor: pointer;
+}
+.photo-picker:hover {
+  border-color: var(--brand-500);
+}
+.photo-picker img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.photo-picker-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: center;
+}
+.photo-picker-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--brand-100);
+  color: var(--brand-700);
+  font-size: 1.3rem;
+  font-weight: 800;
+  line-height: 1;
+}
 .field textarea {
   padding: 11px 13px;
   resize: vertical;
@@ -525,6 +580,10 @@ p.copy {
   border-color: var(--brand-500);
   color: var(--ink-on-brand);
 }
+.nav-pill:focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 1px;
+}
 .hero-card,
 .mini-card,
 .feature-card,
@@ -662,10 +721,20 @@ p.copy {
   border-radius: 18px;
   padding: 18px;
 }
+.photo-card {
+  padding-top: 10px;
+}
+.photo-card .person-card-head {
+  align-items: center;
+}
+.photo-card .person-line {
+  margin-top: 1px;
+}
 .person-card-head {
   display: flex;
   align-items: flex-start;
   gap: 12px;
+  margin-bottom: 14px;
 }
 .person-avatar {
   width: 56px;
@@ -801,8 +870,16 @@ p.copy {
   margin-top: 12px;
 }
 .comment-item {
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
   font-size: 0.85rem;
+  line-height: 1.4;
   color: var(--ink);
+}
+.comment-item strong {
+  margin-right: 6px;
+  color: var(--brand-700);
 }
 .comment-form {
   display: flex;
@@ -811,14 +888,22 @@ p.copy {
 }
 .comment-form input {
   flex: 1;
-  min-height: 40px;
+  height: 44px;
   padding: 0 14px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-sm);
   border: 1.5px solid var(--border-strong);
   background: var(--surface);
   color: var(--ink);
   font-family: var(--font-body);
   font-size: 0.85rem;
+}
+.comment-form .btn-primary {
+  width: auto;
+  height: 44px;
+  min-width: 88px;
+  margin-top: 0;
+  padding: 0 24px;
+  flex-shrink: 0;
 }
 .upload-progress-bar {
   width: 100%;

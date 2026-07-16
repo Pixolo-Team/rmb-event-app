@@ -86,6 +86,17 @@ export function FeedView({
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    if (!openMenuId) return;
+    function handleClickAway(event: MouseEvent) {
+      if (!(event.target instanceof Element) || !event.target.closest(".post-menu")) {
+        setOpenMenuId(null);
+      }
+    }
+    document.addEventListener("click", handleClickAway);
+    return () => document.removeEventListener("click", handleClickAway);
+  }, [openMenuId]);
+
+  useEffect(() => {
     if (TEMP_BYPASS_LOGIN) return;
 
     let cancelled = false;
@@ -232,6 +243,7 @@ export function FeedView({
         ),
       );
       setCommentDrafts((current) => ({ ...current, [photoId]: "" }));
+      if (enlargedPhotoId === photoId) setEnlargedPhotoId(null);
       return;
     }
 
@@ -256,6 +268,7 @@ export function FeedView({
         ),
       );
       setCommentDrafts((current) => ({ ...current, [photoId]: "" }));
+      if (enlargedPhotoId === photoId) setEnlargedPhotoId(null);
     } catch {
       setActionError("Couldn't post comment. Check your connection and try again.");
     }
@@ -326,6 +339,18 @@ export function FeedView({
 
           <div className="field" style={{ marginTop: 16 }}>
             <label htmlFor="photo-input">Photo</label>
+            <label htmlFor="photo-input" className="photo-picker">
+              {previewUrl ? (
+                <img src={previewUrl} alt="Selected preview" />
+              ) : (
+                <span className="photo-picker-placeholder">
+                  <span className="photo-picker-icon" aria-hidden="true">
+                    +
+                  </span>
+                  Add a photo
+                </span>
+              )}
+            </label>
             <input
               id="photo-input"
               ref={fileInputRef}
@@ -333,14 +358,9 @@ export function FeedView({
               accept="image/*"
               capture="environment"
               onChange={handleFileChange}
+              className="visually-hidden"
             />
           </div>
-
-          {previewUrl ? (
-            <div className="photo-card-media" style={{ marginTop: 12 }}>
-              <img src={previewUrl} alt="Selected preview" />
-            </div>
-          ) : null}
 
           <div className="field" style={{ marginTop: 12 }}>
             <label htmlFor="photo-caption">Caption</label>
