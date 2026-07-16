@@ -4,7 +4,9 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 
 ---
 
-## Module 1: Pre-Event Onboarding (WhatsApp Link)
+## Module 1: Pre-Event Onboarding (Group Sign-Up Link)
+
+> **Distribution note:** there is no WhatsApp API/vendor integration. The admin manually posts one generic app link in the attendee WhatsApp group; attendees enter by requesting an email magic link on Screen 2.0 (which serves both first-time sign-up and returning re-entry). First-time users are routed here to Profile Setup after their magic link is verified.
 
 ### Screen 1.1: Profile Setup Form
 
@@ -20,20 +22,23 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 
 **User Interactions:**
 - Tap industry dropdown → open dropdown picker (single select)
+- Tap business category dropdown → open dropdown picker (single select — e.g., Manufacturer, Trader/Distributor, Service Provider, Retailer, Professional)
+- Type in "City" text field (required; pre-filled read-only if the import file provided it)
 - Tap "Looking for" tags → open tag selector (multi-select)
 - Tap "Offering" tags → open tag selector (multi-select)
 - Tap "Goals" tags → open tag selector (multi-select)
 - Type in "Bio" text field (optional, 200 char max)
 - Tap "Submit" button → validate & submit
-- Tap "Skip for now" → save what's filled, move to PWA install prompt
+- Tap "Skip for now" → move to PWA install prompt without saving; profile stays incomplete, so the attendee is routed back to this form on their next login
 
 **Navigation:**
-- **Comes from:** WhatsApp link (deep link with phone token)
+- **Comes from:** Login / Get Access Link (2.0) — first-time attendee lands here after their email magic link is verified and no completed profile exists
 - **Leads to:** PWA Install Screen (1.2) or Thanks Screen (1.3)
 
 **Data Needed to Display:**
 - Pre-filled and read-only, from registration: name, email, phone, business/profession name, RMB chapter (if any), photo (initials avatar shown if no photo on file)
 - Industry options (dropdown list)
+- Business category options (dropdown list)
 - "Looking for" tag options (multi-select)
 - "Offering" tag options (multi-select)
 - "Goals" tag options (multi-select)
@@ -41,7 +46,7 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 **Edge Cases:**
 - Phone number already in system but no profile yet → pre-fill phone/email/photo/chapter, show "Complete your profile"
 - Phone number not found → show error "You're not registered for this event"
-- Session token expired (> 72 hours since WhatsApp invite) → show "Link expired. Request a new invite"
+- Magic-link session expired mid-setup → send back to Login (2.0) with "Your session expired. Request a new link" (form progress preserved locally where possible)
 - User goes back (browser back button) → warn "Progress will be lost" before leaving
 - Network fails mid-submit → show "Saving..." and retry when online
 - User fills only required fields and submits → save successfully, move forward
@@ -158,17 +163,17 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 
 ### Screen 2.0: Login / Get Access Link
 
-**Module:** Auth (re-entry only — first-time onboarding never sees this screen; it's reached only via the WhatsApp invite link, see Screen 1.1)
-**Purpose:** Self-serve re-entry for a returning attendee who has lost their session — new phone, cleared browser data, reinstalled the PWA. Zero staff involvement in the normal case.
+**Module:** Auth (single entry point — both first-time sign-up via the group link AND self-serve re-entry for a returning attendee who lost their session: new phone, cleared browser data, reinstalled PWA. Zero staff involvement in the normal case.)
+**Purpose:** The one door into the attendee app. The admin posts a generic, tokenless app link in the attendee WhatsApp group; opening it (with no valid session) lands here.
 
 **Why this screen exists / how it works:**
-Evento has no passwords. An attendee's "account" is created by the organizer's import (Screen 3.3) — the registration form already collects email for every attendee, so email is a **required** import field, not something asked for later. There's nothing to log in *with* until they've been sent one thing to log in *as*. The mechanism is a passwordless magic link:
+Evento has no passwords and no WhatsApp messaging vendor — the group link is the same for everyone and carries no identity. An attendee's "account" is created by the organizer's import (Screen 3.3) — the registration form already collects email for every attendee, so email is a **required** import field, not something asked for later. The mechanism is a passwordless magic link:
 
 1. Attendee enters their **email** on this screen.
 2. Server looks up that email against imported/profile records (case-insensitive exact match).
 3. **Regardless of whether it matched**, the UI shows the same neutral message: *"If that email is on the guest list, we've sent you a link."* This is deliberate — it stops someone from using this screen to discover who is or isn't registered for the event (email/phone enumeration).
 4. If it matched, the server issues a **single-use, signed token good for 30 minutes** and emails a link containing it.
-5. Attendee opens the email, taps the link, and lands back in the app already authenticated — the token is exchanged for a normal session and then immediately invalidated (can't be reused or forwarded).
+5. Attendee opens the email, taps the link, and lands in the app already authenticated — the token is exchanged for a normal session and then immediately invalidated (can't be reused or forwarded). **Routing after auth:** no completed profile → Profile Setup (1.1, first-time onboarding); completed profile → Home (2.1).
 
 **This is also the answer to "what if someone enters another attendee's email":** it doesn't get *them* in. The link is only ever delivered to the inbox on file for that record — typing in someone else's email just sends *that person* a link, it never grants the person typing it any access. Combined with the neutral response in step 3 and rate limiting (see below), this closes both the impersonation and the enumeration concern with the same mechanism.
 
@@ -186,8 +191,8 @@ Evento has no passwords. An attendee's "account" is created by the organizer's i
 - Tap "Ask event staff for help" (tertiary, small) → the only path that involves a person; staff can look the attendee up in Check-In Management (3.4) and trigger a resend on their behalf for the rare case where email isn't reachable at all (lost access to the inbox, typo in the registration form itself, etc.) — email is the single self-serve channel, so this is the sole fallback
 
 **Navigation:**
-- **Comes from:** App opened with no valid session (expired/cleared/new device)
-- **Leads to:** Home / Dashboard (2.1) once the emailed link is tapped and the session is established
+- **Comes from:** The group sign-up link (first-time), or app opened with no valid session (expired/cleared/new device)
+- **Leads to:** Profile Setup (1.1) for first-timers, or Home / Dashboard (2.1) for returning attendees, once the emailed link is tapped and the session is established
 
 **Data Needed to Display:**
 - Nothing attendee-specific up front (this screen is intentionally identity-blind until the email is submitted)
@@ -200,7 +205,7 @@ Evento has no passwords. An attendee's "account" is created by the organizer's i
 - Import's two raw "Email Address" columns from the registration form (Google-account-captured vs. the form question) disagree → admin import flags the row for manual review rather than silently picking one (see Screen 3.3)
 - Attendee has no working access to email at the venue at all → staff-assisted lookup (Check-In Management, 3.4) is the only path; there is no self-serve channel beyond email for this pilot
 
-**Implementation note:** email is a required import field (Screen 3.3) — the registration form already collects it for every attendee, so there is no "optional/add-it-later" case to design for. Login is single-channel (email only); no WhatsApp-delivered login link is in scope for this screen. WhatsApp is still used elsewhere in the product (onboarding invites, reminders, follow-up — see Feature 1/9 in `FEATURES.md`), just not as a login mechanism.
+**Implementation note:** email is a required import field (Screen 3.3) — the registration form already collects it for every attendee, so there is no "optional/add-it-later" case to design for. Login is single-channel (email only); there are no WhatsApp-delivered links of any kind — no messaging vendor is integrated. WhatsApp appears in the product only as (a) the group where the admin manually posts the app link and (b) attendee-initiated `wa.me` deep links (message a connection, share summary).
 
 ---
 
@@ -327,7 +332,7 @@ App opens
 
 **User Interactions:**
 - Scroll through list (lazy load more on scroll)
-- Tap filter icon → open filter drawer (industry, company, RMB chapter — including a "no chapter" option for non-RMBians — checked-in status)
+- Tap filter icon → open filter drawer (industry, business category, city, company, RMB chapter — including a "no chapter" option for non-RMBians — checked-in status)
 - Tap search bar → open search input, type name/company
 - Tap "X" on search → clear search
 - Tap on attendee card → open Individual Profile (2.3)
@@ -602,7 +607,8 @@ App opens
 - Pull to refresh → reload latest photos
 - Tap "Post photo" button → navigate to Post Photo screen (2.7)
 - Tap attendee name → open their Individual Profile (2.3)
-- Tap "..." menu → show options: report, share, etc.
+- Tap "..." menu on own post → "Delete" option (with confirm: "Delete this post?") — the post's creator can always delete their own post
+- Tap "..." menu on others' posts → show options: report, share, etc.
 
 **Navigation:**
 - **Comes from:** Home Dashboard (2.1)
@@ -682,7 +688,7 @@ App opens
 - Tap on individual connection → open Individual Profile (2.3)
 
 **Navigation:**
-- **Comes from:** Home (2.1) after event ends, or direct link from post-event email
+- **Comes from:** Home (2.1) after event ends, or via the app link the admin posts in the WhatsApp group the day after (attendee logs in and lands on their own summary)
 - **Leads to:** My Connections (2.6), Individual Profile (2.3), native WhatsApp
 
 **Data Needed to Display:**
@@ -704,16 +710,18 @@ App opens
 ### Screen 2.11: Settings / Profile
 
 **Module:** Settings  
-**Purpose:** View and edit personal profile, notification preferences, tutorial, etc.
+**Purpose:** Show the attendee's own QR code (top of screen, always first) and let them view/edit personal profile, notification preferences, tutorial, etc.
 
 **States:**
-- **Default:** Settings form with all fields editable
+- **Default:** Attendee's personal QR code displayed prominently at the TOP of the screen (name directly below it), followed by the settings form with editable fields
+- **QR Enlarged:** Full-screen QR modal with screen brightness boosted, for easy scanning by another attendee
 - **Editing:** Save button active
 - **Saving:** Spinner on save button
 - **Saved:** "Saved!" toast confirmation
 - **Error:** "Can't save changes. Try again."
 
 **User Interactions:**
+- Tap own QR code → enlarge full-screen (brightness boosted); tap again or back to dismiss
 - Tap on profile fields (name, company, industry, etc.) → edit (some read-only)
 - Toggle notifications on/off
 - Tap "View tutorial" → re-show onboarding tutorial
@@ -727,12 +735,14 @@ App opens
 - **Leads to:** Home (2.1) on save
 
 **Data Needed to Display:**
+- Attendee's own signed QR code (generated/cached locally — must render offline, no network call)
 - User's profile: name, company, industry, bio, phone (some read-only)
 - Notification settings
 - App version
 - Support contact
 
 **Edge Cases:**
+- QR not yet cached (first open ever, offline) → show placeholder with "Connect once to load your QR"; cache permanently after first render
 - User tries to edit read-only field (phone, email) → show "Contact organizer to change this"
 - Changes not saved (user closes without saving) → prompt "Discard changes?"
 - Name field empty → show validation error
@@ -972,7 +982,7 @@ App opens
 - On scan success, auto-return to list
 - Sort/filter: by check-in time, by name, by company, by check-in method
 - Tap attendee name → open their profile (optional)
-- Resend WhatsApp reminder to unchecked → show list, select, send (optional)
+- Tap "Copy list" on Not Yet Checked In → copy names/phones to clipboard so the admin can nudge them manually in the WhatsApp group (no system-sent reminders — no WhatsApp vendor)
 - Tap "Configure venue" → navigate to Event Settings (3.2A) if not yet configured
 
 **Navigation:**
@@ -1084,8 +1094,10 @@ App opens
 - **Success:** "PDF ready. Click to download or print."
 - **Error:** "Can't generate badges. Try again."
 
+**Badge contents:** each badge shows the attendee's **name in large, prominent type alongside the QR code** (plus company and photo if available) — so staff and other attendees can visually confirm whose code they're scanning. QR at minimum 1-inch square.
+
 **User Interactions:**
-- Tap "Print all badges" → generate PDF of all attendee QR codes
+- Tap "Print all badges" → generate PDF of all attendee QR codes (each with the attendee's name printed prominently)
 - Tap "Select attendees" → multi-select from list, then generate PDF
 - Tap "Download" → download PDF to device
 - Tap "Print" → open print dialog
@@ -1229,11 +1241,14 @@ Short-lived messages appearing at top or bottom of screen.
 
 ```
 Pre-Event Flow:
-  WhatsApp Link
+  Generic app link (admin posts manually in WhatsApp group)
     ↓
-  Profile Setup Form (1.1) → PWA Install (1.2) → Thanks Screen (1.3)
+  Login / Get Access Link (2.0) → email magic link → tap link in inbox
+    ↓
+  Profile Setup Form (1.1) [first-timers] → PWA Install (1.2) → Thanks Screen (1.3)
     ↓
   Pre-Event Matches (1.4) ← [can also access from app]
+  [returning attendees with a completed profile go straight to Home (2.1)]
 
 Main App Flow:
   Home Dashboard (2.1) [central hub, includes check-in orchestration]
@@ -1283,7 +1298,7 @@ Cross-Cutting:
 
 | Module | Screens | Purpose |
 |--------|---------|---------|
-| Pre-Event Onboarding | 4 | WhatsApp → Profile → PWA install → Pre-event matches |
+| Pre-Event Onboarding | 4 | Group link → email magic link (2.0) → Profile → PWA install → Pre-event matches |
 | Attendee App (Main) | 10 | Home (with check-in orchestration), Manual Check-In (fallback), Directory, Profile, Scanner, Leaderboard, Connections, Photo Feed, Post Photo, Summary |
 | Settings & Tutorial | 2 | Settings (2.11), Tutorial (2.12) |
 | Admin Dashboard | 8 | Login, Dashboard, Event Settings (venue config), Import Attendees, Check-in Management (with QR scanner), Feed Moderation, Feedback Analytics, Print Badges |
@@ -1329,5 +1344,5 @@ Cross-Cutting:
 ---
 
 **Document prepared by:** Claude  
-**Last updated:** July 15, 2026  
+**Last updated:** July 16, 2026  
 **Next step:** Create wireframes/mockups for each screen module

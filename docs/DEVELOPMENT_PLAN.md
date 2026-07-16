@@ -23,22 +23,22 @@ No code exists in this repo yet — this plan assumes a build starting from zero
 
 ## Decisions Needed Before Week 1
 
-The PRD names the frontend/backend stack (Next.js + NestJS) but leaves several vendor and infrastructure choices open. These block or slow down Week 1 if not settled first — some (WhatsApp Business API, in particular) have multi-day approval lead times, so they should be actioned *today*, in parallel with anything else, not "when we get to it."
+The PRD names the frontend/backend stack (Next.js + NestJS) but leaves several vendor and infrastructure choices open. These block or slow down Week 1 if not settled first — email domain verification in particular has propagation lead time, so it should be actioned *today*, in parallel with anything else, not "when we get to it." (WhatsApp messaging vendor: explicitly not needed — see first row below.)
 
 | Decision | Recommendation | Why | Lead time risk |
 |---|---|---|---|
-| **WhatsApp messaging provider** | Meta Cloud API direct, or a wrapper (Gupshup / Interakt / WATI) if faster to stand up | Every invite, reminder, and follow-up in F1/F9 depends on this. Direct Meta API is cheaper at scale but requires Business verification; a wrapper trades a per-message fee for same-day setup. | **High** — Meta Business verification can take 3–5+ days. Start this first, today, regardless of what else is decided. |
-| **Transactional email provider** (magic-link login) | Postmark or Resend | Login (Screen 2.0) depends entirely on emailed links landing in the inbox, not spam. Both have strong transactional deliverability reputations; Resend has the faster/simpler DX, Postmark the longer deliverability track record. | Medium — domain verification (SPF/DKIM/DMARC) takes a day or two to propagate. |
-| **Database** | PostgreSQL | Relational fits the data well (attendees, meetings, bookmarks are all relationship-shaped); mature ecosystem with NestJS via Prisma. | Low |
+| ~~WhatsApp messaging provider~~ | **Not needed — decision made: no WhatsApp vendor for the pilot.** The admin manually posts the app link in the attendee WhatsApp group (Day -5 invite, Day -1 reminder, Day +1 follow-up). Attendee-initiated WhatsApp actions use `wa.me` deep links (vendor-free). | Removes the single biggest vendor lead-time risk from the plan. | None |
+| **Transactional email provider** (magic-link login) | **Gmail SMTP (decided)** — MailService sends over SMTP (nodemailer) when `SMTP_USER`/`SMTP_PASS` are set; falls back to the on-screen dev link otherwise. Config is generic (`SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASS`/`MAIL_FROM`, defaults tuned for Gmail + app password), so swapping to another SMTP provider later is an env change, not a code change. Pilot sender: `rmbthanecity@gmail.com`. | Login (Screen 2.0) is the **only** entry channel — both first-time sign-up and re-entry depend entirely on emailed links landing in the inbox. Gmail chosen because the organizer already owns the account — zero vendor onboarding. | **Medium** — Gmail caps sends at ~500/day per account (fine for ~200 attendees but leaves little headroom for resends; monitor on event day) and the from-address is the raw Gmail account, which is more spam-prone than a verified custom domain. If deliverability disappoints in testing, swap `SMTP_*` to a transactional provider. |
+| **Database** | **PostgreSQL on Supabase (decided)** | Relational fits the data well (attendees, meetings, bookmarks are all relationship-shaped); mature ecosystem with NestJS via Prisma. Supabase gives managed Postgres with zero ops, a connection pooler (needed for serverless/spiky event-day load), plus Storage as a candidate for photo uploads later. We use it as plain Postgres — Prisma stays the ORM; no Supabase Auth (magic links stay in our NestJS auth module). | Low — project spins up in minutes. Prisma needs both the pooled URL (runtime, port 6543) and the direct URL (migrations, port 5432). |
 | **ORM** | Prisma | Fastest schema-to-code loop for a 1-month build; generates types shared with the API layer. | Low |
 | **File storage** (registration photos, feed photos, payment screenshots if ever needed) | S3-compatible object storage (Cloudflare R2 or AWS S3) | Direct-to-storage upload from the client keeps the API off the hot path for large files; R2 has no egress fees, relevant if photos get shared/exported. | Low |
 | **Hosting — frontend** | Vercel | Native Next.js/PWA support, zero-config preview deployments per PR — useful for organizer review of admin screens mid-build. | Low |
-| **Hosting — backend + DB** | Render or Railway | Both spin up a Postgres + Node service in minutes with none of the ops overhead a 1-month pilot can't absorb. Either is fine; pick based on existing account/billing relationships. | Low |
+| **Hosting — backend** | Render or Railway (Node service only — DB is on Supabase) | Spins up a Node service in minutes with none of the ops overhead a 1-month pilot can't absorb. Either is fine; pick based on existing account/billing relationships. | Low |
 | **QR generation (server)** | `qrcode` (npm), payload = signed JWT (attendee ID + event ID + signature) | Matches the PRD's "signed, opaque, non-sequential" requirement directly. | — |
 | **QR scanning (client)** | `html5-qrcode` (wraps the native `BarcodeDetector` API where available, falls back to a JS decoder) | Needs to work reliably on budget Android camera hardware in a noisy venue — this library has the widest device-compatibility track record of the common options. | — |
 | **Offline storage (client)** | IndexedDB via Dexie.js, driven by a Workbox service worker | Dexie removes most of the IndexedDB boilerplate; Workbox is the standard PWA caching/offline layer and pairs natively with Next.js's PWA tooling. | — |
 
-**Action for today:** start the WhatsApp Business provider application and the email domain verification in parallel with Week 1 engineering — both are pure lead-time risk, not effort risk.
+**Action for today:** start the email domain verification (SPF/DKIM/DMARC) in parallel with Week 1 engineering — it is pure lead-time risk, not effort risk, and email is now the only way attendees get in.
 
 ---
 
@@ -61,10 +61,12 @@ The PRD names the frontend/backend stack (Next.js + NestJS) but leaves several v
       └───┬───────────────┬───────────────┬────────────────┘
           │               │               │
           ▼               ▼               ▼
-    ┌───────────┐  ┌──────────────┐  ┌─────────────────┐
-    │ PostgreSQL │  │ Object storage│  │ WhatsApp + Email │
-    │ (Prisma)   │  │ (R2/S3)       │  │ provider APIs    │
-    └───────────┘  └──────────────┘  └─────────────────┘
+    ┌────────────┐  ┌──────────────┐  ┌─────────────────┐
+    │ PostgreSQL  │  │ Object storage│  │ Email provider   │
+    │ (Supabase,  │  │ (R2/S3 or     │  │ API (magic links)│
+    │  via Prisma)│  │  Supabase     │  │                  │
+    │             │  │  Storage)     │  │                  │
+    └────────────┘  └──────────────┘  └─────────────────┘
 ```
 
 **Key architectural decisions carried over from the PRD/FEATURES docs:**
@@ -100,7 +102,8 @@ rmb-event-app/
 Entities, in build order (matches the dependency chain in `FEATURES.md`):
 
 **Attendee**
-`id, name, email (unique), phone (unique), businessName, industry, chapterId (nullable), photoUrl (nullable), qrToken (signed, unique), importRowFlag (nullable — mismatched-email etc.), createdAt`
+`id, name, email (unique), phone (unique), businessName, industry, businessCategory (nullable), city (nullable), chapterId (nullable), photoUrl (nullable), qrToken (signed, unique), importRowFlag (nullable — mismatched-email etc.), createdAt`
+— `city` and `businessCategory` are collected in profile setup (Screen 1.1) since the registration form doesn't capture them; the import maps them if a future file has City/Category columns.
 
 **Profile** *(or merged into Attendee — separate only if profile completion needs its own timestamp/status)*
 `attendeeId, lookingFor[], offering[], goals[], bio, profileCompletedAt`
@@ -126,7 +129,7 @@ Entities, in build order (matches the dependency chain in `FEATURES.md`):
 `id, attendeeId, rating (1-5), comment (nullable), submittedAt`
 
 **MagicLinkToken**
-`id, attendeeId, tokenHash, channel (email | whatsapp), expiresAt, usedAt (nullable)` — single-use, 30-minute expiry per Screen 2.0.
+`id, attendeeId, tokenHash, expiresAt, usedAt (nullable)` — email-only (no channel column; there is no WhatsApp delivery), single-use, 30-minute expiry per Screen 2.0.
 
 **AdminUser**
 `id, email, passwordHash, role`
@@ -189,7 +192,7 @@ Grouped by NestJS module. All attendee-facing writes are idempotent (safe to ret
 Mapped directly onto `FEATURES.md`'s suggested build sequence, turned into calendar weeks. Assumes a ~4.5 week build window ending with a pre-event buffer, per the PRD's "under 1 month" constraint. Compress or parallelize across people if more than one engineer is available — the dependency chain below is what actually gates ordering, not the week numbers.
 
 ### Week 0 (Day 0–2): Kickoff
-- Vendor decisions locked (see table above); WhatsApp provider application and email domain verification submitted **immediately**
+- Vendor decisions locked (see table above); email domain verification submitted **immediately** (email is the only attendee entry channel)
 - Repo scaffolded (monorepo structure above), CI running lint/typecheck/build on every push
 - Postgres provisioned, Prisma schema drafted from the Data Model section, first migration committed
 - Design tokens ported from `DESIGN_SYSTEM.md` into a Tailwind config — this unblocks every screen after
@@ -200,17 +203,17 @@ Mapped directly onto `FEATURES.md`'s suggested build sequence, turned into calen
 - Service worker + Dexie.js offline write-queue scaffold (even if only one write type uses it yet)
 - QR signing (`qrcode` + JWT payload) and verification
 - Admin CSV import with column-mapping UI (Screen 3.3), dedup by phone+email, per-row error/flag reporting
-- WhatsApp invite send (Day -5 template) wired to whichever provider was chosen in Week 0
 - Profile Setup Form (Screen 1.1) — pre-filled read-only fields + industry/tags/goals/bio
 - PWA install prompt (Screen 1.2), Thanks screen (1.3)
-- Login / magic link (Screen 2.0) — email primary, WhatsApp fallback, rate limiting, neutral response
-- **Exit criteria:** a test attendee can be imported, receive a WhatsApp invite, complete a profile, install the PWA, and log back in from a second device via email
+- Login / magic link (Screen 2.0) — email only, serves both first-time sign-up (via the generic group link) and re-entry; rate limiting, neutral response, post-auth routing (no profile → 1.1, profile → 2.1)
+- **Exit criteria:** a test attendee can be imported, open the generic app link, request a magic link by email, complete a profile, install the PWA, and log back in from a second device the same way
 
 ### Week 2: F3 (Attendance & Check-In) + F4 (QR Exchange & Met Detection)
 - Home/Dashboard (2.1) with geolocation auto-check-in + manual fallback (2.1A)
 - Admin venue config (lat/lng/radius) and live check-in dashboard (3.4) with method breakdown
 - Staff QR check-in scan flow
 - QR Scanner screen (2.4), unified scan → exchange + meeting log, duplicate-pair protection
+- Own-QR display at the top of Profile/Settings (2.11) — offline-rendered, tap-to-enlarge with brightness boost, name below the code
 - My Connections base view (2.6) — Already Met tab only for now (Want to Meet lands with F5 next week)
 - **Exit criteria:** two test attendees can check in (one via geolocation, one manually), scan each other's QR, see the exchange confirmation, and a repeat scan is correctly rejected as a duplicate
 
@@ -225,8 +228,8 @@ Mapped directly onto `FEATURES.md`'s suggested build sequence, turned into calen
 ### Week 4: F11 (Analytics) + F8 (Feedback) + F9 (Summary/Follow-up) + F10 (Save as Contact)
 - Admin analytics overview (3.2) — check-ins, meetings, avg/attendee, engagement %, CSV export
 - Feedback prompt (2.9) + admin feedback analytics (3.6)
-- Event Summary screen (2.10), CSV/vCard export, WhatsApp share
-- Day+1 WhatsApp follow-up scheduler
+- Event Summary screen (2.10), CSV/vCard export, WhatsApp share (`wa.me` deep link — no vendor)
+- (No Day+1 follow-up scheduler to build — the follow-up nudge is a manual admin post in the group, per the runbook)
 - vCard "Save to Contacts" (2.3/2.6 action)
 - **F7 Photo Feed if time allows** — cut first under schedule pressure, per the PRD's own framing of it as secondary engagement
 - **Exit criteria:** the full attendee journey (import → onboard → check in → scan → match → bookmark → feedback → summary → follow-up) runs end-to-end against staging with no manual database intervention
@@ -241,7 +244,7 @@ See the [Runbook](#pre-event-event-day--post-event-runbook) below — this week 
 **Automated**
 - Unit tests on the matching engine (industry/tag overlap, same/cross-chapter reasoning) and the duplicate-meeting-pair logic — these two are the easiest to get subtly wrong and hardest to notice wrong in a demo
 - Integration tests on every idempotent write endpoint (checkin, meetings/scan, bookmarks, feedback) — assert a replayed request doesn't double-write
-- E2E smoke test of the critical path (import → invite → profile → install → check-in → scan → leaderboard) on CI before every deploy to staging
+- E2E smoke test of the critical path (import → magic-link login → profile → install → check-in → scan → leaderboard) on CI before every deploy to staging
 
 **Manual — device matrix**
 Per the PRD's persona (budget Android, older devices): test on at minimum one low-end Android (Chrome), one mid-range Android, and iOS Safari (PWA install behaves differently there — no native install prompt, "Add to Home Screen" only). Confirm offline QR scanning and check-in on all three with WiFi disabled.
@@ -259,11 +262,11 @@ A physical dry run at the actual venue before event day: signal strength, geoloc
 
 ## Environments & Deployment
 
-| Environment | Purpose | Data |
-|---|---|---|
-| **Local** | Development | Seeded fake attendees, chapters, meetings |
-| **Staging** | Organizer review, QA, the venue dry run | A copy of the real (or realistic dummy) import file — this is where Harish should test the CSV import himself before trusting it on event day |
-| **Production** | Event day | Real attendee data, real WhatsApp/email sends |
+| Environment | Purpose | Data | Database |
+|---|---|---|---|
+| **Local** | Development | Seeded fake attendees, chapters, meetings | Docker Postgres (`docker-compose.yml`) or a personal Supabase project |
+| **Staging** | Organizer review, QA, the venue dry run | A copy of the real (or realistic dummy) import file — this is where Harish should test the CSV import himself before trusting it on event day | Supabase project (separate from prod) |
+| **Production** | Event day | Real attendee data, real magic-link email sends | Supabase project (dedicated) |
 
 Deploy frontend (Vercel) and backend (Render/Railway) independently but keep them versioned together via the monorepo — a backend API change should never ship without the frontend that expects it, and vice versa. Given the pilot's scale, a manual "deploy both, then smoke-test staging" step before promoting to production is safer than an elaborate release pipeline that won't pay for itself in a month.
 
@@ -273,12 +276,12 @@ Deploy frontend (Vercel) and backend (Render/Railway) independently but keep the
 
 **T-7 to T-3 days**
 - Real attendee import run on staging first, reviewed by the organizer, then promoted to production
-- WhatsApp Day -5 invite batch sent from production
+- Admin posts the sign-up link in the attendee WhatsApp group (Day -5) — manual post, owned by the organizer, checklist item with a named owner
 - Venue dry run (see Testing & QA above); venue lat/lng/radius configured in Admin Event Settings
 - Printed QR badges generated as the offline/no-phone fallback
 
 **T-1 day**
-- WhatsApp Day -1 reminder batch sent
+- Admin posts the Day -1 reminder in the attendee WhatsApp group (manual post: "install Evento before tomorrow" + link)
 - Final device check: staff console tablets set up and QR-scanner-tested at the check-in desk
 - Confirm the venue-display leaderboard screen is reachable and polling correctly
 
@@ -288,7 +291,7 @@ Deploy frontend (Vercel) and backend (Render/Railway) independently but keep the
 - Feedback prompt triggered (scheduled or manual) near event end
 
 **T+1 day**
-- WhatsApp follow-up batch sent (event summary + nudge)
+- Admin posts the Day +1 follow-up in the attendee WhatsApp group (manual post: summary link + follow-up nudge)
 - Admin exports full dataset (attendees, meetings, feedback, photos) for the organizer's own records
 
 **T+3 to T+7 days**
@@ -303,7 +306,7 @@ Carried from the PRD's own risk table, restated as build-phase actions rather th
 
 | Risk | When it bites | Build-plan mitigation |
 |---|---|---|
-| WhatsApp Business verification delays invite send | Week 0–1 | Start the application on Day 0, not when Week 1's invite feature is due |
+| Magic-link emails land in spam (email is now the only entry channel) | Week 0–1, felt hardest on event day | Verify SPF/DKIM/DMARC on Day 0; use a reputable transactional provider; test deliverability against Gmail (the dominant inbox for this audience) before the Day -5 group post |
 | QR scanning unreliable in venue lighting/crowd noise | Week 2, confirmed at the venue dry run | Test with the actual printed badge size (1-inch) under venue lighting before event day, not just on a laptop screen |
 | Venue WiFi fails entirely | Event day | Offline-first is architected from Week 1 (service worker + IndexedDB), not bolted on later — this is why it's in the Week 1 exit criteria, not Week 4 |
 | Matching quality feels weak to attendees | Week 3, felt on event day | Ship the "browse full directory" fallback in the same week as matching, never matching alone |

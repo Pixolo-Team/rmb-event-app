@@ -11,6 +11,8 @@ export interface ColumnMapping {
   phoneIdx: number;
   businessIdx: number;
   chapterIdx: number | null;
+  cityIdx: number | null; // optional — asked in profile setup (Screen 1.1) when absent
+  categoryIdx: number | null; // optional — business category, same fallback
 }
 
 export class ColumnMappingError extends Error {}
@@ -25,8 +27,15 @@ function indicesWhere(headers: string[], predicate: (h: string) => boolean): num
 export function mapColumns(headers: string[]): ColumnMapping {
   const emailIdxs = indicesWhere(headers, (h) => h.includes("email"));
   const phoneIdxs = indicesWhere(headers, (h) => h.includes("phone"));
-  const businessIdxs = indicesWhere(headers, (h) => h.includes("business") || h.includes("profession"));
+  // "category" is excluded from the business/profession-name matcher so a
+  // "Business Category" column never gets mistaken for the business name.
+  const categoryIdxs = indicesWhere(headers, (h) => h.includes("category"));
+  const businessIdxs = indicesWhere(
+    headers,
+    (h) => (h.includes("business") || h.includes("profession")) && !h.includes("category"),
+  );
   const chapterIdxs = indicesWhere(headers, (h) => h.includes("chapter"));
+  const cityIdxs = indicesWhere(headers, (h) => h.includes("city"));
   const nameIdxs = indicesWhere(
     headers,
     (h) => h.includes("name") && !h.includes("business") && !h.includes("profession") && !h.includes("chapter"),
@@ -50,5 +59,7 @@ export function mapColumns(headers: string[]): ColumnMapping {
     phoneIdx: phoneIdxs[0],
     businessIdx: businessIdxs[0],
     chapterIdx: chapterIdxs.length > 0 ? chapterIdxs[0] : null,
+    cityIdx: cityIdxs.length > 0 ? cityIdxs[0] : null,
+    categoryIdx: categoryIdxs.length > 0 ? categoryIdxs[0] : null,
   };
 }

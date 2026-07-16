@@ -17,7 +17,7 @@ import { ResolveOnboardingDto } from "./dto/resolve-onboarding.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { SessionService } from "../session/session.service";
 import { SessionGuard, RequestWithAttendee } from "../session/session.guard";
-import { INDUSTRIES, LOOKING_FOR_TAGS, OFFERING_TAGS, GOALS_TAGS } from "./profile-options";
+import { INDUSTRIES, BUSINESS_CATEGORIES, LOOKING_FOR_TAGS, OFFERING_TAGS, GOALS_TAGS } from "./profile-options";
 
 @Controller("attendees")
 export class AttendeesController {
@@ -28,7 +28,13 @@ export class AttendeesController {
 
   @Get("profile-options")
   profileOptions() {
-    return { industries: INDUSTRIES, lookingFor: LOOKING_FOR_TAGS, offering: OFFERING_TAGS, goals: GOALS_TAGS };
+    return {
+      industries: INDUSTRIES,
+      businessCategories: BUSINESS_CATEGORIES,
+      lookingFor: LOOKING_FOR_TAGS,
+      offering: OFFERING_TAGS,
+      goals: GOALS_TAGS,
+    };
   }
 
   @Post("onboarding/resolve")
@@ -59,6 +65,8 @@ export class AttendeesController {
       businessName: attendee.businessName,
       chapterName: attendee.chapter?.name ?? null,
       photoUrl: attendee.photoUrl,
+      city: attendee.city,
+      businessCategory: attendee.businessCategory,
       profileCompletedAt: attendee.profileCompletedAt,
     };
   }

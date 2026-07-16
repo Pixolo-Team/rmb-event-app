@@ -14,7 +14,13 @@ export type RequestMagicLinkResult =
   | { kind: "rate_limited"; retryAfterSeconds: number };
 
 export type VerifyMagicLinkResult =
-  | { kind: "ok"; sessionToken: string; attendee: { id: string; name: string; email: string } }
+  | {
+      kind: "ok";
+      sessionToken: string;
+      // profileCompletedAt drives post-login routing (SCREENS.md Screen 2.0):
+      // null → Profile Setup (1.1), set → Home (2.1).
+      attendee: { id: string; name: string; email: string; profileCompletedAt: Date | null };
+    }
   | { kind: "expired" };
 
 @Injectable()
@@ -89,6 +95,7 @@ export class AuthService {
         id: record.attendee.id,
         name: record.attendee.name,
         email: record.attendee.email,
+        profileCompletedAt: record.attendee.profileCompletedAt,
       },
     };
   }

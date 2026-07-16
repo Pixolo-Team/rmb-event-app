@@ -95,6 +95,8 @@ export class AdminImportService {
     const phone = cell(row, mapping.phoneIdx);
     const businessName = cell(row, mapping.businessIdx);
     const chapterName = cell(row, mapping.chapterIdx);
+    const city = cell(row, mapping.cityIdx);
+    const businessCategory = cell(row, mapping.categoryIdx);
 
     const missing = [
       !name && "name",
@@ -141,6 +143,8 @@ export class AdminImportService {
         phone,
         businessName,
         chapterId,
+        city: city || undefined,
+        businessCategory: businessCategory || undefined,
         qrToken,
         onboardingTokens: {
           create: {

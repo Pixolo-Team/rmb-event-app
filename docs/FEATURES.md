@@ -32,10 +32,10 @@ Evento is three surfaces sharing one backend:
 | F6 | Gamification — Leaderboard | Attendee App + Admin (venue screen) | P1 | Read: yes (cached) · Write: no (needs server aggregation) | F4 |
 | F7 | Event Photo Feed | Attendee App + Admin (moderation) | P2 | Read: yes (cached) · Write: no | F3 |
 | F8 | Feedback & Review | Attendee App + Admin | P1 | No (non-blocking submit) | F3 |
-| F9 | Event Summary & Post-Event Follow-Up | Attendee App | P1 | Partial (summary cached, WhatsApp send needs online) | F4, F6 |
+| F9 | Event Summary & Post-Event Follow-Up | Attendee App | P1 | Partial (summary cached; follow-up nudge is a manual admin group post) | F4, F6 |
 | F10 | Save as Contact (vCard) | Attendee App | P2 | Yes (fully client-side) | F4 |
 | F11 | Analytics (Attendee + Admin) | Attendee App + Admin | P1 | Attendee: cached stats · Admin: no (live dashboard) | F3, F4, F6, F8 |
-| — | **Platform Foundations** (PWA/offline, security, WhatsApp messaging) | Cross-cutting | P0 | — | — |
+| — | **Platform Foundations** (PWA/offline, security, magic-link auth) | Cross-cutting | P0 | — | — |
 
 ---
 
@@ -45,8 +45,8 @@ Not a user-facing "feature," but the substrate every feature above is built on. 
 
 - **PWA shell** — installable, offline-first service worker, <500KB initial bundle, works on older/budget Android browsers with an "Add to home screen" fallback where native install isn't supported.
 - **Offline sync engine** — local write queue (IndexedDB) for check-ins, scans, bookmarks, feedback, photo uploads; automatic silent sync on reconnect; server-side idempotency so replayed syncs never double-count.
-- **WhatsApp messaging integration** — the onboarding invite (Day -5), reminder (Day -1), and post-event follow-up (Day +1) all ride on this. No in-app chat; this is outbound-only.
-- **Auth & session** — no passwords, anywhere for attendees. First-time onboarding auth is the time-limited WhatsApp deep-link token (72h expiry) from F1 — tapping it *is* logging in. Returning-attendee re-entry (session lost to a new device / cleared cache) is a **self-serve passwordless magic link over email only**: attendee enters email → single-use, 30-minute signed token emailed to the address on file → tapping it re-establishes the session. Same neutral "if that's on the list, we sent it" response and rate limiting apply. Security property: the link only ever reaches the email *on file*, never whatever was typed into the form, so entering someone else's email cannot grant access to their account — it just sends them a link. There is no WhatsApp-delivered login link; the only fallback for an attendee with no working email access is staff-assisted lookup (Check-In Management, `SCREENS.md` Screen 3.4). See `SCREENS.md` Screen 2.0 for the full flow. Admin login stays separate: password-protected with a 30-minute idle timeout.
+- **No WhatsApp messaging integration** — there is no WhatsApp Business API / vendor for the pilot. The onboarding invite (Day -5), reminder (Day -1), and post-event follow-up (Day +1) are **manual admin posts of a generic app link in the attendee WhatsApp group**. Attendee-initiated WhatsApp actions in-app (message a connection, share summary) use plain `wa.me` deep links, which need no vendor. No in-app chat.
+- **Auth & session** — no passwords, anywhere for attendees. The **email magic link is the single login mechanism for both first-time sign-up and returning re-entry**: attendee opens the (generic, tokenless) group link, enters their email → single-use, 30-minute signed token emailed to the address on file → tapping it establishes the session; first-timers are routed to profile setup, returners to Home. Same neutral "if that's on the list, we sent it" response and rate limiting apply. Security property: the link only ever reaches the email *on file*, never whatever was typed into the form, so entering someone else's email cannot grant access to their account — it just sends them a link. There is no WhatsApp-delivered login link; the only fallback for an attendee with no working email access is staff-assisted lookup (Check-In Management, `SCREENS.md` Screen 3.4). See `SCREENS.md` Screen 2.0 for the full flow. Admin login stays separate: password-protected with a 30-minute idle timeout.
 - **QR signing** — every personal QR is a signed, opaque, non-sequential token; scanning verifies the signature server-side before any exchange or meeting-log write happens.
 - **Rate limiting, CORS, input validation, CSRF** — standard API hardening per the PRD's Security & Privacy section.
 
@@ -64,14 +64,13 @@ The entry point. Nothing else in the platform has data to work with until this r
 - Payment (₹4,000 registration fee, screenshot + amount) is captured by the organizer's registration form but is **explicitly out of scope for Evento** — the import assumes every row is already a confirmed, paid attendee; Evento's schema has no payment fields and performs no verification
 - Auto-generated unique signed QR per attendee at import time
 - Import result reporting (success count, duplicates skipped, row-level errors, rows flagged for manual review e.g. mismatched email columns) with retry-on-failure
-- Scheduled WhatsApp invite send (Day -5), personalized, with expiring deep-link token
-- Manual resend for failed/ignored invites (admin-triggered)
-- Mobile web profile form (no install required): name/email/phone/business/chapter/photo pre-filled read-only from registration; attendee only fills industry, looking-for tags, offering tags, goals, optional bio — target completion time under 30 seconds
+- Sign-up distribution is manual: admin posts one generic app link in the attendee WhatsApp group (Day -5); attendees enter via email magic link — no personalized invite links, no system sends
+- Mobile web profile form (no install required): name/email/phone/business/chapter/photo pre-filled read-only from registration; attendee fills industry, business category, city, looking-for tags, offering tags, goals, optional bio — target completion time under a minute (city/category are pre-filled instead if the import file carried them)
 - PWA install prompt with Install Now / Install Later / Skip, profile persists regardless of choice
 - First-open 60-second skippable tutorial, re-accessible from settings later
-- Day -1 WhatsApp reminder + pre-computed match cache push (see F2)
+- Day -1 reminder is a manual admin group post; pre-computed match cache push (see F2)
 
-**Depends on:** Platform Foundations (WhatsApp integration, auth tokens)
+**Depends on:** Platform Foundations (email magic-link auth)
 **Feeds into:** every other feature — this is where attendee records, QR codes, and profile tags originate
 
 ---
@@ -86,7 +85,7 @@ Rule-based relevance ranking so Radha isn't scrolling 200 names to find the 10 w
 - RMB chapter as a matching signal, not a relevance filter: cross-chapter matches are surfaced deliberately (same-chapter members mostly know each other already; the event's value is expanding beyond one's own chapter), and the match reason line states the chapter relationship either way — "You're both in Manufacturing — she's from the Surat chapter" (cross-chapter) vs. "You're both in the Ahmedabad chapter" (same-chapter). Non-RMBians (no chapter) match on industry/tags only.
 - Ranked "People to Meet" list (top 10 surfaced, full list scrollable) with a one-line human-readable match reason per card
 - Fallback state when no strong matches exist → route to full directory
-- Full directory browse: filter by industry/company/chapter (including a "no chapter" bucket)/city/checked-in status, search by name/company, sort by match score / alphabetical / random
+- Full directory browse: filter by industry/business category/city/company/chapter (including a "no chapter" bucket)/checked-in status, search by name/company, sort by match score / alphabetical / random
 - Client-side matching engine, decoupled from the profile schema, so it can be swapped for semantic/AI matching in Phase 2 without touching profile data
 - Pre-computation on Day -3 server-side, cached to device for offline access at the venue
 
@@ -102,10 +101,10 @@ Rule-based relevance ranking so Radha isn't scrolling 200 names to find the 10 w
 - Silent geolocation auto-check-in on app open (5s timeout, organizer-configured venue radius, default 500m)
 - Manual "Check In" fallback button when auto-check-in fails or is skipped, with retry on network error
 - Staff-assisted check-in via QR scan at the desk (works offline, syncs later) — the fallback for phones that can't self-check-in
-- Printed badge QR as the fallback-of-the-fallback for dead/lost/incompatible phones
+- Printed badge QR as the fallback-of-the-fallback for dead/lost/incompatible phones — badge carries the attendee's name in large type alongside the QR
 - Duplicate-checkin protection (server ignores a second check-in same day)
 - Admin venue configuration: lat/long + radius, with validation (lat ±90, long ±180, radius 100–5000m)
-- Admin live check-in dashboard: running counter ("142 of 200"), breakdown by method (geolocation / manual / staff QR), checked-in vs. not-yet list, one-tap WhatsApp reminder resend to stragglers
+- Admin live check-in dashboard: running counter ("142 of 200"), breakdown by method (geolocation / manual / staff QR), checked-in vs. not-yet list, copyable straggler list so the admin can nudge them manually in the WhatsApp group
 
 **Depends on:** F1 (attendee + QR must exist)
 **Feeds into:** F4 (meetings only make sense for present attendees), F6/F11 (analytics baseline)
@@ -116,6 +115,7 @@ Rule-based relevance ranking so Radha isn't scrolling 200 names to find the 10 w
 **Priority: P0** · Module 2 (Attendee App) — this is the product's core loop
 
 **Sub-features**
+- Own-QR display: the attendee's personal QR sits at the **top of their Profile screen** (first thing visible), rendered offline from cache, with their name below it; tap to enlarge full-screen with boosted brightness — this is the "scan me" half of the exchange
 - Unified QR scan: one scan simultaneously (a) exchanges profile/contact details both ways and (b) logs a confirmed, timestamped meeting
 - Success confirmation with the other attendee's name/company and a "View profile" deep link
 - Duplicate-pair protection — rescanning the same two people doesn't double-log the meeting or the leaderboard point, with a clear "You've already met X" message
@@ -199,7 +199,7 @@ Directly answers the PRD's open "how do we know the pilot succeeded" question �
 **Sub-features**
 - Post-event summary screen: people met, cards collected, leaderboard rank, top 5 connections with contact details
 - "View all connections" and "Download connections" (CSV or vCard) actions, plus WhatsApp share of the summary
-- Day+1 WhatsApp follow-up message with a personalized recap and a link back into the summary, with an opt-out that's tracked
+- Day+1 follow-up is a manual admin post in the WhatsApp group linking back to the app; each attendee sees their own summary after login — the summary screen persists in-app as the primary follow-up surface
 - Explicitly no in-app chat or AI conversation starters in this pilot — follow-up happens over WhatsApp or in person
 
 **Depends on:** F4 (connections data), F6 (rank)

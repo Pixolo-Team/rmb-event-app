@@ -2,9 +2,14 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// DATABASE_URL: runtime connection. On Supabase use the transaction pooler
+// (port 6543, `?pgbouncer=true&connection_limit=1`). DIRECT_URL: direct
+// connection (port 5432) used only by `prisma migrate`. For local Docker
+// Postgres, point both at the same localhost URL.
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum ImportRowStatus {
@@ -34,7 +39,10 @@ model Attendee {
   photoUrl     String?
 
   // Profile — filled in during onboarding (Screen 1.1), empty until then.
+  // city/businessCategory may also arrive pre-filled from the import file.
   industry           String?
+  businessCategory   String?
+  city               String?
   lookingFor         String[] @default([])
   offering           String[] @default([])
   goals              String[] @default([])

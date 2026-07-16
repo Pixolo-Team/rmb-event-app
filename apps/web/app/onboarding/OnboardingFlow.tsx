@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { usePwaInstall } from "./usePwaInstall";
 
-type Step = "loading" | "expired" | "form" | "install" | "thanks";
+type Step = "loading" | "form" | "install" | "thanks";
 
 interface AttendeePrefill {
   id: string;
@@ -13,10 +13,14 @@ interface AttendeePrefill {
   phone: string;
   businessName: string | null;
   chapterName: string | null;
+  city: string | null;
+  businessCategory: string | null;
+  profileCompletedAt: string | null;
 }
 
 interface ProfileOptions {
   industries: readonly string[];
+  businessCategories: readonly string[];
   lookingFor: readonly string[];
   offering: readonly string[];
   goals: readonly string[];
@@ -27,8 +31,7 @@ function toggle(list: string[], value: string): string[] {
 }
 
 export function OnboardingFlow() {
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token");
+  const router = useRouter();
   const { canInstall, promptInstall } = usePwaInstall();
 
   const [step, setStep] = useState<Step>("loading");
@@ -36,60 +39,72 @@ export function OnboardingFlow() {
   const [options, setOptions] = useState<ProfileOptions | null>(null);
 
   const [industry, setIndustry] = useState("");
+  const [businessCategory, setBusinessCategory] = useState("");
+  const [city, setCity] = useState("");
   const [lookingFor, setLookingFor] = useState<string[]>([]);
   const [offering, setOffering] = useState<string[]>([]);
   const [goals, setGoals] = useState<string[]>([]);
   const [bio, setBio] = useState("");
-  const [industryError, setIndustryError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Session-based (SCREENS.md Screen 1.1 "Comes from: Login 2.0") — the
+  // attendee arrives already authenticated by their magic link. No session →
+  // back to Login; this page never handles tokens itself.
   useEffect(() => {
-    if (!token) {
-      setStep("expired");
-      return;
-    }
-
     Promise.all([
-      fetch("/api/attendees/onboarding/resolve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
-        credentials: "include",
-      }).then((r) => r.json().then((body) => ({ ok: r.ok, body }))),
-      fetch("/api/attendees/profile-options").then((r) => r.json()),
+      fetch("/api/attendees/me", { credentials: "include" }),
+      fetch("/api/attendees/profile-options"),
     ])
-      .then(([resolveResult, profileOptions]) => {
-        if (!resolveResult.ok || resolveResult.body.status === "expired") {
-          setStep("expired");
+      .then(async ([meRes, optionsRes]) => {
+        if (!meRes.ok) {
+          router.replace("/login");
           return;
         }
-        setAttendee(resolveResult.body.attendee);
-        setOptions(profileOptions);
+        const me: AttendeePrefill = await meRes.json();
+        setAttendee(me);
+        if (me.city) setCity(me.city);
+        if (me.businessCategory) setBusinessCategory(me.businessCategory);
+        setOptions(await optionsRes.json());
         setStep("form");
       })
-      .catch(() => setStep("expired"));
-  }, [token]);
+      .catch(() => router.replace("/login"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  async function submitProfile(skip: boolean) {
-    if (!skip && !industry) {
-      setIndustryError("Choose your industry");
-      return;
-    }
+  async function submitProfile() {
+    const errors: Record<string, string> = {};
+    if (!industry) errors.industry = "Choose your industry";
+    if (!businessCategory) errors.businessCategory = "Choose your business category";
+    if (!city.trim()) errors.city = "Enter your city";
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     setSubmitting(true);
+    setSubmitError(null);
     try {
-      await fetch("/api/attendees/me/profile", {
+      const res = await fetch("/api/attendees/me/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          industry: industry || "Other",
+          industry,
+          businessCategory,
+          city: city.trim(),
           lookingFor,
           offering,
           goals,
           bio: bio || undefined,
         }),
       });
+      if (!res.ok) {
+        setSubmitError("Couldn't save your profile. Please try again.");
+        return;
+      }
       setStep("install");
+    } catch {
+      setSubmitError("Couldn't reach the server. Check your connection and try again.");
     } finally {
       setSubmitting(false);
     }
@@ -104,23 +119,7 @@ export function OnboardingFlow() {
         </div>
         <div className="center-state">
           <span className="spinner" style={{ borderTopColor: "var(--brand-500)", borderColor: "var(--border)" }} />
-          <p>Loading your invite&hellip;</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (step === "expired") {
-    return (
-      <div className="card">
-        <div className="wordmark">
-          <span className="dot" />
-          Evento
-        </div>
-        <div className="center-state">
-          <div className="ring warn">!</div>
-          <h2>This invite link has expired</h2>
-          <p>Ask the event organizer to resend your invite.</p>
+          <p>Loading your profile&hellip;</p>
         </div>
       </div>
     );
@@ -165,8 +164,8 @@ export function OnboardingFlow() {
           <div className="ring ok">✓</div>
           <h2>Your profile is set up!</h2>
           <p>
-            We&rsquo;ll text you on WhatsApp before the event. Matches and the rest of the app land with the next
-            features — Login and onboarding are what&rsquo;s built so far.
+            See you at the event — keep an eye on the group for updates. Matches and the rest of the app land with the
+            next features.
           </p>
         </div>
       </div>
@@ -205,7 +204,7 @@ export function OnboardingFlow() {
           value={industry}
           onChange={(e) => {
             setIndustry(e.target.value);
-            setIndustryError(null);
+            setFieldErrors(({ industry: _drop, ...rest }) => rest);
           }}
         >
           <option value="">Select your industry</option>
@@ -215,7 +214,42 @@ export function OnboardingFlow() {
             </option>
           ))}
         </select>
-        {industryError && <div className="hint err">{industryError}</div>}
+        {fieldErrors.industry && <div className="hint err">{fieldErrors.industry}</div>}
+      </div>
+
+      <div className="field">
+        <label htmlFor="businessCategory">Business category</label>
+        <select
+          id="businessCategory"
+          value={businessCategory}
+          onChange={(e) => {
+            setBusinessCategory(e.target.value);
+            setFieldErrors(({ businessCategory: _drop, ...rest }) => rest);
+          }}
+        >
+          <option value="">Select your category</option>
+          {options?.businessCategories.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        {fieldErrors.businessCategory && <div className="hint err">{fieldErrors.businessCategory}</div>}
+      </div>
+
+      <div className="field">
+        <label htmlFor="city">City</label>
+        <input
+          id="city"
+          maxLength={100}
+          placeholder="e.g. Ahmedabad"
+          value={city}
+          onChange={(e) => {
+            setCity(e.target.value);
+            setFieldErrors(({ city: _drop, ...rest }) => rest);
+          }}
+        />
+        {fieldErrors.city && <div className="hint err">{fieldErrors.city}</div>}
       </div>
 
       <TagField label="Looking for" options={options?.lookingFor ?? []} selected={lookingFor} onToggle={(v) => setLookingFor((s) => toggle(s, v))} />
@@ -227,7 +261,16 @@ export function OnboardingFlow() {
         <textarea id="bio" maxLength={200} rows={3} value={bio} onChange={(e) => setBio(e.target.value)} />
       </div>
 
-      <button className="btn-primary" disabled={submitting} onClick={() => submitProfile(false)}>
+      {submitError && (
+        <div className="banner warn" style={{ marginBottom: 12 }}>
+          <div>
+            <b>Save failed</b>
+            {submitError}
+          </div>
+        </div>
+      )}
+
+      <button className="btn-primary" disabled={submitting} onClick={submitProfile}>
         {submitting ? (
           <>
             <span className="spinner" /> Saving&hellip;
@@ -237,7 +280,7 @@ export function OnboardingFlow() {
         )}
       </button>
       <div className="links">
-        <button className="link-muted" disabled={submitting} onClick={() => submitProfile(true)}>
+        <button className="link-muted" disabled={submitting} onClick={() => setStep("install")}>
           Skip for now
         </button>
       </div>

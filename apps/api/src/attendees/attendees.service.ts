@@ -16,6 +16,8 @@ export type ResolveOnboardingResult =
         businessName: string | null;
         chapterName: string | null;
         photoUrl: string | null;
+        city: string | null;
+        businessCategory: string | null;
         profileCompletedAt: Date | null;
       };
     }
@@ -51,6 +53,8 @@ export class AttendeesService {
         businessName: record.attendee.businessName,
         chapterName: record.attendee.chapter?.name ?? null,
         photoUrl: record.attendee.photoUrl,
+        city: record.attendee.city,
+        businessCategory: record.attendee.businessCategory,
         profileCompletedAt: record.attendee.profileCompletedAt,
       },
     };
@@ -70,6 +74,8 @@ export class AttendeesService {
       where: { id: attendeeId },
       data: {
         industry: dto.industry,
+        businessCategory: dto.businessCategory,
+        city: dto.city,
         lookingFor: dto.lookingFor,
         offering: dto.offering,
         goals: dto.goals,

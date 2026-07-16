@@ -14,6 +14,16 @@ export const INDUSTRIES = [
   "Other",
 ] as const;
 
+export const BUSINESS_CATEGORIES = [
+  "Manufacturer",
+  "Trader / Distributor",
+  "Service Provider",
+  "Retailer",
+  "Professional (CA, Lawyer, Consultant…)",
+  "Startup / Founder",
+  "Other",
+] as const;
+
 export const LOOKING_FOR_TAGS = [
   "Suppliers",
   "Distributors",

@@ -1,9 +1,17 @@
-import { ArrayMaxSize, IsArray, IsIn, IsOptional, IsString, MaxLength } from "class-validator";
-import { INDUSTRIES, LOOKING_FOR_TAGS, OFFERING_TAGS, GOALS_TAGS } from "../profile-options";
+import { ArrayMaxSize, IsArray, IsIn, IsNotEmpty, IsOptional, IsString, MaxLength } from "class-validator";
+import { INDUSTRIES, BUSINESS_CATEGORIES, LOOKING_FOR_TAGS, OFFERING_TAGS, GOALS_TAGS } from "../profile-options";
 
 export class UpdateProfileDto {
   @IsIn(INDUSTRIES)
   industry!: string;
+
+  @IsIn(BUSINESS_CATEGORIES)
+  businessCategory!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  city!: string;
 
   @IsArray()
   @ArrayMaxSize(6)

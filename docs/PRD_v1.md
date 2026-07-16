@@ -138,7 +138,7 @@ First-of-its-kind validation that MSME owners will adopt a structured networking
 
 ### Feature 1: Attendee Import & Onboarding
 
-**Description:** Organizer uploads pre-registered attendee list; system auto-generates unique QR codes and sends WhatsApp invites; attendees set up profiles.
+**Description:** Organizer uploads pre-registered attendee list; system auto-generates unique QR codes; admin shares the web app sign-up link in the attendee WhatsApp group (no WhatsApp API integration — no vendor for the pilot); attendees sign in via email magic link and set up profiles.
 
 **User Stories**
 
@@ -151,7 +151,9 @@ Acceptance Criteria:
 - CSV/Excel upload interface on admin dashboard
 - Columns: name (required), email (required), phone (required), business/profession
   name (required), RMB chapter (optional — attendee may not be an RMB member),
-  photo (optional — URL/file reference; falls back to initials avatar if missing)
+  photo (optional — URL/file reference; falls back to initials avatar if missing),
+  city (optional) and business category (optional — both are asked during profile
+  setup when not present in the import file)
 - Source is the organizer's own registration form (observed as a Google Form export:
   Timestamp, Email Address ×2 [Google-account-captured + form-question field — use the
   form-question value as canonical, flag mismatches for admin review], Full Name,
@@ -166,28 +168,33 @@ Acceptance Criteria:
 - Admin can retry failed imports
 ```
 
-**US1.2 - System sends WhatsApp onboarding invite**
+**US1.2 - Admin shares sign-up link in the attendee WhatsApp group**
 ```
 As an organizer
-I want the system to send each attendee a WhatsApp link ~5 days before the event
-So that they get a reminder to set up their profile early
+I want to post the Evento web app link in the attendee WhatsApp group ~5 days before the event
+So that attendees can sign up and set up their profile early
 Acceptance Criteria:
-- WhatsApp link is sent automatically ~5 days before event
-- Link is personalized with attendee name
-- If SMS send fails, admin is notified and can resend manually
-- Attendee sees a clear message: "Complete your profile to unlock match suggestions"
-- Link has expiration or anti-spam token to prevent reuse
+- No WhatsApp Business API / messaging vendor integration for the pilot — the admin
+  manually posts one generic sign-up link in the existing attendee WhatsApp group
+- The link opens the app's sign-up/login screen (see US1.5); the attendee enters
+  their registered email and receives a single-use magic link to get in
+- The same generic link works for every attendee — no per-attendee personalized
+  links to generate or distribute
+- Sign-up screen shows a clear message: "Complete your profile to unlock match
+  suggestions"
+- Admin can re-post the link in the group anytime as a reminder (e.g., Day -1,
+  event morning) — reminders are manual group posts, not system-sent messages
 ```
 
 **US1.3 - Attendee completes profile during onboarding**
 ```
 As Radha (attendee)
-I want to tap the WhatsApp link and answer a few quick questions about myself
+I want to tap the group link, sign in with my email, and answer a few quick questions about myself
 So that I can get personalized match suggestions and not have to install an app first
 Acceptance Criteria:
 - Profile form opens in a mobile web view (does not require app install yet)
-- Fields: industry (dropdown), looking for (multi-select tags), offering (multi-select tags), goals (multi-select), optional free-text bio
-- Form is 30 seconds or less to complete (4–5 fields) — name, email, phone, business/profession name, chapter and photo are already known from registration and are pre-filled/read-only, not re-asked
+- Fields: industry (dropdown), business category (dropdown — e.g., Manufacturer, Trader/Distributor, Service Provider, Retailer, Professional), city (text input), looking for (multi-select tags), offering (multi-select tags), goals (multi-select), optional free-text bio
+- Form is under a minute to complete (6–7 fields) — name, email, phone, business/profession name, chapter and photo are already known from registration and are pre-filled/read-only, not re-asked. City and business category are asked here because the registration form does not capture them (if a future import file includes City/Category columns, they are imported and pre-filled instead)
 - Validation: phone number and email already in system (auto-filled), name is required
 - After completion, user sees: "Great! Get suggestions by installing the app" → PWA install prompt
 - Profile is saved even if attendee doesn't install PWA
@@ -208,18 +215,20 @@ Acceptance Criteria:
 - App is fully functional offline (directory, matches, and profiles load from cache)
 ```
 
-**US1.5 - Attendee logs back in without a password**
+**US1.5 - Attendee logs in without a password (first-time and returning)**
 ```
 As Radha (attendee)
-I want to get back into Evento if I switch phones, clear my browser, or reinstall the app
+I want to get into Evento the first time, and back in if I switch phones, clear my
+browser, or reinstall the app
 Without needing a password or calling anyone for help
-So that losing my session doesn't cost me time at the event
+So that getting in never costs me time
 Acceptance Criteria:
-- No passwords anywhere in the attendee experience — first-time entry is the WhatsApp
-  invite link itself (US1.2/1.3); tapping it is the login
-- Returning-attendee re-entry is a self-serve passwordless magic link: attendee enters
-  their email on a Login screen, and if it matches a registered attendee, a single-use
-  signed link (30-minute expiry) is emailed to that address
+- No passwords anywhere in the attendee experience — the email magic link is the
+  single login mechanism for both first-time sign-up (via the group link, US1.2)
+  and returning re-entry
+- Attendee enters their email on the sign-up/login screen, and if it matches a
+  registered attendee, a single-use signed link (30-minute expiry) is emailed to
+  that address; first-time users land on profile setup, returning users land on Home
 - Response is identical whether or not the email matched ("If that email is on the
   guest list, we've sent a link") — prevents using the login screen to check who is
   registered
@@ -270,7 +279,7 @@ Filtered by industry or company so I can find people beyond the top 10 suggestio
 So that I have agency to explore and might discover useful connections on my own
 Acceptance Criteria:
 - "Directory" or "All attendees" view shows full list
-- Filters: industry, company, RMB chapter (including a "no chapter" bucket for non-RMBians), city (if captured), checked-in status
+- Filters: industry, business category, company, RMB chapter (including a "no chapter" bucket for non-RMBians), city, checked-in status
 - Search: by name or company
 - Each directory card shows: photo (initials avatar if photo missing), name, company, industry, chapter (if any), table number
 - Sorting: by match score, alphabetical, or random (to reduce bias)
@@ -381,7 +390,7 @@ Acceptance Criteria:
 - Breakdown: by check-in method (auto geolocation, manual button, staff QR)
 - List of checked-in attendees (by check-in time, sortable by name or company)
 - List of not-yet-checked-in attendees
-- Ability to resend WhatsApp reminder to unchecked attendees ("Haven't seen you yet. [Event Link]")
+- Admin can copy the not-yet-checked-in list (names/phones) to nudge them manually in the WhatsApp group — no system-sent reminders (no WhatsApp vendor)
 - Check-in timeline chart: graph of check-ins over time (optional)
 ```
 
@@ -410,6 +419,21 @@ Acceptance Criteria:
 - QR decode fails gracefully: "Can't read QR. Try scanning a badge or printed card instead."
 ```
 
+**US4.1A - Attendee shows their own QR code**
+```
+As Radha (attendee)
+I want my personal QR code visible at the top of my Profile screen
+So that the person I'm talking to can scan me instantly, without me hunting through menus
+Acceptance Criteria:
+- Attendee's own QR code is displayed prominently at the TOP of their Profile/Settings
+  screen — first thing visible when the screen opens
+- QR renders at a size reliably scannable from another phone (~60% of screen width minimum)
+- QR is available offline (generated/cached locally — no network call to display it)
+- Tapping the QR enlarges it to full-screen with boosted brightness for easier scanning
+- The attendee's name is shown directly below the QR (so the scanner can confirm
+  they scanned the right person)
+```
+
 **US4.2 - Attendee can view scanned contacts**
 ```
 As Radha (attendee)
@@ -433,6 +457,8 @@ So that attendees whose phones are dead, lost, or don't support QR can still be 
 Acceptance Criteria:
 - Admin dashboard has a "Print badges" option
 - Generated PDF includes: attendee name, company, photo (if available), unique QR code
+- Attendee's name is printed prominently alongside the QR code (large, legible type) so
+  staff and other attendees can visually confirm whose code they're scanning
 - QR code is large enough (1-inch square) to scan reliably in a busy venue
 - Suggested: print before event, or on-demand at check-in desk
 - Staff can still scan a printed badge using a shared tablet/phone at check-in desk
@@ -617,7 +643,7 @@ Acceptance Criteria:
 
 ### Feature 9: Event Summary & Post-Event Follow-Up
 
-**Description:** Post-event summary and WhatsApp reminder to follow up (no in-app chat yet).
+**Description:** Post-event summary in-app; follow-up nudge is a manual admin post in the WhatsApp group (no system-sent messages, no in-app chat yet).
 
 **User Stories**
 
@@ -639,19 +665,20 @@ Acceptance Criteria:
 - Attendee can share summary to WhatsApp
 ```
 
-**US9.2 - Attendee receives WhatsApp follow-up reminder**
+**US9.2 - Post-event follow-up nudge (manual, via group)**
 ```
 As Radha (attendee)
-I want to get a WhatsApp reminder the day after the event
-With a link to my summary and a nudge to follow up
-So that I don't forget to reach out to the people I met
+I want a nudge the day after the event
+With a link to my summary so I remember to reach out to the people I met
 Acceptance Criteria:
-- WhatsApp message sent 24 hours after event end
-- Message includes: "You met 7 people at the event. Here's your summary: [link]"
-- Link opens the event summary
-- Attendee can opt-out of future reminders (and this is tracked)
+- No system-sent WhatsApp messages (no vendor for the pilot) — the admin manually
+  posts a follow-up message with the app link in the attendee WhatsApp group the
+  day after the event
+- The link opens the app; each attendee sees their own event summary after logging in
+- The summary screen itself is the primary follow-up surface — it persists in-app
+  after the event ends, so attendees who miss the group post still see it on next open
 - No in-app chat or AI-generated conversation starters for pilot
-- Follow-up happens via WhatsApp or in person
+- Follow-up happens via WhatsApp (attendee-initiated, wa.me deep links) or in person
 ```
 
 ---
@@ -752,12 +779,15 @@ START: Organizer has pre-registered attendees in CSV
   • Generate unique QR code for each attendee
   • Status: "Import complete: 198 attendees, 2 duplicates skipped"
   ↓
-[SYSTEM: Send WhatsApp Invites (Day -5)]
-  • Auto-send WhatsApp link to each attendee's phone
-  • Message: "Hi Radha, you're invited to Industry Conf 2026! Complete your profile: [link]"
+[ADMIN: Share Sign-Up Link in Group (Day -5)]
+  • Admin manually posts the Evento web app link in the attendee WhatsApp group
+  • Message (written by admin): "You're invited to Industry Conf 2026! Sign up: [link]"
+  ↓
+[ATTENDEE: Sign In via Email Magic Link]
+  • Tap group link → sign-up/login screen opens
+  • Enter registered email → receive single-use magic link → tap to enter
   ↓
 [ATTENDEE: Complete Profile]
-  • Tap WhatsApp link → mobile web view opens
   • Fill form: industry, looking for, offering, goals, optional bio
   • Form validation: all required fields filled, phone is pre-filled
   • Submit → "Profile saved!"
@@ -772,8 +802,8 @@ START: Organizer has pre-registered attendees in CSV
   • For each attendee, calculate "People to Meet" list
   • Cache on their device for offline access
   ↓
-[SYSTEM: Send Reminder (Day -1)]
-  • WhatsApp reminder: "Tomorrow's the big day! Make sure you have Evento installed."
+[ADMIN: Post Reminder in Group (Day -1)]
+  • Admin manually posts in the group: "Tomorrow's the big day! Make sure you have Evento installed. [link]"
   • In-app tutorial for first-timers (skippable)
   ↓
 END: Attendees ready for event day
@@ -865,10 +895,11 @@ START: Event has ended
     - vCard (for native contacts)
     - Share via WhatsApp
   ↓
-[SYSTEM: Send Follow-Up Reminder (Day 1, via WhatsApp)]
-  • Message: "You met 7 people at Industry Conf 2026! Here's your summary: [link]"
-  • Link opens event summary in browser/app
-  • Attendee can tap to re-open Evento, view connections, etc.
+[ADMIN: Post Follow-Up in Group (Day 1)]
+  • Admin manually posts in the group: "Great meeting everyone at Industry Conf 2026!
+    Check your networking summary and follow up: [link]"
+  • Link opens the app; each attendee sees their own summary after logging in
+  • Attendee can view connections, export contacts, etc.
   ↓
 [ATTENDEE: Manual Follow-Up (outside Evento)]
   • Calls, texts, or WhatsApps connections directly
@@ -898,7 +929,7 @@ START: Day before event
   • Opens admin dashboard, "Check-ins" tab
   • Live counter: "142 of 200 checked in"
   • List of who's checked in, who hasn't
-  • Can send WhatsApp reminder to unchecked attendees
+  • Can copy the not-checked-in list and nudge them manually in the WhatsApp group
   ↓
 [ADMIN: Manual Check-In (if needed)]
   • Attendee arrives but phone doesn't work
@@ -983,7 +1014,7 @@ END: Event data captured and reported
 - Data retention: attendee data persists beyond the single event (for future Evento events) unless attendee requests deletion
 
 **Authentication & Authorization**
-- WhatsApp links: include a time-limited token (expires in 72 hours) to prevent abuse
+- Attendee login: email magic links only — single-use, signed, 30-minute expiry (no personalized WhatsApp deep links; the group link is generic and carries no token)
 - QR codes: signed with a secret so only valid codes can be scanned
 - Admin dashboard: password-protected, organizer login required
 - Session management: 30-minute idle timeout; session stored in secure HTTP-only cookies
@@ -1013,7 +1044,7 @@ END: Event data captured and reported
 - **Leaderboard:** Depends on server to aggregate and rank; sync happens when online
 - **Event feed:** Needs server to fetch new posts; can show cached posts offline
 - **Real-time analytics:** Admin dashboard; not available offline
-- **WhatsApp integration:** Sending links/reminders requires internet
+- **Magic-link login emails:** Sending login links requires internet (attendee side and server side)
 
 **Sync Strategy**
 - Changes are recorded locally (in IndexedDB or browser storage)
@@ -1060,7 +1091,7 @@ END: Event data captured and reported
 | **Numeric targets for adoption and satisfaction** | Needed to call the pilot a success/failure. Currently metrics are defined, not the bar. | Decision: Set target adoption rate (% of invitees who install and complete profile) and satisfaction score (e.g., 4.0+/5.0). Recommend: adoption 50–60%, satisfaction 3.8+. |
 | **Directory visibility: checked-in only or full pre-registered?** | Affects whether attendees can plan to meet someone not yet arrived vs. only see who's present. | Decision: Pilot recommendation is checked-in-only (relevance + privacy). Can show unchecked in a separate section. |
 | **Who owns printing physical QR badges, and at what cost?** | Logistics and budget impact. | Decision: Organizer prints before event or on-demand at check-in desk. Evento provides PDF template. Estimated cost: < $50 for 200 badges. |
-| **Exact consent copy for data storage, reuse, and WhatsApp outreach** | Legal/DPDP compliance. Must be finalized before first WhatsApp invite. | Decision: Work with legal to draft. Suggest: "Your data will be stored and reused for future Evento events. You may receive WhatsApp updates. You can request deletion anytime." |
+| **Exact consent copy for data storage and reuse** | Legal/DPDP compliance. Must be finalized before the sign-up link is posted in the group. | Decision: Work with legal to draft. Suggest: "Your data will be stored and reused for future Evento events. You can request deletion anytime." |
 | **Venue WiFi/network capacity testing** | Unknown if offline-first assumption holds or if connectivity is completely down. | Decision: Test at venue a few days before; measure signal strength, throughput, peak load. Adjust app caching strategy if needed. |
 | **Privacy opt-out from public directory** | Some attendees may not want to be discoverable. Not currently supported. | Decision: Defer to Phase 2 or add simple toggle in profile: "Show me in directory: Yes/No". |
 | **Fixed table assignment vs. open floor plan** | Table model assumes assigned seating. Future events may be different. | Decision: Table numbers are optional; if not provided, attendee sees "Find me at the event" instead. Works for either model. |
@@ -1075,7 +1106,7 @@ END: Event data captured and reported
 | **Low PWA adoption due to installation friction** | Medium | High | Send clear WhatsApp instructions; reduce profile form to 4–5 fields; offer fallback: web-only, no install needed (slower but works). |
 | **QR scanning fails consistently in a noisy, crowded venue** | Medium | High | Use high-contrast, large QR codes (1-inch); test camera phone in low light before event; fallback: staff manual check-in via phone/tablet. |
 | **Venue WiFi entirely down for 1+ hours** | Low | High | Design app fully offline-first; test sync when reconnected; educate attendees: "Most features work offline; syncs when you're online." |
-| **Organizer doesn't send WhatsApp invites 5 days early** | Low | Medium | Auto-send invites on a fixed schedule; organizer can override. Provide email reminder: "Send WhatsApp invites today." |
+| **Organizer forgets to post the sign-up link in the group 5 days early** | Low | Medium | Onboarding is a manual group post (no vendor) — put the Day -5 / Day -1 / Day +1 posts in the runbook checklist and assign an owner; team reminds the organizer if the post hasn't gone out. |
 | **Attendees don't know who to meet / low match quality** | Medium | Medium | Pre-event email: "Here's who you should try to meet." Show top 10 matches prominently. Allow browsing full directory. Collect feedback on match quality. |
 | **Photo feed becomes a distraction instead of engagement** | Low | Low | Keep feed small on home screen; make it secondary to leaderboard. Moderation is available if needed. |
 | **Admin dashboard is too complex for organizer** | Low | Medium | Keep dashboard focused on 3–4 key metrics (check-ins, meetings, feedback). Offer email summary if organizer doesn't check in-event. |
@@ -1119,7 +1150,7 @@ Mapping original sticky-note brainstorm to decisions in this PRD, for transparen
 ### In Scope (Pilot MVP)
 
 ✓ Attendee import & auto-generate QR  
-✓ WhatsApp onboarding flow  
+✓ Group-link onboarding flow (admin posts sign-up link in WhatsApp group; email magic-link login)  
 ✓ Profile setup (structured tags + free text)  
 ✓ Rule-based attendee matching  
 ✓ Leaderboard & met counter  
@@ -1128,7 +1159,7 @@ Mapping original sticky-note brainstorm to decisions in this PRD, for transparen
 ✓ Event photo feed (unmoderated)  
 ✓ Admin dashboard (attendee management, analytics, feed moderation)  
 ✓ PWA with offline-first critical flows  
-✓ Post-event summary & WhatsApp reminder  
+✓ Post-event summary (in-app; follow-up nudge via manual admin group post)  
 ✓ Feedback prompt  
 ✓ Save as contact (vCard)  
 
@@ -1149,5 +1180,5 @@ Mapping original sticky-note brainstorm to decisions in this PRD, for transparen
 ---
 
 **Document prepared by:** Claude  
-**Last updated:** July 15, 2026  
+**Last updated:** July 16, 2026  
 **Next steps:** Design mockups, backend API spec, frontend component library
