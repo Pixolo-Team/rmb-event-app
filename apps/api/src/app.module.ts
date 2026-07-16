@@ -15,6 +15,7 @@ import { MeetingsModule } from "./meetings/meetings.module";
 import { LeaderboardModule } from "./leaderboard/leaderboard.module";
 import { AppController } from "./app.controller";
 import { SummaryModule } from "./summary/summary.module";
+import { FeedbackModule } from "./feedback/feedback.module";
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { SummaryModule } from "./summary/summary.module";
     MeetingsModule,
     LeaderboardModule,
     SummaryModule,
+    FeedbackModule,
   ],
   controllers: [AppController],
 })

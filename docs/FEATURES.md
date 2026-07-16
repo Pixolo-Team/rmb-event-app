@@ -218,8 +218,12 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
-| F8.1 | Feedback form — 5-star + optional comment (500 chars), skippable, non-blocking submit | Screen 2.9 | P1 | No | F3.2 | ⬜ Not started |
-| F8.2 | Admin feedback analytics — avg rating, distribution, searchable comments, CSV export | Screen 3.6 | P1 | No | F8.1 | ⬜ Not started |
+| F8.1 | Feedback form — 5-star + optional comment (500 chars), skippable, non-blocking submit | Screen 2.9 | P1 | No | F3.2 | ✅ Done |
+| F8.2 | Admin feedback analytics — avg rating, distribution, searchable comments, CSV export | Screen 3.6 | P1 | No | F8.1 | ✅ Done |
+
+**F8 build notes:**
+- Authenticated `POST /feedback` validates a required 1–5 rating and optional 500-character comment; repeat submissions are retained as separate responses. `/feedback` provides keyboard-accessible rating controls, skip, retry and confirmation flows.
+- `/admin/feedback` shows average, response count, five-to-one distribution, searchable comments and rating filtering. `GET /admin/feedback/export` produces the full CSV server-side. This admin route must be placed behind PF3 when admin authentication lands.
 
 **Feeds into:** F11 (rolls into admin analytics).
 
