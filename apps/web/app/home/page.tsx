@@ -10,6 +10,7 @@ import {
   useOfflineSync,
   type QueueKind,
 } from "../lib/offlineQueue";
+import { AttendeeMenu, type MenuAttendee } from "../components/AttendeeMenu";
 
 // Full-page flow (no floating card — see globals.css .full-page*): detect
 // proximity to the venue, then the attendee taps to confirm rather than
@@ -26,10 +27,7 @@ type Step =
 
 type CheckinMethod = "GEOLOCATION" | "MANUAL" | "STAFF_QR";
 
-interface Attendee {
-  name: string;
-  businessName: string | null;
-}
+type Attendee = MenuAttendee;
 
 interface CheckinStatus {
   checkedIn: boolean;
@@ -93,7 +91,12 @@ export default function HomePage() {
           router.replace("/onboarding");
           return;
         }
-        setAttendee({ name: me.name, businessName: me.businessName });
+        setAttendee({
+          name: me.name,
+          businessName: me.businessName,
+          chapterName: me.chapterName,
+          photoUrl: me.photoUrl,
+        });
 
         if (eventConfig) {
           venueConfig.current = eventConfig;
@@ -196,7 +199,7 @@ export default function HomePage() {
   if (step === "loading" || step === "locating") {
     return (
       <div className="full-page">
-        <PageHeader />
+        <PageHeader attendee={attendee} />
         <div className="full-page-band tone-info">
           <span className="ring info lg">📍</span>
           <h1>{step === "locating" ? "Finding the venue…" : "Loading…"}</h1>
@@ -213,7 +216,7 @@ export default function HomePage() {
   if (step === "arrived" || step === "confirming_arrival") {
     return (
       <div className="full-page">
-        <PageHeader />
+        <PageHeader attendee={attendee} />
         <div className="full-page-band tone-success">
           <span className="ring ok lg">📍</span>
           <h1>You&rsquo;ve arrived</h1>
@@ -248,7 +251,7 @@ export default function HomePage() {
   if (step === "need_manual" || step === "confirming_manual") {
     return (
       <div className="full-page">
-        <PageHeader />
+        <PageHeader attendee={attendee} />
         <div className="full-page-band tone-warning">
           <span className="ring warn lg">!</span>
           <h1>Not checked in</h1>
@@ -277,7 +280,7 @@ export default function HomePage() {
   // step === "checked_in" — this screen is the one attendees show at the registration desk.
   return (
     <div className="full-page">
-      <PageHeader />
+      <PageHeader attendee={attendee} />
       <div className="full-page-band tone-success">
         <span className="ring ok lg">✓</span>
         <h1>Checked in{checkin?.checkedInAt ? ` · ${formatTime(checkin.checkedInAt)}` : ""}</h1>
@@ -316,13 +319,14 @@ export default function HomePage() {
   );
 }
 
-function PageHeader() {
+function PageHeader({ attendee }: { attendee: Attendee | null }) {
   return (
     <div className="full-page-header">
       <div className="wordmark">
         <span className="dot" />
         Evento
       </div>
+      {attendee && <AttendeeMenu attendee={attendee} />}
     </div>
   );
 }

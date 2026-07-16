@@ -159,6 +159,24 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 
 ## Module 2: Attendee App (Main Networking Experience)
 
+### Shared Authenticated Navigation (all Module 2 screens)
+
+After session verification and completion of required onboarding, every attendee screen uses the same header and left slide-over menu. Login, magic-link verification, expired-link states and focused onboarding never render attendee identity or navigation, including during loading, so private information cannot flash before authentication resolves.
+
+The drawer contains one flat list—no main/submenu hierarchy and no section headings—in this order: **Home · People to Meet · Attendee Directory · My Connections · Leaderboard · My Profile · Show My QR**. Sign Out is separated at the bottom. Scan QR remains a prominent contextual action on Home and networking screens, not a permanent navigation item. Feed, Feedback, Summary, Tutorial, Install, About and Terms are reached contextually from Home/Profile and do not belong in the primary drawer.
+
+**States and rules:**
+- **Closed:** 44×44px menu trigger in the attendee header.
+- **Open:** left drawer, maximum 88% of phone width / 360px, scrim behind it, background scrolling locked.
+- **Active:** current destination uses `brand-100` background and `brand-700` text and exposes `aria-current="page"`.
+- **Development preview:** planned routes are disabled, marked **Soon** and expose `aria-disabled="true"`; they never open placeholders.
+- **Production:** planned/disabled destinations are omitted until their owning feature is enabled.
+- Close using the close button, scrim, Escape or Android/browser Back; return focus to the trigger and remain on the current screen.
+- Cached destinations remain usable offline. Opening/closing the drawer must not restart geolocation, clear scanning state, discard edits or reload the page.
+- Session expiry closes the drawer, removes attendee data from view and returns to Login.
+
+---
+
 ### Screen 2.0: Login / Get Access Link
 
 **Module:** Auth (single entry point — both first-time sign-up via the group link AND self-serve re-entry for a returning attendee who lost their session: new phone, cleared browser data, reinstalled PWA. Zero staff involvement in the normal case.)
@@ -237,19 +255,20 @@ App opens
 ```
 
 **User Interactions:**
+- Tap menu button → open the shared authenticated navigation drawer
 - Tap "Check In Manually" button → navigate to Manual Check-In Screen (2.1A)
 - Tap stats (met count, rank) → navigate to Leaderboard (2.5)
 - Tap "Scan QR" button → open QR Scanner (2.4)
 - Tap "My Connections" → open My Connections Screen (2.6)
 - Tap "Directory" → open Directory Screen (2.2)
 - Tap "Feed" → open Event Photo Feed (2.8)
-- Tap "Settings" icon → open Settings Screen (2.12)
+- Use the drawer → open Settings / Profile (2.11)
 - Tap table number → show table info or simple toast "Table [N]"
 - Pull to refresh → reload stats and check-in status
 
 **Navigation:**
 - **Comes from:** PWA app launch, Settings, any back nav
-- **Leads to:** Manual Check-In (2.1A), Scanner (2.4), Connections (2.6), Directory (2.2), Feed (2.8), Settings (2.12), Leaderboard (2.5)
+- **Leads to:** Manual Check-In (2.1A), Scanner (2.4), Connections (2.6), Directory (2.2), Feed (2.8), Settings (2.11), Leaderboard (2.5)
 
 **Data Needed to Display:**
 - Attendee name & company (header)
@@ -1256,16 +1275,20 @@ Pre-Event Flow:
   [returning attendees with a completed profile go straight to Home (2.1)]
 
 Main App Flow:
-  Home Dashboard (2.1) [central hub, includes check-in orchestration]
-    ├→ Manual Check-In (2.1A) [if auto check-in fails]
+  Authenticated side menu [flat global navigation; no bottom-tab bar]
+    ├→ Home Dashboard (2.1) [central hub, includes check-in orchestration]
+    ├→ Pre-Event Matches / People to Meet (1.4)
     ├→ Directory (2.2) → Individual Profile (2.3)
-    ├→ QR Scanner (2.4)
-    ├→ Leaderboard (2.5)
     ├→ My Connections (2.6)
+    ├→ Leaderboard (2.5)
+    └→ Settings / Profile (2.11) → Show My QR
+
+  Home contextual actions
+    ├→ Manual Check-In (2.1A) [if auto check-in fails]
+    ├→ QR Scanner (2.4)
     ├→ Event Photo Feed (2.8) → Post Photo (2.7)
     ├→ Feedback Form (2.9) [auto-triggered at ~4:45 PM]
-    ├→ Event Summary (2.10) [post-event]
-    └→ Settings (2.11)
+    └→ Event Summary (2.10) [post-event]
 
 Admin Flow:
   Admin Login (3.1)

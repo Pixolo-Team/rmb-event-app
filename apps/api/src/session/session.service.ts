@@ -31,4 +31,12 @@ export class SessionService {
       maxAge: SESSION_COOKIE_MAX_AGE_MS,
     });
   }
+
+  clearSessionCookie(res: Response): void {
+    res.clearCookie(SESSION_COOKIE, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+  }
 }
