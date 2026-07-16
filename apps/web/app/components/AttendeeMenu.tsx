@@ -24,7 +24,7 @@ const MENU_ITEMS: MenuItem[] = [
   { href: "/scan", label: "Scan a Code", icon: ScanIcon, available: true },
   { label: "People to Meet", icon: SparkIcon, available: false },
   { href: "/directory", label: "Attendee Directory", icon: DirectoryIcon, available: true, activePrefixes: ["/attendees/"] },
-  { label: "My Connections", icon: ConnectionsIcon, available: false },
+  { href: "/connections", label: "My Connections", icon: ConnectionsIcon, available: true },
   { label: "Leaderboard", icon: TrophyIcon, available: false },
   { href: "/profile", label: "My Profile", icon: ProfileIcon, available: true },
   { href: "/profile?qr=1", label: "Show My QR", icon: QrIcon, available: true },
