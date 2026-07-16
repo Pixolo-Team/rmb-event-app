@@ -12,6 +12,7 @@ import { EventModule } from "./event/event.module";
 import { CheckinModule } from "./checkin/checkin.module";
 import { MatchingModule } from "./matching/matching.module";
 import { MeetingsModule } from "./meetings/meetings.module";
+import { LeaderboardModule } from "./leaderboard/leaderboard.module";
 import { AppController } from "./app.controller";
 
 @Module({
@@ -29,6 +30,7 @@ import { AppController } from "./app.controller";
     CheckinModule,
     MatchingModule,
     MeetingsModule,
+    LeaderboardModule,
   ],
   controllers: [AppController],
 })
