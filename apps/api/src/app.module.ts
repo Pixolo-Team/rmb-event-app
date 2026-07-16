@@ -15,6 +15,7 @@ import { MeetingsModule } from "./meetings/meetings.module";
 import { LeaderboardModule } from "./leaderboard/leaderboard.module";
 import { AppController } from "./app.controller";
 import { SummaryModule } from "./summary/summary.module";
+import { StatsModule } from "./stats/stats.module";
 import { FeedbackModule } from "./feedback/feedback.module";
 
 @Module({
@@ -34,6 +35,7 @@ import { FeedbackModule } from "./feedback/feedback.module";
     MeetingsModule,
     LeaderboardModule,
     SummaryModule,
+    StatsModule,
     FeedbackModule,
   ],
   controllers: [AppController],

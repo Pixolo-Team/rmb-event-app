@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { ContactRows } from "../components/ContactRows";
+import { PersonalStats } from "../components/PersonalStats";
 import { profileCache, type MyProfile } from "../lib/profileCache";
 
 export default function ProfilePage() {
@@ -80,6 +81,8 @@ export default function ProfilePage() {
               {profile.businessName && <p className="qr-sub">{profile.businessName}</p>}
               <p className="qr-hint">Tap the code to enlarge it for scanning</p>
             </section>
+
+            <PersonalStats />
 
             <div className="profile-details-grid">
               <ProfileSection title="Contact">
