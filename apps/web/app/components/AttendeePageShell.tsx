@@ -10,6 +10,10 @@ export function AttendeePageShell({ children }: { children: ReactNode }) {
   const [attendee, setAttendee] = useState<MenuAttendee | null>(null);
 
   useEffect(() => {
+    if (process.env.NODE_ENV !== "production" && new URLSearchParams(window.location.search).get("preview") === "1") {
+      setAttendee({ name: "Radha Sharma", businessName: "Radha Textiles", chapterName: "RMB Mumbai", photoUrl: null });
+      return;
+    }
     // Fall back to the cached profile so the app (and the offline QR on the
     // profile screen) still render when the API is unreachable. Only redirect to
     // login on an actual auth failure (401/403) — never on a network error or a

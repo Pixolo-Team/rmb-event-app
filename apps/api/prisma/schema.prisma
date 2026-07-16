@@ -103,6 +103,13 @@ model Meeting {
   scannedById String
   createdAt   DateTime @default(now())
 
+  // F4.3 — each side owns its private note and may hide the connection from
+  // their own list without deleting the confirmed meeting or affecting stats.
+  attendeeANote   String?
+  attendeeBNote   String?
+  attendeeAHidden Boolean @default(false)
+  attendeeBHidden Boolean @default(false)
+
   @@unique([attendeeAId, attendeeBId])
   @@index([attendeeAId])
   @@index([attendeeBId])

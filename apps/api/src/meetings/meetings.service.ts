@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -43,5 +43,57 @@ export class MeetingsService {
       }
       throw error;
     }
+  }
+
+  async connections(attendeeId: string) {
+    const meetings = await this.prisma.meeting.findMany({
+      where: {
+        OR: [
+          { attendeeAId: attendeeId, attendeeAHidden: false },
+          { attendeeBId: attendeeId, attendeeBHidden: false },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+      include: {
+        attendeeA: { select: { id: true, name: true, phone: true, businessName: true, businessCategory: true, bio: true, tableNumber: true, photoUrl: true } },
+        attendeeB: { select: { id: true, name: true, phone: true, businessName: true, businessCategory: true, bio: true, tableNumber: true, photoUrl: true } },
+      },
+    });
+
+    return {
+      connections: meetings.map((meeting) => {
+        const viewerIsA = meeting.attendeeAId === attendeeId;
+        return {
+          ...viewerIsA ? meeting.attendeeB : meeting.attendeeA,
+          metAt: meeting.createdAt,
+          note: (viewerIsA ? meeting.attendeeANote : meeting.attendeeBNote) ?? "",
+        };
+      }),
+    };
+  }
+
+  async updateNote(attendeeId: string, connectionId: string, note: string) {
+    const meeting = await this.findConnection(attendeeId, connectionId);
+    await this.prisma.meeting.update({
+      where: { id: meeting.id },
+      data: meeting.attendeeAId === attendeeId ? { attendeeANote: note.trim() || null } : { attendeeBNote: note.trim() || null },
+    });
+    return { note: note.trim() };
+  }
+
+  async removeConnection(attendeeId: string, connectionId: string) {
+    const meeting = await this.findConnection(attendeeId, connectionId);
+    await this.prisma.meeting.update({
+      where: { id: meeting.id },
+      data: meeting.attendeeAId === attendeeId ? { attendeeAHidden: true } : { attendeeBHidden: true },
+    });
+    return { removed: true };
+  }
+
+  private async findConnection(attendeeId: string, connectionId: string) {
+    const [attendeeAId, attendeeBId] = [attendeeId, connectionId].sort();
+    const meeting = await this.prisma.meeting.findUnique({ where: { attendeeAId_attendeeBId: { attendeeAId, attendeeBId } } });
+    if (!meeting) throw new NotFoundException("Connection not found");
+    return meeting;
   }
 }

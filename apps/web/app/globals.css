@@ -1153,6 +1153,54 @@ a.contact-row:active { background: var(--brand-100); }
 .scan-actions { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 260px; margin-top: 8px; }
 .scan-actions .btn-primary, .scan-actions .btn-secondary { width: 100%; text-align: center; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
 
+/* F4.3 — confirmed connections */
+.page-heading-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.connections-count { min-width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; background: var(--brand-100); color: var(--brand-700); font: 700 1rem var(--font-display); }
+.connections-tabs { display: grid; grid-template-columns: 1fr 1fr; margin: 24px 0 16px; border-bottom: 1px solid var(--border); }
+.connections-tabs button { min-height: 48px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--ink-muted); font: 700 .88rem var(--font-body); }
+.connections-tabs button[aria-selected="true"] { border-bottom-color: var(--brand-500); color: var(--brand-700); }
+.connections-tabs button:disabled { opacity: .45; }
+.connections-tabs span { margin-left: 5px; padding: 2px 7px; border-radius: var(--radius-pill); background: var(--surface-2); font-size: .72rem; }
+.connections-sort { margin-left: auto; width: max-content; display: flex; align-items: center; gap: 8px; color: var(--ink-muted); font-size: .8rem; }
+.connections-sort select { min-height: 42px; padding: 0 30px 0 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--surface); color: var(--ink); }
+.connections-list { display: grid; gap: 14px; margin-top: 14px; }
+.connection-card { position: relative; padding: 18px; border: 1px solid var(--border); border-radius: var(--radius-lg, 18px); background: var(--surface); box-shadow: 0 3px 10px rgba(20,40,80,.06); }
+.connection-person { display: flex; align-items: center; gap: 13px; padding-right: 82px; color: var(--ink); text-decoration: none; }
+.connection-remove { position: absolute; z-index: 1; top: 13px; right: 13px; min-height: 32px; display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; border: 1px solid transparent; border-radius: var(--radius-pill); background: transparent; color: var(--ink-faint); font: 700 .72rem/1 var(--font-body); cursor: pointer; }
+.connection-remove span { font-size: 1.05rem; font-weight: 400; line-height: 1; }
+.connection-remove:hover { border-color: var(--border); background: var(--surface-2); color: var(--danger-700, #a52828); }
+.connection-remove:disabled { cursor: not-allowed; opacity: .4; }
+.connection-person > div { min-width: 0; flex: 1; }
+.connection-person h2 { margin: 0; font: 700 1rem var(--font-display); }
+.connection-person p { margin: 3px 0; font-size: .88rem; font-weight: 600; }
+.connection-meta-line { display: flex; flex-wrap: wrap; align-items: center; gap: 7px 10px; margin-top: 5px; }
+.connection-meta-line > span:first-child { color: var(--ink-faint); font-size: .75rem; }
+.connection-table { display: inline-flex; align-items: center; gap: 4px; padding: 3px 7px; border: 1px solid var(--brand-500); border-radius: var(--radius-pill); background: var(--brand-50); color: var(--brand-700); font-size: .7rem; font-weight: 700; white-space: nowrap; }
+.connection-table svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.connection-details { margin: 14px 0 0; }
+.connection-details > span { display: inline-block; margin: 0 5px 5px 0; padding: 4px 8px; border-radius: var(--radius-pill); background: var(--surface-2); color: var(--ink-muted); font-size: .72rem; font-weight: 600; }
+.connection-details p { margin: 7px 0 0; color: var(--ink-muted); font-size: .86rem; }
+.connection-note { margin-top: 12px; padding: 11px 12px; border-left: 3px solid var(--brand-500); background: var(--brand-50); }
+.connection-note > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.connection-note b { color: var(--brand-700); font-size: .7rem; text-transform: uppercase; }
+.connection-note button { min-height: 32px; padding: 0 8px; border: 0; background: transparent; color: var(--brand-700); font: 700 .75rem var(--font-body); cursor: pointer; }
+.connection-note p { margin: 4px 0 0; white-space: pre-wrap; font-size: .85rem; }
+.connection-add-note { width: 100%; min-height: 40px; margin-top: 12px; border: 1px dashed var(--border-strong); border-radius: var(--radius-md); background: transparent; color: var(--brand-600); font: 700 .78rem var(--font-body); cursor: pointer; text-align: left; padding: 0 12px; }
+.connection-add-note:hover { border-color: var(--brand-500); background: var(--brand-50); }
+.connection-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; padding-top: 13px; border-top: 1px solid var(--border); }
+.connection-actions a, .connection-actions button { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--surface); color: var(--brand-600); font: 700 .78rem var(--font-body); text-decoration: none; cursor: pointer; }
+.connection-actions a { gap: 7px; }
+.connection-actions svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.connection-actions button:disabled { cursor: not-allowed; opacity: .45; }
+.note-editor { margin-top: 14px; }
+.note-editor label { display: block; margin-bottom: 6px; font-size: .78rem; font-weight: 700; }
+.note-editor textarea { width: 100%; min-height: 92px; resize: vertical; padding: 10px; border: 1.5px solid var(--border-strong); border-radius: var(--radius-md); font: inherit; }
+.note-editor > div { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 7px; }
+.note-editor > div > span { margin-right: auto; color: var(--ink-faint); font-size: .72rem; }
+.note-editor .btn-primary, .note-editor .btn-secondary { width: auto; min-height: 40px; margin: 0; padding: 0 13px; }
+.connection-error { margin: 10px 0 0; color: var(--danger-700, #a52828); font-size: .8rem; }
+.connections-empty-action { width: max-content; display: inline-flex; margin: 18px auto 0; padding: 0 18px; text-decoration: none; }
+
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 @media (max-width: 680px) {

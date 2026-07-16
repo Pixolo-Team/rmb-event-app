@@ -139,7 +139,7 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 |---|---|---|---|---|---|---|
 | F4.1 | Settings/Profile screen + own-QR display (top of screen, offline-rendered, tap-to-enlarge with brightness boost) | Screen 2.11 | P0 | Yes | PF5, F1.2 | ✅ Done |
 | F4.2 | QR scanner & unified exchange — one scan swaps contact details and logs a confirmed meeting, duplicate-pair protection | Screen 2.4 | P0 | Yes (queued, synced) | F4.1, F3.2, PF4 | ✅ Done |
-| F4.3 | My Connections — Already Met tab (name/company/phone/bio/table, Call/WhatsApp/Save/Remove actions, private note) | Screen 2.6 (partial) | P0 | Yes | F4.2 | ⬜ Not started |
+| F4.3 | My Connections — Already Met tab (name/company/phone/bio/table, Call/WhatsApp/Remove actions, private note) | Screen 2.6 (partial) | P0 | Yes | F4.2 | ✅ Done |
 
 **Feeds into:** F5 (bookmarks share this view), F6 (each meeting = 1 leaderboard point), F9 (summary data), F10 (vCard source).
 
@@ -155,7 +155,12 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 - `POST /meetings/scan { qrToken }` ([meetings.service.ts](../apps/api/src/meetings/meetings.service.ts)) resolves the target by `qrToken`, guards self-scan (`self`) and unknown codes (`not_found`), and upserts the pair — returning `met` / `already_met` with the target's card (name + company). It's idempotent, so it's safe to replay from the PF4 offline queue (new `meeting-scan` queue kind).
 - `/scan` screen (Screen 2.4): live `html5-qrcode` camera scanner (same lib as the F3.4 staff scanner), with result cards for met / already-met / self / not-found / camera-unavailable / saved-offline, and View profile / Scan next actions. Entry points: a **Scan a Code** menu item and a **Scan to connect** button on the checked-in Home screen.
 - **Verified:** all four API outcomes + bidirectional dedupe (curl + DB row count stays 1); the offline path end-to-end (queued a `meeting-scan`, fired `online`, the meeting was created and the queue drained to 0); page render + graceful camera-unavailable state (the preview browser can't grant a camera, so the camera-driven success card was verified at the API layer, not on-screen).
-- The "exchange" is realised by the `Meeting` link — both parties now surface in each other's connections. The actual **My Connections list is F4.3** (not built). Optional scanner extras (torch, flip camera, upload-QR-from-gallery fallback) are not included.
+- The "exchange" is realised by the `Meeting` link — both parties surface in each other's F4.3 connections. Optional scanner extras (torch, flip camera, upload-QR-from-gallery fallback) are not included.
+
+**F4.3 build notes:**
+- New authenticated `GET /attendees/me/connections` read and `/connections` screen show confirmed meetings newest-first or alphabetically, with name, company, phone actions, business category, bio, table number and meeting time.
+- Connections are cached locally for offline reads. Private notes are stored per side of the meeting; hiding a connection is also per-attendee, preserving the confirmed meeting and leaderboard/analytics history.
+- Call, WhatsApp, private-note and Remove actions ship here. Native Save to Contacts remains F10.1, while bookmarks and the enabled Want to Meet tab remain F5.
 
 ---
 
