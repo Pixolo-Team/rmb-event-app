@@ -200,6 +200,7 @@ Full rendered specimens live in `DESIGN_SYSTEM.html` §Components. Inventory:
 
 - **Buttons** — primary (`brand-500`), accent (`accent-500`, reserved for Scan QR), secondary (outline), ghost, danger, disabled. Sizes: default 44px, large 52px (primary CTAs), small 36px (admin-only, never below 44px on mobile).
 - **Inputs & forms** — text, select, multi-select dropdown (checkbox overlay — Looking for/Offering, shared business-type taxonomy), multi-select tag picker (Goals), textarea, disabled/pre-filled (phone), error state with inline hint.
+- **Reference-data selects** — business category, city and chapter use active database options. Nationwide cities display as `City, State/UT`; the city control supports type-ahead/search rather than forcing users to scan an unstructured long list. Empty reference sets show a clear unavailable/configuration state rather than a blank control.
 - **Tags & chips** — filter chip (toggle on/off), static display chip, removable form chip (selected items inside the multi-select dropdown). Chapter renders as a static display chip (e.g. "RMB Ahmedabad") on cards and profiles, distinct in style from the looking-for/offering selections so it reads as affiliation, not a matching tag a user picked themselves.
 - **Status & badges** — checked-in (success), not-checked-in (neutral), want-to-meet (accent outline), already-met (brand), offline/saved-offline (warning).
 - **Avatar** — sizes 24/32/40/56/72px, photo primary (from registration), initials fallback on `brand-100` for missing/broken uploads, optional success-ring for "checked in."
@@ -216,7 +217,11 @@ Full rendered specimens live in `DESIGN_SYSTEM.html` §Components. Inventory:
 
 `DESIGN_SYSTEM.html` §Applied renders these directly:
 
-**Attendee app (mobile, 5-tab bar: Home · People · Scan · Board · Feed, with Scan raised and accent-colored):**
+**Attendee app (mobile, authenticated side-menu drawer; no persistent bottom-tab bar):**
+- Header uses a 44×44px menu trigger. The left drawer is `min(88vw, 360px)`, uses `surface`, a brand-tinted identity block and a scrim over page content.
+- Navigation is one flat list with no section headings: Home · People to Meet · Attendee Directory · My Connections · Leaderboard · My Profile · Show My QR. Sign Out is separated at the bottom and uses `danger-500`.
+- Active item uses `brand-100` with `brand-700`; every row is at least 48px tall. Planned items may show a caption-sized **Soon** pill in local development only and are omitted in production.
+- Scan QR remains the principal `accent-500` contextual action on Home/networking screens. The accent color is still reserved for scanning and gamification; the menu trigger and ordinary menu rows do not use it.
 1. Home — check-in badge, table number, "People to meet" matches
 2. Scan confirmation — full-screen success state ("You met Deepak Sharma!")
 3. My Connections — Already met / Want to meet tabs

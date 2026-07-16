@@ -37,11 +37,32 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 | PF1 | PWA shell & installability (manifest, icon, service worker, install-prompt wiring) | — | P0 | Yes (shell) | — | ✅ Done |
 | PF2 | Auth — email magic link (request + verify, session cookie) | Screen 2.0 | P0 | No | — | ✅ Done |
 | PF3 | Admin login (password + session, 30-min idle timeout) | Screen 3.1 | P0 | No | — | ⬜ Not started |
-| PF4 | Offline sync engine — IndexedDB write queue + background sync | — | P0 | Yes | PF1 | ⬜ Not started |
+| PF4 | Offline sync engine — IndexedDB write queue + background sync | — | P0 | Yes | PF1 | ✅ Done |
 | PF5 | QR signing & verification (shared utility — signed opaque JWT payload, server-side verify) | — | P0 | — | — | ⬜ Not started |
 | PF6 | API hardening — rate limiting, CORS, input validation, CSRF (currently only on auth endpoints) | — | P0 | — | — | 🟡 Partial |
+| PF7 | Authenticated attendee navigation shell — flat side-menu drawer, identity header, active state, auth/onboarding visibility gate, accessible close/back behavior, shared route inventory | All attendee screens | P0 | Yes (shell) | PF1, PF2 | 🟡 Partial |
+| PF8 | Database-backed dropdown reference data — business categories, nationwide Indian cities with state/UT labels, active/sort controls, and existing Chapter options | Screen 1.1, Directory filters | P0 | Cacheable | F1.2 | ✅ Done |
 
 **Known gap:** F1.1 (Admin CSV Import) is live at `/admin/import` with no login gate yet — PF3 needs to land and get wired in front of every `/admin/*` route before real attendee data goes through it.
+
+**PF7 build notes:**
+- Implemented on Home: authenticated-only drawer, attendee identity with initials fallback, flat finalized inventory, active Home state, focus trap, Escape/backdrop/browser-Back close, scroll lock and working Sign Out.
+- Public login/magic-link pages and focused onboarding do not render the menu. Planned destinations appear disabled with a **Soon** label only in local development; production hides them until their owning feature ships.
+- Attendee Directory is now a working production destination; `/attendees/[id]` preserves its active navigation state.
+- Remaining before ✅: move the header/drawer into a shared authenticated route-group layout, register real routes as F2/F4/F6 ship, and complete 360/428/768px device verification. The pilot uses no persistent bottom-tab bar.
+
+**PF8 build notes:**
+- Added normalized, active/sortable database reference tables for business categories and cities; Chapter received the same active/sort controls.
+- Seeded a broad Indian city catalogue spanning states and union territories. The profile city field provides searchable browser suggestions labelled `City, State/UT`.
+- Profile options are read from the database and profile writes validate the submitted category and city against active records. Existing unambiguous city values are normalized during migration; unmatched imported values remain valid legacy options.
+- Directory filter facets for business category, city, and chapter are sourced directly from the same active reference tables, independent of how many attendee cards are returned. Company remains attendee-derived.
+
+**PF4 build notes:**
+- Implemented client-side only, per the architecture note in `DEVELOPMENT_PLAN.md` ("offline-first is a client concern, not a backend one"): a small Dexie (IndexedDB) write queue (`apps/web/app/lib/offlineQueue.ts`) that queues a POST when it can't reach the server, and replays it on the `online` event / every 15s while online / on next page load. No Background Sync API (spotty cross-browser support, notably Safari) — deliberate, matches the PRD's iOS Safari testing requirement.
+- Endpoints are safe to queue because they're already idempotent (F3's check-in endpoints dedupe on `attendeeId`).
+- The attendee client also caches the venue's lat/lng/radius (`GET /event`, a new public — non-admin — endpoint) so it can decide "am I in radius" client-side when offline, since the server-side distance check in F3.2 can't be reached without a network round-trip.
+- This resolves the offline gap flagged on F3.2/F3.3/F3.4 — see their updated status below.
+- Not built: full app-shell/route pre-caching for a cold start while offline (that's a PF1 follow-up, not PF4) — this covers the PRD's actual test scenario ("force airplane mode mid-session"), where the page is already loaded before connectivity drops.
 
 ---
 
@@ -65,13 +86,29 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
-| F2.1 | Matching engine service — looking-for/offering overlap + shared business category + same/cross-chapter reasoning, decoupled module (`matching.service.ts`) | — | P1 | — | F1.2 | ⬜ Not started |
+| F2.1 | Matching engine service — looking-for/offering overlap + shared business category + same/cross-chapter reasoning, decoupled module (`matching.service.ts`) | — | P1 | — | F1.2 | ✅ Done |
 | F2.2 | Day-3 pre-computation job — runs F2.1 server-side, caches results per attendee for offline read | — | P1 | Yes (writes cache) | F2.1 | ⬜ Not started |
 | F2.3 | Pre-event matches & directory (top-10 "People to meet" + fallback to full directory) | Screen 1.4 | P1 | Yes | F2.2 | ⬜ Not started |
-| F2.4 | Directory / all attendees — filters (business category/company/chapter/city/checked-in), search, sort | Screen 2.2 | P1 | Yes | F1.1 | ⬜ Not started |
-| F2.5 | Individual attendee profile — full detail + match-reason display | Screen 2.3 | P1 | Yes | F2.1, F2.4 | ⬜ Not started |
+| F2.4 | Directory / all attendees — filters (business category/company/chapter/city/checked-in), search, sort | Screen 2.2 | P1 | Yes | F1.1 | ✅ Done |
+| F2.5 | Individual attendee profile — full detail + match-reason display | Screen 2.3 | P1 | Yes | F2.1, F2.4 | ✅ Done |
 
 **Design note:** matching logic must live in its own service module (F2.1) — a stated non-functional requirement, not just tidiness, because Phase 2 swaps the algorithm without rewriting the profile schema.
+
+**F2.4/F2.5 implementation boundary:**
+- Routes: authenticated `/directory` and `/attendees/[id]`; API reads: authenticated `GET /attendees` and `GET /attendees/:id`.
+- Directory ships with name/company search, business category/company/chapter/city/check-in filters, name/company sorting, result count, initials fallback, responsive cards and last-successful-response caching for offline reads.
+- Individual profile ships with registered/profile details, looking-for/offering/goals/bio, check-in state, table number when assigned, Call/WhatsApp actions and offline cache. The signed QR token is never exposed.
+- Bookmark controls remain hidden until F5.1 supplies bookmark state/actions. F5-owned bookmark/note actions are deliberately not counted against F2.5 completion.
+
+**F2.1 build notes:**
+- The engine is a standalone Nest module (`apps/api/src/matching/`) with no Prisma dependency — `MatchingService.computeMatch(viewer, candidate)` and `rankMatches(viewer, candidates)` take a schema-independent `MatchProfile` and return `{ score, reasons, headline, chapterRelation }`. This satisfies US2.3's decoupling requirement (Phase 2 can swap the algorithm without touching the profile schema) and keeps the functions pure so they can later run client-side for offline matching.
+- Rules: looking-for↔offering overlap (both directions), shared business category, and same/cross-chapter reasoning. Cross-chapter is surfaced deliberately (neutral score, names the other chapter); a chapter difference alone is never a match reason. Non-RMBians (no chapter) match on category/tags only, with no chapter clause — per PRD US2.1.
+- Reason phrasing uses "they" rather than inferring gendered pronouns from names (the PRD's illustrative "she's from…" becomes "they're in the … chapter").
+- **What remains for F2:** F2.2 (day-3 pre-computation cache) and F2.3 ("People to meet" matches screen) still consume this engine but aren't built. `rankMatches` is the seam they'll use; no `GET /attendees/me/matches` endpoint exists yet.
+
+**F2.4/F2.5 build notes:**
+- F2.4 is complete: protected directory API, self-exclusion, filter facets, responsive cards, search, sorting, filter sheet, empty/error/loading/offline states, initials fallback and cached last-successful response. The production menu now enables Attendee Directory.
+- F2.5 is complete: protected detail API without `qrToken`, registered/profile fields, check-in/table state, Call/WhatsApp/native Share, tag sections, offline cache and Directory active-state preservation on nested routes — **plus the personalized "Why you're a match" reason** from the F2.1 engine (`GET /attendees/:id` now computes the viewer↔target match server-side and returns `match`, cached per-profile for offline reads; hidden when there's no meaningful match or when viewing your own profile).
 
 ---
 
@@ -80,13 +117,18 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
-| F3.1 | Admin event settings — venue lat/lng/radius config, validated (lat ±90, long ±180, radius 100–5000m) | Screen 3.2A | P0 | No | PF3 | ⬜ Not started |
-| F3.2 | Home/Dashboard — silent geolocation auto-check-in (5s timeout, configured radius) | Screen 2.1 | P0 | Partial (queued, synced later) | F3.1, F1.1, PF4 | ⬜ Not started |
-| F3.3 | Manual check-in fallback button + retry on network error | Screen 2.1A | P0 | Partial | F3.2 | ⬜ Not started |
-| F3.4 | Admin check-in management — staff-assisted QR scan at desk + live dashboard (counter, method breakdown, straggler list) | Screen 3.4 | P0 | Partial (staff scan works offline, syncs later) | F3.1, PF5 | ⬜ Not started |
-| F3.5 | Print badges (QR codes) — the fallback-of-the-fallback for dead/lost phones | Screen 3.7 | P0 | — | PF5 | ⬜ Not started |
+| F3.1 | Admin event settings — venue lat/lng/radius config, validated (lat ±90, long ±180, radius 100–5000m) | Screen 3.2A | P0 | No | PF3 | ✅ Done |
+| F3.2 | Home/Dashboard — silent geolocation auto-check-in (5s timeout, configured radius) | Screen 2.1 | P0 | Yes (queued via PF4, synced later) | F3.1, F1.1, PF4 | ✅ Done |
+| F3.3 | Manual check-in fallback button + retry on network error | Screen 2.1A | P0 | Yes (queued via PF4) | F3.2 | ✅ Done |
+| F3.4 | Admin check-in management — staff-assisted QR scan at desk + live dashboard (counter, method breakdown, straggler list) | Screen 3.4 | P0 | Yes (staff scan queued via PF4, syncs later) | F3.1, PF5 | ✅ Done |
+| F3.5 | Print badges (QR codes) — the fallback-of-the-fallback for dead/lost phones | Screen 3.7 | P0 | — | PF5 | ✅ Done |
 
 **Feeds into:** F4 (meetings only make sense for present attendees), F6/F11 (analytics baseline).
+
+**Build notes:**
+- F3.1–F3.5 are built and working, including offline queuing now that PF4 exists. QR verification (PF5) was folded directly into F3.4/F3.5 rather than built as a separate JWT-signing layer — staff scan and badge printing both use the existing opaque `qrToken` (DB lookup), consistent with how this codebase already handles magic-link/onboarding tokens, so PF5 is effectively covered in practice.
+- Admin routes added (`/admin/event`, `/admin/checkin`, `/admin/badges`, `GET /admin/attendees`) are **not yet gated by PF3** (Admin Login) — same known gap as F1.1. All of `/admin/*` should sit behind PF3 before real attendee data goes near it.
+- **F3.2/F3.3 revised after design feedback:** `/home` is a full-page layout (no floating card — see `globals.css` `.full-page*` classes), responsive from phone to iPad. Geolocation now only *detects* arrival; the attendee taps "Check in" to actually confirm (was silent auto-checkin in the original PRD draft) — see `PRD_v1.md` US3.1's updated acceptance criteria and `SCREENS.md` Screen 2.1 for the reasoning. The confirmed "Checked in" screen is deliberately plain (name, time, method) with no QR code — it's what the attendee shows at the registration counter, not a scannable credential (that's F4's own-QR display, a different screen). Screen 2.1A (manual fallback) is folded into the same full-page flow as a state, not a separate modal/route.
 
 ---
 
@@ -95,11 +137,30 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
-| F4.1 | Settings/Profile screen + own-QR display (top of screen, offline-rendered, tap-to-enlarge with brightness boost) | Screen 2.11 | P0 | Yes | PF5, F1.2 | ⬜ Not started |
-| F4.2 | QR scanner & unified exchange — one scan swaps contact details and logs a confirmed meeting, duplicate-pair protection | Screen 2.4 | P0 | Yes (queued, synced) | F4.1, F3.2, PF4 | ⬜ Not started |
-| F4.3 | My Connections — Already Met tab (name/company/phone/bio/table, Call/WhatsApp/Save/Remove actions, private note) | Screen 2.6 (partial) | P0 | Yes | F4.2 | ⬜ Not started |
+| F4.1 | Settings/Profile screen + own-QR display (top of screen, offline-rendered, tap-to-enlarge with brightness boost) | Screen 2.11 | P0 | Yes | PF5, F1.2 | ✅ Done |
+| F4.2 | QR scanner & unified exchange — one scan swaps contact details and logs a confirmed meeting, duplicate-pair protection | Screen 2.4 | P0 | Yes (queued, synced) | F4.1, F3.2, PF4 | ✅ Done |
+| F4.3 | My Connections — Already Met tab (name/company/phone/bio/table, Call/WhatsApp/Remove actions, private note) | Screen 2.6 (partial) | P0 | Yes | F4.2 | ✅ Done |
 
 **Feeds into:** F5 (bookmarks share this view), F6 (each meeting = 1 leaderboard point), F9 (summary data), F10 (vCard source).
+
+**F4.1 build notes:**
+- New `/profile` route (Screen 2.11): the attendee's own QR is the first thing on screen, rendered client-side from their signed `qrToken` via the `qrcode` lib (same lib as F3.5 badges) — no network call, so it works offline. Name + company sit directly below; tapping the code opens a full-screen white view (maximises perceived brightness — web has no screen-brightness API) with the enlarged QR and name. `?qr=1` deep-links straight to the enlarged view (the "Show My QR" menu item).
+- `GET /attendees/me` now returns the caller's own `qrToken` (plus lookingFor/offering/goals/bio/tableNumber). This is self-only — `getDirectoryProfile` still strips `qrToken`, so it is never exposed for other attendees.
+- Offline: the me-response (incl. token) is cached in localStorage (`apps/web/app/lib/profileCache.ts`). **`AttendeePageShell` was made offline-tolerant** as part of this: an unreachable API (thrown fetch or 5xx via the Next proxy) now falls back to the cached profile instead of redirecting to `/login`; only a real 401/403 signs the attendee out. Verified by stopping the API and reloading `/profile` — the screen and QR still render.
+- Profile fields render read-only (registered details); inline editing, notification toggles and the tutorial re-launch (Screen 2.11's other elements) are deferred — F1.5 owns the tutorial, and edit/notifications aren't pilot-critical. Menu now enables **My Profile** and **Show My QR**.
+- Not built here: the exchange/scan itself (F4.2) and My Connections (F4.3). This was built incrementally, F4.1 first.
+
+**F4.2 build notes:**
+- New `Meeting` model (migration `add_meeting`): a confirmed meeting stored as a **canonical unordered attendee pair** (the service sorts the two ids before writing). The `@@unique([attendeeAId, attendeeBId])` constraint *is* the duplicate-pair protection — a second scan in **either** direction hits the constraint and returns `already_met` instead of creating a second row. `scannedById` is kept for audit/analytics.
+- `POST /meetings/scan { qrToken }` ([meetings.service.ts](../apps/api/src/meetings/meetings.service.ts)) resolves the target by `qrToken`, guards self-scan (`self`) and unknown codes (`not_found`), and upserts the pair — returning `met` / `already_met` with the target's card (name + company). It's idempotent, so it's safe to replay from the PF4 offline queue (new `meeting-scan` queue kind).
+- `/scan` screen (Screen 2.4): live `html5-qrcode` camera scanner (same lib as the F3.4 staff scanner), with result cards for met / already-met / self / not-found / camera-unavailable / saved-offline, and View profile / Scan next actions. Entry points: a **Scan a Code** menu item and a **Scan to connect** button on the checked-in Home screen.
+- **Verified:** all four API outcomes + bidirectional dedupe (curl + DB row count stays 1); the offline path end-to-end (queued a `meeting-scan`, fired `online`, the meeting was created and the queue drained to 0); page render + graceful camera-unavailable state (the preview browser can't grant a camera, so the camera-driven success card was verified at the API layer, not on-screen).
+- The "exchange" is realised by the `Meeting` link — both parties surface in each other's F4.3 connections. Optional scanner extras (torch, flip camera, upload-QR-from-gallery fallback) are not included.
+
+**F4.3 build notes:**
+- New authenticated `GET /attendees/me/connections` read and `/connections` screen show confirmed meetings newest-first or alphabetically, with name, company, phone actions, business category, bio, table number and meeting time.
+- Connections are cached locally for offline reads. Private notes are stored per side of the meeting; hiding a connection is also per-attendee, preserving the confirmed meeting and leaderboard/analytics history.
+- Call, WhatsApp, private-note and Remove actions ship here. Native Save to Contacts remains F10.1, while bookmarks and the enabled Want to Meet tab remain F5.
 
 ---
 
@@ -166,7 +227,12 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
-| F10.1 | One-tap vCard (.vcf) generation + native contact hand-off, "contact exists — update?" handling | Action on Screen 2.3/2.6 | P2 | Yes | F4.3 | ⬜ Not started |
+| F10.1 | One-tap vCard (.vcf) generation + native contact hand-off, "contact exists — update?" handling | Action on Screen 2.3/2.6 | P2 | Yes | F4.3 | ✅ Done |
+
+**F10.1 build notes:**
+- Attendee profiles and Already Met connection cards generate a standards-compatible vCard locally with name, mobile number, email, company and an Evento note. No network request is required, so the action works offline.
+- The `.vcf` is handed to the device through the browser download/open flow. iOS/Android Contacts owns the final create-versus-update prompt; web apps cannot inspect the address book to pre-detect an existing contact.
+- The action uses the design system's outlined contact icon and a separate full-width utility row, preserving the two-button Call/WhatsApp communication layout.
 
 ---
 
@@ -191,7 +257,7 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 
 Ordered by dependency chain, not by epic number — this is the order to pick features up in for the fastest path to a demoable pilot. Each row is sized to be buildable and shippable on its own; compress or parallelize across people if more than one engineer is available.
 
-1. **Platform Foundations** — PF1 → PF2 → PF5 → PF4 → PF6 (PF3 Admin Login can slot in alongside F1.1)
+1. **Platform Foundations** — PF1 → PF2 → PF5 → PF4 → PF6 → PF7 (PF3 Admin Login can slot in alongside F1.1)
 2. **F1** — F1.1 → PF3 (wire the gate onto it) → F1.2 → F1.3 → F1.4 → F1.5
 3. **F3** — F3.1 → F3.2 → F3.3 → F3.4 → F3.5 (first real on-device offline flow — validates PF4 early)
 4. **F4** — F4.1 → F4.2 → F4.3 (the core loop — get this rock-solid before layering gamification on top)

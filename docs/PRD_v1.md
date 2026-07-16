@@ -193,7 +193,7 @@ I want to tap the group link, sign in with my email, and answer a few quick ques
 So that I can get personalized match suggestions and not have to install an app first
 Acceptance Criteria:
 - Profile form opens in a mobile web view (does not require app install yet)
-- Fields: business category (dropdown — e.g., Manufacturer, Trader/Distributor, Service Provider, Retailer, Professional), city (text input), looking for (multi-select dropdown, shared business-type taxonomy — e.g. Real Estate Builders, Interior Designer, Digital Marketing), offering (multi-select dropdown, same taxonomy as looking for), goals (multi-select), optional free-text bio. No separate "industry" field — business category is the only categorization field, and looking-for/offering tags carry the business-type detail so nothing is asked twice.
+- Fields: business category (database-backed dropdown — e.g., Manufacturer, Trader/Distributor, Service Provider, Retailer, Professional), city (searchable database-backed picker using `City, State/UT`), looking for (multi-select dropdown, shared business-type taxonomy — e.g. Real Estate Builders, Interior Designer, Digital Marketing), offering (multi-select dropdown, same taxonomy as looking for), goals (multi-select), optional free-text bio. No separate "industry" field — business category is the only categorization field, and looking-for/offering tags carry the business-type detail so nothing is asked twice.
 - Form is under a minute to complete (5–6 fields) — name, email, phone, business/profession name, chapter and photo are already known from registration and are pre-filled/read-only, not re-asked. City and business category are asked here because the registration form does not capture them (if a future import file includes City/Category columns, they are imported and pre-filled instead)
 - Validation: phone number and email already in system (auto-filled), name is required
 - After completion, user sees: "Great! Get suggestions by installing the app" → PWA install prompt
@@ -284,6 +284,8 @@ Acceptance Criteria:
 - Each directory card shows: photo (initials avatar if photo missing), name, company, business category, chapter (if any), table number
 - Sorting: by match score, alphabetical, or random (to reduce bias)
 - Directory is available offline (cached at event start)
+- Pilot implementation initially provides alphabetical name and company sorting. Match-score sorting activates with F2.1/F2.3; random sorting is deferred unless event testing demonstrates a discovery-bias problem.
+- Business-category, city and chapter filters come from active database reference records and remain available even when no attendee cards are returned. Cities use the nationwide `City, State/UT` catalogue; company options are derived from attendee records.
 ```
 
 **US2.3 - Matching engine is modular**
@@ -306,23 +308,30 @@ Acceptance Criteria:
 
 **User Stories**
 
-**US3.1 - Attendee auto check-in at venue (Geolocation)**
+**US3.1 - Attendee arrival detection at venue (Geolocation), tap to confirm**
 ```
 As Radha (attendee)
-I want the app to know I'm at the event when I open it
-Without me having to press a button or wait for anything
-So that I don't waste time and can start networking
+I want the app to notice when I've arrived at the event
+And let me confirm with one tap rather than it happening invisibly
+So that I know for sure I'm checked in before I walk up to the registration desk
 Acceptance Criteria:
 - App requests geolocation permission on first app launch (if not already granted)
 - On app open, app calls device geolocation API (max 5 second timeout)
-- If device location is within venue radius (organizer-defined, default 500m), attendee is auto-marked "checked in"
-- A confirmation toast appears: "Welcome! You're checked in at 9:15 AM" (green, auto-dismiss in 3s)
+- If device location is within venue radius (organizer-defined, default 500m), show a full-page
+  "You've arrived" state with a single "Check in" button — check-in is NOT recorded until the
+  attendee taps it. (Revised from an earlier silent-auto-checkin design: the confirmed "checked
+  in" screen doubles as what the attendee shows at the registration counter, so the moment needs
+  to be deliberate, not something that happened in the background without their noticing.)
+- Tapping "Check in" records the check-in and shows: "Checked in at 9:15 AM" — this screen is
+  designed to be shown to registration staff, so it's full-page and unambiguous, not a toast
 - Check-in timestamp is recorded for analytics
-- Geolocation check happens silently in background; attendee doesn't see a loading spinner
+- Venue proximity detection itself is not gated on connectivity — see Technical Details
 - Check-in timestamp is saved locally (works offline); synced when online
-- If checked in already, suppress notification on subsequent app opens
+- If already checked in, skip straight to the "checked in" screen on subsequent app opens (no re-detection)
 Technical Details:
-- Venue coordinates: organizer sets latitude/longitude + radius (in admin dashboard)
+- Venue coordinates: organizer sets latitude/longitude + radius (in admin dashboard); coordinates
+  aren't sensitive (the attendee is physically at the venue already) so the client fetches and
+  caches them, letting it decide "am I in radius" even without a live round-trip to the server
 - Geolocation precision: 50–100m accuracy typical; radius buffer accounts for this
 - Battery impact: single geolocation call on app open, ~100ms, minimal battery drain
 - Privacy: app requests permission with clear message: "We need your location to check you in at the venue"
@@ -334,11 +343,12 @@ As Radha (attendee)
 I want to manually check in if geolocation isn't working or I'm outside the venue radius
 So that I can still attend the event and start networking
 Acceptance Criteria:
-- If auto check-in fails (geolocation off, timeout, or outside radius), Home screen shows "Check In" button (orange/yellow, prominent)
-- Button displays: "Check In Manually" with a location icon
-- Tapping button shows a 1-second "Marking you present..." loading state
-- On success: "✓ Checked in at 9:15 AM" (green toast, auto-dismiss in 3s)
-- Check-in state persists; button disappears until next app session
+- If proximity can't be confirmed (geolocation off, timeout, or outside radius), Home screen shows
+  a full-page "Not checked in" state with a "Check in manually" button (orange/yellow, prominent)
+- Tapping button shows a loading state ("Marking you present…")
+- On success: full-page "Checked in at 9:15 AM" screen (same screen as US3.1's confirmed state —
+  the one shown at the registration counter)
+- Check-in state persists; the button/prompt doesn't reappear until next app session
 - If manual check-in fails (network error), show: "Can't check in. Try again or ask staff to scan your QR"
 - Retry button is always available
 - Manual check-in works offline; timestamp recorded locally and synced when online
@@ -747,6 +757,34 @@ Acceptance Criteria:
 
 ---
 
+### Cross-Cutting Feature 12: Authenticated Attendee Navigation
+
+**Description:** A consistent, low-friction navigation shell for the attendee PWA. The pilot uses one left slide-over drawer rather than duplicating destinations in a bottom-tab bar.
+
+**US12.1 - Attendee navigates the app after login**
+```
+As Radha (attendee)
+I want one simple menu containing the important networking destinations
+So that I can move around the event app without learning multiple navigation systems
+Acceptance Criteria:
+- Menu renders only after a valid attendee session and completed required onboarding
+- It never renders on Login, magic-link verification, expired-link/error or focused onboarding screens, including while session verification is loading
+- Header shows a 44×44px menu trigger; drawer slides from the left and occupies at most 88% of a phone width / 360px
+- One flat list with no main/submenu hierarchy or section headings, ordered:
+  Home, People to Meet, Attendee Directory, My Connections, Leaderboard, My Profile, Show My QR
+- Sign Out is visually separated at the bottom and clears the secure attendee session
+- Scan QR remains a prominent contextual action on Home/networking screens, not a permanent navigation item
+- Feed, Feedback, Summary, Tutorial, Install, About and Terms are surfaced contextually from Home/Profile rather than added to the primary drawer
+- Current destination is visibly highlighted and programmatically marked
+- Close works through the close button, backdrop, Escape and Android/browser Back without leaving the current screen
+- Drawer traps focus while open, restores focus to its trigger, locks background scrolling and respects reduced motion
+- Drawer uses cached attendee identity offline; missing photos fall back to initials
+- Production hides destinations until their feature route works; local development may show them disabled with a clear "Soon" label and no placeholder navigation
+- No persistent attendee bottom-tab bar in the pilot
+```
+
+---
+
 ## Future Considerations (Phase 2)
 
 These ideas were on the original brainstorm and are deliberately deferred, not dropped.
@@ -1015,6 +1053,7 @@ END: Event data captured and reported
 
 **Authentication & Authorization**
 - Attendee login: email magic links only — single-use, signed, 30-minute expiry (no personalized WhatsApp deep links; the group link is generic and carries no token)
+- Magic-link token in the URL: unavoidable for email links (that's how the link arrives), and acceptable because the token is single-use, hashed at rest, and short-lived — but the verify page must (a) strip the token from the address bar/history immediately after consuming it (`history.replaceState`), so it doesn't linger in browser history on shared devices, and (b) load no third-party resources, so the token can't leak via the `Referer` header. The session itself is never carried in a URL — it lives in an httpOnly cookie from the moment the token is exchanged.
 - QR codes: signed with a secret so only valid codes can be scanned
 - Admin dashboard: password-protected, organizer login required
 - Session management: 30-minute idle timeout; session stored in secure HTTP-only cookies
@@ -1089,7 +1128,7 @@ END: Event data captured and reported
 | Question | Impact | Resolution |
 |----------|--------|-----------|
 | **Numeric targets for adoption and satisfaction** | Needed to call the pilot a success/failure. Currently metrics are defined, not the bar. | Decision: Set target adoption rate (% of invitees who install and complete profile) and satisfaction score (e.g., 4.0+/5.0). Recommend: adoption 50–60%, satisfaction 3.8+. |
-| **Directory visibility: checked-in only or full pre-registered?** | Affects whether attendees can plan to meet someone not yet arrived vs. only see who's present. | Decision: Pilot recommendation is checked-in-only (relevance + privacy). Can show unchecked in a separate section. |
+| **Directory visibility: checked-in only or full pre-registered?** | Affects whether attendees can plan to meet someone not yet arrived vs. only see who's present. | **Resolved:** Show the full pre-registered attendee list so pre-event planning works; expose check-in state and a checked-in/not-checked-in filter. The current attendee is excluded from their own results. |
 | **Who owns printing physical QR badges, and at what cost?** | Logistics and budget impact. | Decision: Organizer prints before event or on-demand at check-in desk. Evento provides PDF template. Estimated cost: < $50 for 200 badges. |
 | **Exact consent copy for data storage and reuse** | Legal/DPDP compliance. Must be finalized before the sign-up link is posted in the group. | Decision: Work with legal to draft. Suggest: "Your data will be stored and reused for future Evento events. You can request deletion anytime." |
 | **Venue WiFi/network capacity testing** | Unknown if offline-first assumption holds or if connectivity is completely down. | Decision: Test at venue a few days before; measure signal strength, throughput, peak load. Adjust app caching strategy if needed. |
@@ -1097,6 +1136,7 @@ END: Event data captured and reported
 | **Fixed table assignment vs. open floor plan** | Table model assumes assigned seating. Future events may be different. | Decision: Table numbers are optional; if not provided, attendee sees "Find me at the event" instead. Works for either model. |
 | **Does Evento verify payment (₹4,000 registration fee)?** | Registration form collects a payment screenshot + amount; unclear if Evento needs a review/approval step. | **Resolved:** Out of scope for Evento. The organizer's own registration process (Google Form) handles payment verification; only confirmed, paid attendees are exported into the CSV Evento imports. Evento's schema has no payment fields. |
 | **How should RMB chapter affiliation be used?** | Registration captures chapter for RMB members; unclear if it's just informational or an active product signal. | **Resolved:** Used as a matching + filtering signal, not just metadata. Cross-chapter matches are surfaced deliberately (same-chapter members likely already know each other) — see Feature 2, US2.1. Directory gets a chapter filter. Non-RMBians (no chapter) match on business category/tags only. |
+| **Where do category, city and chapter dropdown options come from?** | Hardcoded or attendee-derived lists become empty/inconsistent and cannot be managed without a release. | **Resolved:** Active database reference records are canonical. Business categories and a broad Indian city catalogue are normalized reference tables; cities display as `City, State/UT`. Chapter uses active Chapter records. Directory receives these lists independently of attendee results; company remains attendee-derived. |
 | **How does attendee login work without an SMS OTP vendor?** | No SMS vendor is budgeted for the pilot; need a passwordless mechanism for returning attendees. | **Resolved:** Passwordless magic link via email only (now a required registration field). No WhatsApp-delivered login link, no SMS OTP vendor. Staff-assisted lookup is the sole fallback for an attendee with no working email access. See Feature 1, US1.5. |
 
 ### Risks & Mitigation

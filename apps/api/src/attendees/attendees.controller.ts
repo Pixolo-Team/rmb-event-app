@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Patch,
+  Param,
   Post,
   Req,
   Res,
@@ -16,7 +17,6 @@ import { ResolveOnboardingDto } from "./dto/resolve-onboarding.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { SessionService } from "../session/session.service";
 import { SessionGuard, RequestWithAttendee } from "../session/session.guard";
-import { BUSINESS_CATEGORIES, LOOKING_FOR_TAGS, OFFERING_TAGS, GOALS_TAGS } from "./profile-options";
 
 @Controller("attendees")
 export class AttendeesController {
@@ -27,12 +27,7 @@ export class AttendeesController {
 
   @Get("profile-options")
   profileOptions() {
-    return {
-      businessCategories: BUSINESS_CATEGORIES,
-      lookingFor: LOOKING_FOR_TAGS,
-      offering: OFFERING_TAGS,
-      goals: GOALS_TAGS,
-    };
+    return this.attendees.getProfileOptions();
   }
 
   @Post("onboarding/resolve")
@@ -65,13 +60,22 @@ export class AttendeesController {
       photoUrl: attendee.photoUrl,
       city: attendee.city,
       businessCategory: attendee.businessCategory,
+      tableNumber: attendee.tableNumber,
+      lookingFor: attendee.lookingFor,
+      offering: attendee.offering,
+      goals: attendee.goals,
+      bio: attendee.bio,
+      // The caller's OWN signed QR token, for rendering their business-card QR
+      // (F4.1, Screen 2.11). Only ever returned for `me` — getDirectoryProfile
+      // strips qrToken so it is never exposed for other attendees.
+      qrToken: attendee.qrToken,
       profileCompletedAt: attendee.profileCompletedAt,
     };
   }
 
   @Get("directory")
   @UseGuards(SessionGuard)
-  async directory(@Req() req: RequestWithAttendee) {
+  async legacyDirectory(@Req() req: RequestWithAttendee) {
     return this.attendees.getDirectoryForAttendee(req.attendeeId);
   }
 
@@ -80,5 +84,17 @@ export class AttendeesController {
   async updateProfile(@Req() req: RequestWithAttendee, @Body() dto: UpdateProfileDto) {
     const attendee = await this.attendees.updateProfile(req.attendeeId, dto);
     return { status: "ok", profileCompletedAt: attendee.profileCompletedAt };
+  }
+
+  @Get()
+  @UseGuards(SessionGuard)
+  directory(@Req() req: RequestWithAttendee) {
+    return this.attendees.listDirectory(req.attendeeId);
+  }
+
+  @Get(":id")
+  @UseGuards(SessionGuard)
+  directoryProfile(@Req() req: RequestWithAttendee, @Param("id") id: string) {
+    return this.attendees.getDirectoryProfile(req.attendeeId, id);
   }
 }

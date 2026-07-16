@@ -8,6 +8,10 @@ import { AdminImportModule } from "./admin-import/admin-import.module";
 import { AttendeesModule } from "./attendees/attendees.module";
 import { BookmarksModule } from "./bookmarks/bookmarks.module";
 import { PhotosModule } from "./photos/photos.module";
+import { EventModule } from "./event/event.module";
+import { CheckinModule } from "./checkin/checkin.module";
+import { MatchingModule } from "./matching/matching.module";
+import { MeetingsModule } from "./meetings/meetings.module";
 import { AppController } from "./app.controller";
 
 @Module({
@@ -21,6 +25,10 @@ import { AppController } from "./app.controller";
     AttendeesModule,
     BookmarksModule,
     PhotosModule,
+    EventModule,
+    CheckinModule,
+    MatchingModule,
+    MeetingsModule,
   ],
   controllers: [AppController],
 })

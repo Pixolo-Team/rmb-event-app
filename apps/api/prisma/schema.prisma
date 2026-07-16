@@ -19,11 +19,39 @@ enum ImportRowStatus {
   FLAGGED
 }
 
+enum CheckInMethod {
+  GEOLOCATION
+  MANUAL
+  STAFF_QR
+}
+
 model Chapter {
   id        String     @id @default(uuid())
   name      String     @unique
+  active    Boolean    @default(true)
+  sortOrder Int        @default(0)
   createdAt DateTime   @default(now())
   attendees Attendee[]
+}
+
+model BusinessCategoryOption {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model CityOption {
+  id        String   @id @default(uuid())
+  name      String
+  stateOrUt String
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([name, stateOrUt])
+  @@index([active, stateOrUt, name])
 }
 
 model Attendee {
@@ -34,6 +62,7 @@ model Attendee {
   createdAt DateTime @default(now())
 
   businessName String?
+  tableNumber  String?
   chapter      Chapter? @relation(fields: [chapterId], references: [id])
   chapterId    String?
   photoUrl     String?
@@ -59,6 +88,9 @@ model Attendee {
   photos          Photo[]
   likes           Like[]
   comments        Comment[]
+  checkIn          CheckIn?
+  meetingsA        Meeting[] @relation("MeetingsA")
+  meetingsB        Meeting[] @relation("MeetingsB")
 }
 
 model Bookmark {
@@ -71,6 +103,57 @@ model Bookmark {
   @@id([attendeeId, targetId])
   @@index([attendeeId, createdAt])
   @@index([targetId])
+}
+
+// F4 — a confirmed meeting between two attendees, created by one QR scan (the
+// unified card exchange). Stored as a canonical *unordered* pair: the service
+// always writes the two ids in sorted order, so (a scans b) and (b scans a) map
+// to the same row. The @@unique on that pair IS the duplicate-pair protection —
+// a second scan in either direction hits the constraint instead of double-counting.
+model Meeting {
+  id          String   @id @default(uuid())
+  attendeeA   Attendee @relation("MeetingsA", fields: [attendeeAId], references: [id])
+  attendeeAId String
+  attendeeB   Attendee @relation("MeetingsB", fields: [attendeeBId], references: [id])
+  attendeeBId String
+  // Who initiated the scan (audit/analytics; both parties get the connection).
+  scannedById String
+  createdAt   DateTime @default(now())
+
+  // F4.3 — each side owns its private note and may hide the connection from
+  // their own list without deleting the confirmed meeting or affecting stats.
+  attendeeANote   String?
+  attendeeBNote   String?
+  attendeeAHidden Boolean @default(false)
+  attendeeBHidden Boolean @default(false)
+
+  @@unique([attendeeAId, attendeeBId])
+  @@index([attendeeAId])
+  @@index([attendeeBId])
+}
+
+// Single-row config for the pilot's one event — F3.1 (Screen 3.2A). Not configured
+// (venueLat/venueLng null) means geolocation check-in is disabled, manual-only.
+model Event {
+  id             String    @id @default(uuid())
+  name           String    @default("Evento")
+  venueLat       Float?
+  venueLng       Float?
+  checkinRadiusM Int       @default(500)
+  startAt        DateTime?
+  endAt          DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+// One row per attendee ever (single-day pilot event) — the unique constraint on
+// attendeeId itself *is* the duplicate-checkin protection (F3.2/F3.3/F3.4).
+model CheckIn {
+  id         String        @id @default(uuid())
+  attendee   Attendee      @relation(fields: [attendeeId], references: [id])
+  attendeeId String        @unique
+  method     CheckInMethod
+  createdAt  DateTime      @default(now())
 }
 
 model MagicLinkToken {
