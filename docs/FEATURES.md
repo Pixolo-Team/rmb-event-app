@@ -87,8 +87,8 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
 | F2.1 | Matching engine service — looking-for/offering overlap + shared business category + same/cross-chapter reasoning, decoupled module (`matching.service.ts`) | — | P1 | — | F1.2 | ✅ Done |
-| F2.2 | Day-3 pre-computation job — runs F2.1 server-side, caches results per attendee for offline read | — | P1 | Yes (writes cache) | F2.1 | ⬜ Not started |
-| F2.3 | Pre-event matches & directory (top-10 "People to meet" + fallback to full directory) | Screen 1.4 | P1 | Yes | F2.2 | ⬜ Not started |
+| F2.2 | Day-3 pre-computation job — runs F2.1 server-side, caches results per attendee for offline read | — | P1 | Yes (writes cache) | F2.1 | ✅ Done |
+| F2.3 | Pre-event matches & directory (top-10 "People to meet" + fallback to full directory) | Screen 1.4 | P1 | Yes | F2.2 | ✅ Done |
 | F2.4 | Directory / all attendees — filters (business category/company/chapter/city/checked-in), search, sort | Screen 2.2 | P1 | Yes | F1.1 | ✅ Done |
 | F2.5 | Individual attendee profile — full detail + match-reason display | Screen 2.3 | P1 | Yes | F2.1, F2.4 | ✅ Done |
 
@@ -104,7 +104,8 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 - The engine is a standalone Nest module (`apps/api/src/matching/`) with no Prisma dependency — `MatchingService.computeMatch(viewer, candidate)` and `rankMatches(viewer, candidates)` take a schema-independent `MatchProfile` and return `{ score, reasons, headline, chapterRelation }`. This satisfies US2.3's decoupling requirement (Phase 2 can swap the algorithm without touching the profile schema) and keeps the functions pure so they can later run client-side for offline matching.
 - Rules: looking-for↔offering overlap (both directions), shared business category, and same/cross-chapter reasoning. Cross-chapter is surfaced deliberately (neutral score, names the other chapter); a chapter difference alone is never a match reason. Non-RMBians (no chapter) match on category/tags only, with no chapter clause — per PRD US2.1.
 - Reason phrasing uses "they" rather than inferring gendered pronouns from names (the PRD's illustrative "she's from…" becomes "they're in the … chapter").
-- **What remains for F2:** F2.2 (day-3 pre-computation cache) and F2.3 ("People to meet" matches screen) still consume this engine but aren't built. `rankMatches` is the seam they'll use; no `GET /attendees/me/matches` endpoint exists yet.
+- F2.2 persists directional top-ten results in `MatchCache`. Authenticated `GET /matches` reads the cache and automatically recomputes it when empty or older than 24 hours; `POST /matches/recompute` and `GET /matches?refresh=1` provide explicit refresh paths.
+- F2.3 ships at `/matches`: ranked cards, match explanation, check-in/table context, bookmarks, profile navigation, refresh, empty/error/loading states, directory fallback and last-successful-response caching for offline reads.
 
 **F2.4/F2.5 build notes:**
 - F2.4 is complete: protected directory API, self-exclusion, filter facets, responsive cards, search, sorting, filter sheet, empty/error/loading/offline states, initials fallback and cached last-successful response. The production menu now enables Attendee Directory.

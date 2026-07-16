@@ -22,7 +22,7 @@ type MenuItem = {
 const MENU_ITEMS: MenuItem[] = [
   { href: "/home", label: "Home", icon: HomeIcon, available: true },
   { href: "/scan", label: "Scan a Code", icon: ScanIcon, available: true },
-  { label: "People to Meet", icon: SparkIcon, available: false },
+  { href: "/matches", label: "People to Meet", icon: SparkIcon, available: true },
   { href: "/directory", label: "Attendee Directory", icon: DirectoryIcon, available: true, activePrefixes: ["/attendees/"] },
   { href: "/connections", label: "My Connections", icon: ConnectionsIcon, available: true },
   { href: "/leaderboard", label: "Leaderboard", icon: TrophyIcon, available: true },

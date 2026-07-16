@@ -2,7 +2,7 @@
 
 MSME event networking PWA. See [`docs/`](./docs) for the full PRD, screen specs, feature breakdown, design system, and development plan.
 
-**Current build status:** see `docs/FEATURES.md`'s Feature Index for the authoritative per-feature status. Done so far: PF1 (PWA shell), PF2 (email magic-link auth), PF4 (offline sync engine), PF8 (dropdown reference data), F1.1–F1.5 (import and onboarding through tutorial), F2.1/F2.4/F2.5 (matching engine, directory and profile), F3.1–F3.5 (event and check-in), F4.1–F4.3 (QR exchange and My Connections), F6.1–F6.3 (mobile and venue leaderboard), and F10.1 (offline vCard contact hand-off). See the feature tracker for partial/integration status of bookmarks and the photo feed.
+**Current build status:** see `docs/FEATURES.md`'s Feature Index for the authoritative per-feature status. Smart Matching F2.1–F2.5, bookmarks F5, leaderboard F6, photo feed F7 and contact hand-off F10 are implemented alongside the core onboarding, check-in and exchange flows.
 
 ## Stack
 

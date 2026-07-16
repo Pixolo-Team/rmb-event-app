@@ -91,6 +91,26 @@ model Attendee {
   checkIn          CheckIn?
   meetingsA        Meeting[] @relation("MeetingsA")
   meetingsB        Meeting[] @relation("MeetingsB")
+  matchCachesMade  MatchCache[] @relation("MatchViewer")
+  matchCachesOnMe  MatchCache[] @relation("MatchCandidate")
+}
+
+// F2.2 — persisted, directional recommendations. A→B can score differently
+// from B→A because looking-for/offering signals are viewer-specific.
+model MatchCache {
+  viewer       Attendee @relation("MatchViewer", fields: [viewerId], references: [id], onDelete: Cascade)
+  viewerId     String
+  candidate    Attendee @relation("MatchCandidate", fields: [candidateId], references: [id], onDelete: Cascade)
+  candidateId  String
+  score        Int
+  reasons      String[]
+  headline     String
+  chapterRelation String
+  computedAt   DateTime @default(now())
+
+  @@id([viewerId, candidateId])
+  @@index([viewerId, score])
+  @@index([candidateId])
 }
 
 model Bookmark {
