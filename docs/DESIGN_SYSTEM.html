@@ -430,6 +430,12 @@ p.sub-desc{color:var(--ink-muted); font-size:.9rem; margin:0 0 18px; max-width:6
 .chip.removable button svg{width:13px;height:13px;}
 .chip.chapter{background:var(--accent-50); border-color:var(--accent-500); color:var(--accent-700); font-weight:700;}
 
+.multiselect-trigger{
+  display:flex; flex-wrap:wrap; gap:6px; align-items:center;
+  min-height:44px; width:100%; padding:6px 10px;
+  border:1.5px solid var(--border-strong); border-radius:var(--radius-sm); background:var(--surface);
+}
+
 /* Badges / status pills */
 .badge{
   display:inline-flex; align-items:center; gap:5px;
@@ -948,8 +954,8 @@ footer.doc-footer p{font-size:.8rem; color:var(--ink-faint); margin:4px 0;}
         <div class="gallery-title"><h4>Inputs &amp; forms</h4><span class="tag">profile setup</span></div>
         <div class="gallery-body">
           <div class="field">
-            <label>Industry</label>
-            <select><option>Manufacturing</option></select>
+            <label>Business category</label>
+            <select><option>Manufacturer</option></select>
           </div>
           <div class="field">
             <label>Phone</label>
@@ -969,14 +975,25 @@ footer.doc-footer p{font-size:.8rem; color:var(--ink-faint); margin:4px 0;}
       </div>
 
       <div class="gallery">
-        <div class="gallery-title"><h4>Tags &amp; chips</h4><span class="tag">looking for / offering / chapter</span></div>
+        <div class="gallery-title"><h4>Multi-select dropdown</h4><span class="tag">looking for / offering &mdash; shared business-type taxonomy</span></div>
         <div class="gallery-body">
-          <span class="chip on">Manufacturing</span>
-          <span class="chip">Textiles</span>
-          <span class="chip">IT Services</span>
+          <div class="field" style="min-width:260px;">
+            <label>Looking for</label>
+            <div class="multiselect-trigger">
+              <span class="chip removable">Digital Marketing <button><svg><use href="#i-x"/></svg></button></span>
+              <span class="chip removable">Interior Designer <button><svg><use href="#i-x"/></svg></button></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gallery">
+        <div class="gallery-title"><h4>Tags &amp; chips</h4><span class="tag">filter chip / static chip / chapter</span></div>
+        <div class="gallery-body">
+          <span class="chip on">Checked in</span>
+          <span class="chip">Not checked in</span>
           <span class="chip static">Bulk sourcing</span>
-          <span class="chip removable">Suppliers <button><svg><use href="#i-x"/></svg></button></span>
-          <span class="chip removable">Distributors <button><svg><use href="#i-x"/></svg></button></span>
+          <span class="chip removable">Real Estate Builders <button><svg><use href="#i-x"/></svg></button></span>
           <span class="chip chapter">RMB Ahmedabad</span>
         </div>
       </div>
@@ -1017,7 +1034,7 @@ footer.doc-footer p{font-size:.8rem; color:var(--ink-faint); margin:4px 0;}
               </div>
             </div>
             <span class="chip chapter" style="margin-top:8px;">RMB Surat</span>
-            <div class="p-card-reason">You're both in Manufacturing &mdash; he's from the Surat chapter</div>
+            <div class="p-card-reason">You're both Manufacturers &mdash; he's from the Surat chapter</div>
             <div class="p-card-actions">
               <div class="icon-btn on"><svg><use href="#i-bookmark-fill"/></svg></div>
               <button class="btn btn-secondary btn-sm" style="flex:1;">View profile</button>

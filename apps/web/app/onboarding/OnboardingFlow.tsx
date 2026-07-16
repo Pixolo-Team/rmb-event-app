@@ -19,7 +19,6 @@ interface AttendeePrefill {
 }
 
 interface ProfileOptions {
-  industries: readonly string[];
   businessCategories: readonly string[];
   lookingFor: readonly string[];
   offering: readonly string[];
@@ -38,7 +37,6 @@ export function OnboardingFlow() {
   const [attendee, setAttendee] = useState<AttendeePrefill | null>(null);
   const [options, setOptions] = useState<ProfileOptions | null>(null);
 
-  const [industry, setIndustry] = useState("");
   const [businessCategory, setBusinessCategory] = useState("");
   const [city, setCity] = useState("");
   const [lookingFor, setLookingFor] = useState<string[]>([]);
@@ -75,7 +73,6 @@ export function OnboardingFlow() {
 
   async function submitProfile() {
     const errors: Record<string, string> = {};
-    if (!industry) errors.industry = "Choose your industry";
     if (!businessCategory) errors.businessCategory = "Choose your business category";
     if (!city.trim()) errors.city = "Enter your city";
     setFieldErrors(errors);
@@ -89,7 +86,6 @@ export function OnboardingFlow() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          industry,
           businessCategory,
           city: city.trim(),
           lookingFor,
@@ -198,26 +194,6 @@ export function OnboardingFlow() {
       )}
 
       <div className="field" style={{ marginTop: 16 }}>
-        <label htmlFor="industry">Industry</label>
-        <select
-          id="industry"
-          value={industry}
-          onChange={(e) => {
-            setIndustry(e.target.value);
-            setFieldErrors(({ industry: _drop, ...rest }) => rest);
-          }}
-        >
-          <option value="">Select your industry</option>
-          {options?.industries.map((i) => (
-            <option key={i} value={i}>
-              {i}
-            </option>
-          ))}
-        </select>
-        {fieldErrors.industry && <div className="hint err">{fieldErrors.industry}</div>}
-      </div>
-
-      <div className="field">
         <label htmlFor="businessCategory">Business category</label>
         <select
           id="businessCategory"
@@ -252,8 +228,18 @@ export function OnboardingFlow() {
         {fieldErrors.city && <div className="hint err">{fieldErrors.city}</div>}
       </div>
 
-      <TagField label="Looking for" options={options?.lookingFor ?? []} selected={lookingFor} onToggle={(v) => setLookingFor((s) => toggle(s, v))} />
-      <TagField label="Offering" options={options?.offering ?? []} selected={offering} onToggle={(v) => setOffering((s) => toggle(s, v))} />
+      <MultiSelectDropdown
+        label="Looking for"
+        options={options?.lookingFor ?? []}
+        selected={lookingFor}
+        onToggle={(v) => setLookingFor((s) => toggle(s, v))}
+      />
+      <MultiSelectDropdown
+        label="Offering"
+        options={options?.offering ?? []}
+        selected={offering}
+        onToggle={(v) => setOffering((s) => toggle(s, v))}
+      />
       <TagField label="Goals" options={options?.goals ?? []} selected={goals} onToggle={(v) => setGoals((s) => toggle(s, v))} />
 
       <div className="field">
@@ -314,6 +300,50 @@ function TagField({
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+function MultiSelectDropdown({
+  label,
+  options,
+  selected,
+  onToggle,
+}: {
+  label: string;
+  options: readonly string[];
+  selected: string[];
+  onToggle: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="field multiselect">
+      <label>{label}</label>
+      <button
+        type="button"
+        className={`multiselect-trigger${selected.length === 0 ? " placeholder" : ""}`}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span>{selected.length === 0 ? `Select ${label.toLowerCase()}` : selected.join(", ")}</span>
+        <span className="multiselect-caret">{open ? "▲" : "▼"}</span>
+      </button>
+      {open && (
+        <>
+          <div className="multiselect-backdrop" onClick={() => setOpen(false)} />
+          <div className="multiselect-panel">
+            {options.map((opt) => (
+              <label key={opt} className="multiselect-option">
+                <input type="checkbox" checked={selected.includes(opt)} onChange={() => onToggle(opt)} />
+                {opt}
+              </label>
+            ))}
+            <button type="button" className="multiselect-done" onClick={() => setOpen(false)}>
+              Done
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -61,7 +61,7 @@ See `apps/api/src/mail/mail.service.ts` and `apps/api/src/whatsapp/whatsapp.serv
 | Session issuance (JWT in an httpOnly cookie), shared across login and onboarding | Real |
 | Postgres schema (`Attendee`, `Chapter`, `MagicLinkToken`, `OnboardingToken`, `ImportBatch`, `ImportRow`) | Real |
 | CSV import: column-mapping, dedup by phone+email, per-row status reporting, mismatched-email-column flagging | Real |
-| Profile setup form (industry/tags/goals/bio), server-validated against a fixed taxonomy | Real |
+| Profile setup form (business category/looking-for/offering/goals/bio), server-validated against a fixed taxonomy | Real |
 | PWA installability (manifest, icon, service worker, `beforeinstallprompt` wiring) | Real, but the service worker only caches `manifest.json`/`icon.svg` — no offline write-queue yet |
 | Actual email delivery | Stubbed — logs to console instead of calling Postmark/Resend |
 | Actual WhatsApp delivery | Stubbed — logs to console instead of calling a WhatsApp Business API vendor |

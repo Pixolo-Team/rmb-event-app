@@ -1,10 +1,7 @@
 import { ArrayMaxSize, IsArray, IsIn, IsNotEmpty, IsOptional, IsString, MaxLength } from "class-validator";
-import { INDUSTRIES, BUSINESS_CATEGORIES, LOOKING_FOR_TAGS, OFFERING_TAGS, GOALS_TAGS } from "../profile-options";
+import { BUSINESS_CATEGORIES, LOOKING_FOR_TAGS, OFFERING_TAGS, GOALS_TAGS } from "../profile-options";
 
 export class UpdateProfileDto {
-  @IsIn(INDUSTRIES)
-  industry!: string;
-
   @IsIn(BUSINESS_CATEGORIES)
   businessCategory!: string;
 

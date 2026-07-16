@@ -14,18 +14,17 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 **Purpose:** Attendee answers questions about themselves to set up a profile before the event
 
 **States:**
-- **Default:** Form displayed with industry/looking-for/offering/goals/bio empty; name, email, phone, business/profession name, chapter and photo already filled in (read-only) from registration
+- **Default:** Form displayed with business-category/looking-for/offering/goals/bio empty; name, email, phone, business/profession name, chapter and photo already filled in (read-only) from registration
 - **Loading:** Spinner on "Submit" button; fields disabled while saving
 - **Success:** "Profile saved!" confirmation → auto-redirect to PWA install prompt
 - **Error:** "Something went wrong. Please try again." (with retry button)
 - **Validation Error:** Red border on required fields; message: "This field is required"
 
 **User Interactions:**
-- Tap industry dropdown → open dropdown picker (single select)
 - Tap business category dropdown → open dropdown picker (single select — e.g., Manufacturer, Trader/Distributor, Service Provider, Retailer, Professional)
 - Type in "City" text field (required; pre-filled read-only if the import file provided it)
-- Tap "Looking for" tags → open tag selector (multi-select)
-- Tap "Offering" tags → open tag selector (multi-select)
+- Tap "Looking for" dropdown → open multi-select checklist overlay (shared business-type taxonomy with Offering — e.g. Real Estate Builders, Interior Designer, Digital Marketing); selected items shown in the closed field
+- Tap "Offering" dropdown → open multi-select checklist overlay (same business-type taxonomy as Looking for); selected items shown in the closed field
 - Tap "Goals" tags → open tag selector (multi-select)
 - Type in "Bio" text field (optional, 200 char max)
 - Tap "Submit" button → validate & submit
@@ -37,10 +36,9 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 
 **Data Needed to Display:**
 - Pre-filled and read-only, from registration: name, email, phone, business/profession name, RMB chapter (if any), photo (initials avatar shown if no photo on file)
-- Industry options (dropdown list)
-- Business category options (dropdown list)
-- "Looking for" tag options (multi-select)
-- "Offering" tag options (multi-select)
+- Business category options (dropdown list — the only categorization field; no separate "industry" field, to avoid asking the same thing twice)
+- "Looking for" dropdown options (multi-select, shared business-type taxonomy with Offering)
+- "Offering" dropdown options (multi-select, same taxonomy as Looking for)
 - "Goals" tag options (multi-select)
 
 **Edge Cases:**
@@ -146,7 +144,7 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 - **Leads to:** Individual Profile Screen (2.3) or Directory Screen (2.2)
 
 **Data Needed to Display:**
-- Top 10 matched attendees: name, company, industry, table number, match reason
+- Top 10 matched attendees: name, company, business category, table number, match reason
 - Bookmark status for each (is this person already bookmarked?)
 - Current user's profile (for sidebar or header)
 - Total attendee count
@@ -332,7 +330,7 @@ App opens
 
 **User Interactions:**
 - Scroll through list (lazy load more on scroll)
-- Tap filter icon → open filter drawer (industry, business category, city, company, RMB chapter — including a "no chapter" option for non-RMBians — checked-in status)
+- Tap filter icon → open filter drawer (business category, city, company, RMB chapter — including a "no chapter" option for non-RMBians — checked-in status)
 - Tap search bar → open search input, type name/company
 - Tap "X" on search → clear search
 - Tap on attendee card → open Individual Profile (2.3)
@@ -344,7 +342,7 @@ App opens
 - **Leads to:** Individual Profile Screen (2.3)
 
 **Data Needed to Display:**
-- Full attendee list: photo (initials avatar if none on file), name, company, industry, RMB chapter (if any), table number, check-in status
+- Full attendee list: photo (initials avatar if none on file), name, company, business category, RMB chapter (if any), table number, check-in status
 - Filter options: industries list, companies list, chapter list (from registration data)
 - Search index (client-side for offline)
 - Bookmark status for each attendee
@@ -388,11 +386,11 @@ App opens
 - **Leads to:** QR Scanner (2.4), Note Editor, native apps (Phone, WhatsApp)
 
 **Data Needed to Display:**
-- Attendee name, company, industry, RMB chapter (if any), phone, email
+- Attendee name, company, business category, RMB chapter (if any), phone, email
 - Table number
 - Photo (from registration; initials avatar if none on file)
 - Bio/description
-- Match reason, when arrived from Matches (1.4) — states the chapter relationship explicitly: e.g. "You're both in Manufacturing — she's from the Surat chapter" (cross-chapter) or "You're both in the Ahmedabad chapter" (same-chapter); omitted if either party has no chapter
+- Match reason, when arrived from Matches (1.4) — states the chapter relationship explicitly: e.g. "You're both Manufacturers — she's from the Surat chapter" (cross-chapter) or "You're both in the Ahmedabad chapter" (same-chapter); omitted if either party has no chapter
 - Meeting status (met or not)
 - Bookmark status
 - Any existing notes from current user
@@ -525,7 +523,7 @@ App opens
 
 **Data Needed to Display:**
 - Two lists: bookmarked attendees, met attendees
-- For each: name, company, industry, phone, photo (optional)
+- For each: name, company, business category, phone, photo (optional)
 - Tab badge counts ("Want to meet (5)", "Already met (7)")
 - Meeting timestamp (for Already Met tab)
 - Notes (if any)
@@ -722,7 +720,7 @@ App opens
 
 **User Interactions:**
 - Tap own QR code → enlarge full-screen (brightness boosted); tap again or back to dismiss
-- Tap on profile fields (name, company, industry, etc.) → edit (some read-only)
+- Tap on profile fields (name, company, business category, etc.) → edit (some read-only)
 - Toggle notifications on/off
 - Tap "View tutorial" → re-show onboarding tutorial
 - Tap "About" → show app version, support email
@@ -736,7 +734,7 @@ App opens
 
 **Data Needed to Display:**
 - Attendee's own signed QR code (generated/cached locally — must render offline, no network call)
-- User's profile: name, company, industry, bio, phone (some read-only)
+- User's profile: name, company, business category, bio, phone (some read-only)
 - Notification settings
 - App version
 - Support contact

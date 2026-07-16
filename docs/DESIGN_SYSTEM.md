@@ -199,8 +199,8 @@ Respect `prefers-reduced-motion: reduce` — disable non-essential transitions.
 Full rendered specimens live in `DESIGN_SYSTEM.html` §Components. Inventory:
 
 - **Buttons** — primary (`brand-500`), accent (`accent-500`, reserved for Scan QR), secondary (outline), ghost, danger, disabled. Sizes: default 44px, large 52px (primary CTAs), small 36px (admin-only, never below 44px on mobile).
-- **Inputs & forms** — text, select, multi-select tag picker, textarea, disabled/pre-filled (phone), error state with inline hint.
-- **Tags & chips** — filter chip (toggle on/off), static display chip, removable form chip. Chapter renders as a static display chip (e.g. "RMB Ahmedabad") on cards and profiles, distinct in style from the industry/looking-for/offering tags so it reads as affiliation, not a matching tag a user picked themselves.
+- **Inputs & forms** — text, select, multi-select dropdown (checkbox overlay — Looking for/Offering, shared business-type taxonomy), multi-select tag picker (Goals), textarea, disabled/pre-filled (phone), error state with inline hint.
+- **Tags & chips** — filter chip (toggle on/off), static display chip, removable form chip (selected items inside the multi-select dropdown). Chapter renders as a static display chip (e.g. "RMB Ahmedabad") on cards and profiles, distinct in style from the looking-for/offering selections so it reads as affiliation, not a matching tag a user picked themselves.
 - **Status & badges** — checked-in (success), not-checked-in (neutral), want-to-meet (accent outline), already-met (brand), offline/saved-offline (warning).
 - **Avatar** — sizes 24/32/40/56/72px, photo primary (from registration), initials fallback on `brand-100` for missing/broken uploads, optional success-ring for "checked in."
 - **Cards** — match card (People to Meet: avatar, name, company, chapter chip, table #, match reason — states the chapter relationship explicitly, cross- or same-chapter, when either attendee has one — bookmark), connection card (My Connections: avatar, name, phone, note, action row), directory card, feed post card.

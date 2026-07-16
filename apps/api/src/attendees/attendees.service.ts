@@ -73,7 +73,6 @@ export class AttendeesService {
     return this.prisma.attendee.update({
       where: { id: attendeeId },
       data: {
-        industry: dto.industry,
         businessCategory: dto.businessCategory,
         city: dto.city,
         lookingFor: dto.lookingFor,

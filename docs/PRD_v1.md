@@ -36,7 +36,7 @@ MSME (Micro, Small & Medium Enterprise) owners regularly attend business events 
 ### Solution
 
 **Evento** turns any business event into planned, efficient networking. The platform enables attendees to:
-- **Before the event:** See who's attending and get profile-driven match suggestions based on industry, goals, and needs
+- **Before the event:** See who's attending and get profile-driven match suggestions based on business category, looking-for/offering overlap, and goals
 - **During the event:** Find and meet connections via QR code scan, which exchanges a digital business card and logs the meeting in one action
 - **After the event:** Review who they met and get nudged to follow up
 
@@ -193,8 +193,8 @@ I want to tap the group link, sign in with my email, and answer a few quick ques
 So that I can get personalized match suggestions and not have to install an app first
 Acceptance Criteria:
 - Profile form opens in a mobile web view (does not require app install yet)
-- Fields: industry (dropdown), business category (dropdown — e.g., Manufacturer, Trader/Distributor, Service Provider, Retailer, Professional), city (text input), looking for (multi-select tags), offering (multi-select tags), goals (multi-select), optional free-text bio
-- Form is under a minute to complete (6–7 fields) — name, email, phone, business/profession name, chapter and photo are already known from registration and are pre-filled/read-only, not re-asked. City and business category are asked here because the registration form does not capture them (if a future import file includes City/Category columns, they are imported and pre-filled instead)
+- Fields: business category (dropdown — e.g., Manufacturer, Trader/Distributor, Service Provider, Retailer, Professional), city (text input), looking for (multi-select dropdown, shared business-type taxonomy — e.g. Real Estate Builders, Interior Designer, Digital Marketing), offering (multi-select dropdown, same taxonomy as looking for), goals (multi-select), optional free-text bio. No separate "industry" field — business category is the only categorization field, and looking-for/offering tags carry the business-type detail so nothing is asked twice.
+- Form is under a minute to complete (5–6 fields) — name, email, phone, business/profession name, chapter and photo are already known from registration and are pre-filled/read-only, not re-asked. City and business category are asked here because the registration form does not capture them (if a future import file includes City/Category columns, they are imported and pre-filled instead)
 - Validation: phone number and email already in system (auto-filled), name is required
 - After completion, user sees: "Great! Get suggestions by installing the app" → PWA install prompt
 - Profile is saved even if attendee doesn't install PWA
@@ -244,7 +244,7 @@ Acceptance Criteria:
 
 ### Feature 2: Smart Attendee Matching
 
-**Description:** Rule-based matching surfaces suggested connections based on profile tags (industry, looking for, offering, goals) and RMB chapter affiliation.
+**Description:** Rule-based matching surfaces suggested connections based on profile tags (business category, looking for, offering, goals) and RMB chapter affiliation.
 
 **User Stories**
 
@@ -256,16 +256,16 @@ Ranked by relevance so I don't have to scroll through hundreds of names
 So that I know who to look for at the event
 Acceptance Criteria:
 - "People to meet" list appears after profile completion (pre-event and during event)
-- Matching logic: overlap between my "looking for" tags and their "offering" tags, plus shared industry
+- Matching logic: overlap between my "looking for" tags and their "offering" tags, plus shared business category
 - Chapter is a matching signal, not a filter on relevance — cross-chapter matches are
   surfaced deliberately, not suppressed, since same-chapter members mostly know each
   other already and the event's value is expanding beyond one's own chapter. The match
-  reason line names the chapter relationship either way: "You're both in Manufacturing
+  reason line names the chapter relationship either way: "You're both Manufacturers
   — she's from the Surat chapter" (cross-chapter) or "You're both in the Ahmedabad
   chapter" (same-chapter). Attendees with no chapter (non-RMBians) match on
-  industry/tags only, with no chapter clause in the reason line.
+  business category/tags only, with no chapter clause in the reason line.
 - Top 10 matches shown first; full list is scrollable
-- Each person shows: name, company, industry, chapter (if any), table number, one-line match reason
+- Each person shows: name, company, business category, chapter (if any), table number, one-line match reason
 - Match cards include a "bookmark" button
 - If no good matches found, show: "No exact matches yet. Browse the full directory."
 - Matching is available offline (computed client-side or cached)
@@ -275,13 +275,13 @@ Acceptance Criteria:
 ```
 As Radha (attendee)
 I want to see everyone at the event (or registered, depending on open question)
-Filtered by industry or company so I can find people beyond the top 10 suggestions
+Filtered by business category or company so I can find people beyond the top 10 suggestions
 So that I have agency to explore and might discover useful connections on my own
 Acceptance Criteria:
 - "Directory" or "All attendees" view shows full list
-- Filters: industry, business category, company, RMB chapter (including a "no chapter" bucket for non-RMBians), city, checked-in status
+- Filters: business category, company, RMB chapter (including a "no chapter" bucket for non-RMBians), city, checked-in status
 - Search: by name or company
-- Each directory card shows: photo (initials avatar if photo missing), name, company, industry, chapter (if any), table number
+- Each directory card shows: photo (initials avatar if photo missing), name, company, business category, chapter (if any), table number
 - Sorting: by match score, alphabetical, or random (to reduce bias)
 - Directory is available offline (cached at event start)
 ```
@@ -788,7 +788,7 @@ START: Organizer has pre-registered attendees in CSV
   • Enter registered email → receive single-use magic link → tap to enter
   ↓
 [ATTENDEE: Complete Profile]
-  • Fill form: industry, looking for, offering, goals, optional bio
+  • Fill form: business category, looking for, offering, goals, optional bio
   • Form validation: all required fields filled, phone is pre-filled
   • Submit → "Profile saved!"
   ↓
@@ -833,7 +833,7 @@ START: Attendee arrives at venue
   ↓
 [ATTENDEE: Navigate to Find Someone]
   • Tap "Find Deepak Sharma" (from matches)
-  • Card shows: name, company, industry, table number
+  • Card shows: name, company, business category, table number
   • Attendee walks to table or venue area
   ↓
 [MEETING: In-Person Conversation]
@@ -1096,7 +1096,7 @@ END: Event data captured and reported
 | **Privacy opt-out from public directory** | Some attendees may not want to be discoverable. Not currently supported. | Decision: Defer to Phase 2 or add simple toggle in profile: "Show me in directory: Yes/No". |
 | **Fixed table assignment vs. open floor plan** | Table model assumes assigned seating. Future events may be different. | Decision: Table numbers are optional; if not provided, attendee sees "Find me at the event" instead. Works for either model. |
 | **Does Evento verify payment (₹4,000 registration fee)?** | Registration form collects a payment screenshot + amount; unclear if Evento needs a review/approval step. | **Resolved:** Out of scope for Evento. The organizer's own registration process (Google Form) handles payment verification; only confirmed, paid attendees are exported into the CSV Evento imports. Evento's schema has no payment fields. |
-| **How should RMB chapter affiliation be used?** | Registration captures chapter for RMB members; unclear if it's just informational or an active product signal. | **Resolved:** Used as a matching + filtering signal, not just metadata. Cross-chapter matches are surfaced deliberately (same-chapter members likely already know each other) — see Feature 2, US2.1. Directory gets a chapter filter. Non-RMBians (no chapter) match on industry/tags only. |
+| **How should RMB chapter affiliation be used?** | Registration captures chapter for RMB members; unclear if it's just informational or an active product signal. | **Resolved:** Used as a matching + filtering signal, not just metadata. Cross-chapter matches are surfaced deliberately (same-chapter members likely already know each other) — see Feature 2, US2.1. Directory gets a chapter filter. Non-RMBians (no chapter) match on business category/tags only. |
 | **How does attendee login work without an SMS OTP vendor?** | No SMS vendor is budgeted for the pilot; need a passwordless mechanism for returning attendees. | **Resolved:** Passwordless magic link via email only (now a required registration field). No WhatsApp-delivered login link, no SMS OTP vendor. Staff-assisted lookup is the sole fallback for an attendee with no working email access. See Feature 1, US1.5. |
 
 ### Risks & Mitigation

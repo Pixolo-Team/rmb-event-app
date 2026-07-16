@@ -65,7 +65,7 @@ The entry point. Nothing else in the platform has data to work with until this r
 - Auto-generated unique signed QR per attendee at import time
 - Import result reporting (success count, duplicates skipped, row-level errors, rows flagged for manual review e.g. mismatched email columns) with retry-on-failure
 - Sign-up distribution is manual: admin posts one generic app link in the attendee WhatsApp group (Day -5); attendees enter via email magic link — no personalized invite links, no system sends
-- Mobile web profile form (no install required): name/email/phone/business/chapter/photo pre-filled read-only from registration; attendee fills industry, business category, city, looking-for tags, offering tags, goals, optional bio — target completion time under a minute (city/category are pre-filled instead if the import file carried them)
+- Mobile web profile form (no install required): name/email/phone/business/chapter/photo pre-filled read-only from registration; attendee fills business category, city, looking-for (multi-select dropdown), offering (multi-select dropdown, shared business-type taxonomy with looking-for), goals, optional bio — target completion time under a minute (city/category are pre-filled instead if the import file carried them)
 - PWA install prompt with Install Now / Install Later / Skip, profile persists regardless of choice
 - First-open 60-second skippable tutorial, re-accessible from settings later
 - Day -1 reminder is a manual admin group post; pre-computed match cache push (see F2)
@@ -81,11 +81,11 @@ The entry point. Nothing else in the platform has data to work with until this r
 Rule-based relevance ranking so Radha isn't scrolling 200 names to find the 10 worth her time.
 
 **Sub-features**
-- Match scoring: overlap between "looking for" tags and others' "offering" tags, plus shared industry
-- RMB chapter as a matching signal, not a relevance filter: cross-chapter matches are surfaced deliberately (same-chapter members mostly know each other already; the event's value is expanding beyond one's own chapter), and the match reason line states the chapter relationship either way — "You're both in Manufacturing — she's from the Surat chapter" (cross-chapter) vs. "You're both in the Ahmedabad chapter" (same-chapter). Non-RMBians (no chapter) match on industry/tags only.
+- Match scoring: overlap between "looking for" tags and others' "offering" tags, plus shared business category
+- RMB chapter as a matching signal, not a relevance filter: cross-chapter matches are surfaced deliberately (same-chapter members mostly know each other already; the event's value is expanding beyond one's own chapter), and the match reason line states the chapter relationship either way — "You're both Manufacturers — she's from the Surat chapter" (cross-chapter) vs. "You're both in the Ahmedabad chapter" (same-chapter). Non-RMBians (no chapter) match on business category/tags only.
 - Ranked "People to Meet" list (top 10 surfaced, full list scrollable) with a one-line human-readable match reason per card
 - Fallback state when no strong matches exist → route to full directory
-- Full directory browse: filter by industry/business category/city/company/chapter (including a "no chapter" bucket)/checked-in status, search by name/company, sort by match score / alphabetical / random
+- Full directory browse: filter by business category/city/company/chapter (including a "no chapter" bucket)/checked-in status, search by name/company, sort by match score / alphabetical / random
 - Client-side matching engine, decoupled from the profile schema, so it can be swapped for semantic/AI matching in Phase 2 without touching profile data
 - Pre-computation on Day -3 server-side, cached to device for offline access at the venue
 

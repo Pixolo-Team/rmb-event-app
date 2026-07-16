@@ -102,7 +102,8 @@ rmb-event-app/
 Entities, in build order (matches the dependency chain in `FEATURES.md`):
 
 **Attendee**
-`id, name, email (unique), phone (unique), businessName, industry, businessCategory (nullable), city (nullable), chapterId (nullable), photoUrl (nullable), qrToken (signed, unique), importRowFlag (nullable — mismatched-email etc.), createdAt`
+`id, name, email (unique), phone (unique), businessName, businessCategory (nullable), city (nullable), chapterId (nullable), photoUrl (nullable), qrToken (signed, unique), importRowFlag (nullable — mismatched-email etc.), createdAt`
+— no separate `industry` column: `businessCategory` is the only categorization field, avoiding two overlapping fields on the same form.
 — `city` and `businessCategory` are collected in profile setup (Screen 1.1) since the registration form doesn't capture them; the import maps them if a future file has City/Category columns.
 
 **Profile** *(or merged into Attendee — separate only if profile completion needs its own timestamp/status)*
@@ -153,7 +154,7 @@ Grouped by NestJS module. All attendee-facing writes are idempotent (safe to ret
 `POST /auth/magic-link` (request a link — email or phone) · `POST /auth/magic-link/verify` (exchange token for session) · `POST /admin/auth/login` · `POST /admin/auth/logout`
 
 **attendees / import**
-`POST /admin/import` (upload + column mapping) · `GET /admin/import/:batchId` (status/report) · `GET /attendees/me` · `PATCH /attendees/me/profile` · `GET /attendees` (directory, filterable by industry/chapter/company/checkedIn) · `GET /attendees/:id`
+`POST /admin/import` (upload + column mapping) · `GET /admin/import/:batchId` (status/report) · `GET /attendees/me` · `PATCH /attendees/me/profile` · `GET /attendees` (directory, filterable by businessCategory/chapter/company/checkedIn) · `GET /attendees/:id`
 
 **matching**
 `GET /attendees/me/matches` (top-10 + reasons, cacheable/offline)
@@ -203,7 +204,7 @@ Mapped directly onto `FEATURES.md`'s suggested build sequence, turned into calen
 - Service worker + Dexie.js offline write-queue scaffold (even if only one write type uses it yet)
 - QR signing (`qrcode` + JWT payload) and verification
 - Admin CSV import with column-mapping UI (Screen 3.3), dedup by phone+email, per-row error/flag reporting
-- Profile Setup Form (Screen 1.1) — pre-filled read-only fields + industry/tags/goals/bio
+- Profile Setup Form (Screen 1.1) — pre-filled read-only fields + business category/looking-for/offering dropdowns/goals/bio
 - PWA install prompt (Screen 1.2), Thanks screen (1.3)
 - Login / magic link (Screen 2.0) — email only, serves both first-time sign-up (via the generic group link) and re-entry; rate limiting, neutral response, post-auth routing (no profile → 1.1, profile → 2.1)
 - **Exit criteria:** a test attendee can be imported, open the generic app link, request a magic link by email, complete a profile, install the PWA, and log back in from a second device the same way
@@ -219,8 +220,8 @@ Mapped directly onto `FEATURES.md`'s suggested build sequence, turned into calen
 
 ### Week 3: F6 (Leaderboard) + F2 (Matching, incl. chapter) + F5 (Bookmarks)
 - Leaderboard aggregate query + polling endpoint, mobile leaderboard screen (2.5), venue display view
-- Matching engine module (industry/tag overlap + same/cross-chapter reasoning), Day -3 pre-computation job
-- Directory (2.2) with industry/company/chapter/checked-in filters, search
+- Matching engine module (tag overlap + same/cross-chapter reasoning), Day -3 pre-computation job
+- Directory (2.2) with business category/company/chapter/checked-in filters, search
 - Individual Profile screen (2.3) with match-reason display
 - Bookmarks wired into My Connections' Want to Meet tab (2.6 complete)
 - **Exit criteria:** a test attendee sees a ranked match list with correct same-/cross-chapter reasoning, can bookmark someone from the directory, and the leaderboard updates within 10s of a new scan
@@ -242,7 +243,7 @@ See the [Runbook](#pre-event-event-day--post-event-runbook) below — this week 
 ## Testing & QA Plan
 
 **Automated**
-- Unit tests on the matching engine (industry/tag overlap, same/cross-chapter reasoning) and the duplicate-meeting-pair logic — these two are the easiest to get subtly wrong and hardest to notice wrong in a demo
+- Unit tests on the matching engine (tag overlap, same/cross-chapter reasoning) and the duplicate-meeting-pair logic — these two are the easiest to get subtly wrong and hardest to notice wrong in a demo
 - Integration tests on every idempotent write endpoint (checkin, meetings/scan, bookmarks, feedback) — assert a replayed request doesn't double-write
 - E2E smoke test of the critical path (import → magic-link login → profile → install → check-in → scan → leaderboard) on CI before every deploy to staging
 

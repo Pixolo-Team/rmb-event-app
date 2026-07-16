@@ -40,7 +40,7 @@ model Attendee {
 
   // Profile — filled in during onboarding (Screen 1.1), empty until then.
   // city/businessCategory may also arrive pre-filled from the import file.
-  industry           String?
+  // businessCategory is the only categorization field — no separate industry column.
   businessCategory   String?
   city               String?
   lookingFor         String[] @default([])

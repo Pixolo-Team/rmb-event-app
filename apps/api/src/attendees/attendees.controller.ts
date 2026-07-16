@@ -17,7 +17,7 @@ import { ResolveOnboardingDto } from "./dto/resolve-onboarding.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { SessionService } from "../session/session.service";
 import { SessionGuard, RequestWithAttendee } from "../session/session.guard";
-import { INDUSTRIES, BUSINESS_CATEGORIES, LOOKING_FOR_TAGS, OFFERING_TAGS, GOALS_TAGS } from "./profile-options";
+import { BUSINESS_CATEGORIES, LOOKING_FOR_TAGS, OFFERING_TAGS, GOALS_TAGS } from "./profile-options";
 
 @Controller("attendees")
 export class AttendeesController {
@@ -29,7 +29,6 @@ export class AttendeesController {
   @Get("profile-options")
   profileOptions() {
     return {
-      industries: INDUSTRIES,
       businessCategories: BUSINESS_CATEGORIES,
       lookingFor: LOOKING_FOR_TAGS,
       offering: OFFERING_TAGS,
