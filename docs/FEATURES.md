@@ -230,8 +230,12 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
-| F9.1 | Event summary screen — people met, cards collected, rank, top 5 connections | Screen 2.10 | P1 | Partial (cached) | F4.3, F6.1 | ⬜ Not started |
-| F9.2 | Connections export (CSV/vCard) + WhatsApp share (`wa.me` deep link, no vendor) | Screen 2.10 (actions) | P1 | No | F9.1 | ⬜ Not started |
+| F9.1 | Event summary screen — people met, cards collected, rank, top 5 connections | Screen 2.10 | P1 | Partial (cached) | F4.3, F6.1 | ✅ Done |
+| F9.2 | Connections export (CSV/vCard) + WhatsApp share (`wa.me` deep link, no vendor) | Screen 2.10 (actions) | P1 | No | F9.1 | ✅ Done |
+
+**F9 build notes:**
+- Authenticated `GET /attendees/me/summary` aggregates confirmed meetings, visible collected cards, leaderboard rank, event metadata and the attendee's five most recent connections. `/summary` caches the last successful response for offline reading.
+- Authenticated `GET /attendees/me/connections/export?format=csv|vcf` generates CSV and multi-contact vCard downloads server-side. WhatsApp sharing remains attendee-initiated through a pre-filled `wa.me` link; there is no messaging vendor or scheduled nudge.
 
 **Note:** no Day+1 follow-up scheduler to build — the follow-up nudge is a manual admin WhatsApp post per the runbook, not an app feature.
 

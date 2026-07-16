@@ -27,6 +27,7 @@ const MENU_ITEMS: MenuItem[] = [
   { href: "/connections", label: "My Connections", icon: ConnectionsIcon, available: true },
   { href: "/leaderboard", label: "Leaderboard", icon: TrophyIcon, available: true },
   { href: "/feed", label: "Event Photos", icon: PhotoIcon, available: true },
+  { href: "/summary", label: "Event Summary", icon: SummaryIcon, available: true },
   { href: "/profile", label: "My Profile", icon: ProfileIcon, available: true },
   { href: "/profile?qr=1", label: "Show My QR", icon: QrIcon, available: true },
 ];
@@ -268,3 +269,4 @@ function TrophyIcon() {
 function PhotoIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h4l1.5-2h5L16 6h4v14H4V6Z" /><circle cx="12" cy="13" r="4" /></svg>;
 }
+function SummaryIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10h4v10M10 20V4h4v16M15 20v-7h4v7M3 20h18" /></svg>; }
