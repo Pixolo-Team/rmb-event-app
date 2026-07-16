@@ -193,7 +193,7 @@ I want to tap the group link, sign in with my email, and answer a few quick ques
 So that I can get personalized match suggestions and not have to install an app first
 Acceptance Criteria:
 - Profile form opens in a mobile web view (does not require app install yet)
-- Fields: business category (dropdown — e.g., Manufacturer, Trader/Distributor, Service Provider, Retailer, Professional), city (text input), looking for (multi-select dropdown, shared business-type taxonomy — e.g. Real Estate Builders, Interior Designer, Digital Marketing), offering (multi-select dropdown, same taxonomy as looking for), goals (multi-select), optional free-text bio. No separate "industry" field — business category is the only categorization field, and looking-for/offering tags carry the business-type detail so nothing is asked twice.
+- Fields: business category (database-backed dropdown — e.g., Manufacturer, Trader/Distributor, Service Provider, Retailer, Professional), city (searchable database-backed picker using `City, State/UT`), looking for (multi-select dropdown, shared business-type taxonomy — e.g. Real Estate Builders, Interior Designer, Digital Marketing), offering (multi-select dropdown, same taxonomy as looking for), goals (multi-select), optional free-text bio. No separate "industry" field — business category is the only categorization field, and looking-for/offering tags carry the business-type detail so nothing is asked twice.
 - Form is under a minute to complete (5–6 fields) — name, email, phone, business/profession name, chapter and photo are already known from registration and are pre-filled/read-only, not re-asked. City and business category are asked here because the registration form does not capture them (if a future import file includes City/Category columns, they are imported and pre-filled instead)
 - Validation: phone number and email already in system (auto-filled), name is required
 - After completion, user sees: "Great! Get suggestions by installing the app" → PWA install prompt
@@ -284,6 +284,8 @@ Acceptance Criteria:
 - Each directory card shows: photo (initials avatar if photo missing), name, company, business category, chapter (if any), table number
 - Sorting: by match score, alphabetical, or random (to reduce bias)
 - Directory is available offline (cached at event start)
+- Pilot implementation initially provides alphabetical name and company sorting. Match-score sorting activates with F2.1/F2.3; random sorting is deferred unless event testing demonstrates a discovery-bias problem.
+- Business-category, city and chapter filters come from active database reference records and remain available even when no attendee cards are returned. Cities use the nationwide `City, State/UT` catalogue; company options are derived from attendee records.
 ```
 
 **US2.3 - Matching engine is modular**
@@ -1126,7 +1128,7 @@ END: Event data captured and reported
 | Question | Impact | Resolution |
 |----------|--------|-----------|
 | **Numeric targets for adoption and satisfaction** | Needed to call the pilot a success/failure. Currently metrics are defined, not the bar. | Decision: Set target adoption rate (% of invitees who install and complete profile) and satisfaction score (e.g., 4.0+/5.0). Recommend: adoption 50–60%, satisfaction 3.8+. |
-| **Directory visibility: checked-in only or full pre-registered?** | Affects whether attendees can plan to meet someone not yet arrived vs. only see who's present. | Decision: Pilot recommendation is checked-in-only (relevance + privacy). Can show unchecked in a separate section. |
+| **Directory visibility: checked-in only or full pre-registered?** | Affects whether attendees can plan to meet someone not yet arrived vs. only see who's present. | **Resolved:** Show the full pre-registered attendee list so pre-event planning works; expose check-in state and a checked-in/not-checked-in filter. The current attendee is excluded from their own results. |
 | **Who owns printing physical QR badges, and at what cost?** | Logistics and budget impact. | Decision: Organizer prints before event or on-demand at check-in desk. Evento provides PDF template. Estimated cost: < $50 for 200 badges. |
 | **Exact consent copy for data storage and reuse** | Legal/DPDP compliance. Must be finalized before the sign-up link is posted in the group. | Decision: Work with legal to draft. Suggest: "Your data will be stored and reused for future Evento events. You can request deletion anytime." |
 | **Venue WiFi/network capacity testing** | Unknown if offline-first assumption holds or if connectivity is completely down. | Decision: Test at venue a few days before; measure signal strength, throughput, peak load. Adjust app caching strategy if needed. |
@@ -1134,6 +1136,7 @@ END: Event data captured and reported
 | **Fixed table assignment vs. open floor plan** | Table model assumes assigned seating. Future events may be different. | Decision: Table numbers are optional; if not provided, attendee sees "Find me at the event" instead. Works for either model. |
 | **Does Evento verify payment (₹4,000 registration fee)?** | Registration form collects a payment screenshot + amount; unclear if Evento needs a review/approval step. | **Resolved:** Out of scope for Evento. The organizer's own registration process (Google Form) handles payment verification; only confirmed, paid attendees are exported into the CSV Evento imports. Evento's schema has no payment fields. |
 | **How should RMB chapter affiliation be used?** | Registration captures chapter for RMB members; unclear if it's just informational or an active product signal. | **Resolved:** Used as a matching + filtering signal, not just metadata. Cross-chapter matches are surfaced deliberately (same-chapter members likely already know each other) — see Feature 2, US2.1. Directory gets a chapter filter. Non-RMBians (no chapter) match on business category/tags only. |
+| **Where do category, city and chapter dropdown options come from?** | Hardcoded or attendee-derived lists become empty/inconsistent and cannot be managed without a release. | **Resolved:** Active database reference records are canonical. Business categories and a broad Indian city catalogue are normalized reference tables; cities display as `City, State/UT`. Chapter uses active Chapter records. Directory receives these lists independently of attendee results; company remains attendee-derived. |
 | **How does attendee login work without an SMS OTP vendor?** | No SMS vendor is budgeted for the pilot; need a passwordless mechanism for returning attendees. | **Resolved:** Passwordless magic link via email only (now a required registration field). No WhatsApp-delivered login link, no SMS OTP vendor. Staff-assisted lookup is the sole fallback for an attendee with no working email access. See Feature 1, US1.5. |
 
 ### Risks & Mitigation

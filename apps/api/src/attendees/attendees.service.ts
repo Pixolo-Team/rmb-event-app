@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { SessionService } from "../session/session.service";
 import { hashToken } from "../common/tokens";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
+import { GOALS_TAGS, LOOKING_FOR_TAGS, OFFERING_TAGS } from "./profile-options";
 
 export type ResolveOnboardingResult =
   | {
@@ -70,6 +71,21 @@ export class AttendeesService {
   }
 
   async updateProfile(attendeeId: string, dto: UpdateProfileDto) {
+    const [category, cities] = await Promise.all([
+      this.prisma.businessCategoryOption.findFirst({
+        where: { name: dto.businessCategory, active: true },
+        select: { id: true },
+      }),
+      this.prisma.cityOption.findMany({
+        where: { active: true },
+        select: { name: true, stateOrUt: true },
+      }),
+    ]);
+    if (!category) throw new BadRequestException("Choose a valid business category");
+    if (!cities.some((city) => this.cityValue(city) === dto.city)) {
+      throw new BadRequestException("Choose a valid city");
+    }
+
     return this.prisma.attendee.update({
       where: { id: attendeeId },
       data: {
@@ -82,6 +98,132 @@ export class AttendeesService {
         profileCompletedAt: new Date(),
       },
     });
+  }
+
+  private cityValue(city: { name: string; stateOrUt: string }) {
+    return city.stateOrUt === "Legacy / Imported" ? city.name : `${city.name}, ${city.stateOrUt}`;
+  }
+
+  async getProfileOptions() {
+    const [businessCategories, cities, chapters] = await Promise.all([
+      this.prisma.businessCategoryOption.findMany({
+        where: { active: true },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        select: { name: true },
+      }),
+      this.prisma.cityOption.findMany({
+        where: { active: true },
+        orderBy: [{ stateOrUt: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
+        select: { name: true, stateOrUt: true },
+      }),
+      this.prisma.chapter.findMany({
+        where: { active: true },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        select: { name: true },
+      }),
+    ]);
+
+    return {
+      businessCategories: businessCategories.map((option) => option.name),
+      cities: cities.map((city) => ({ ...city, value: this.cityValue(city) })),
+      chapters: chapters.map((chapter) => chapter.name),
+      lookingFor: LOOKING_FOR_TAGS,
+      offering: OFFERING_TAGS,
+      goals: GOALS_TAGS,
+    };
+  }
+
+  async listDirectory(currentAttendeeId: string) {
+    const [attendees, businessCategories, cities, chapters] = await this.prisma.$transaction([
+      this.prisma.attendee.findMany({
+        where: { id: { not: currentAttendeeId } },
+        select: {
+          id: true,
+          name: true,
+          businessName: true,
+          businessCategory: true,
+          city: true,
+          photoUrl: true,
+          tableNumber: true,
+          chapter: { select: { name: true } },
+          checkIn: { select: { createdAt: true } },
+        },
+        orderBy: { name: "asc" },
+      }),
+      this.prisma.businessCategoryOption.findMany({
+        where: { active: true },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        select: { name: true },
+      }),
+      this.prisma.cityOption.findMany({
+        where: { active: true },
+        orderBy: [{ stateOrUt: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
+        select: { name: true, stateOrUt: true },
+      }),
+      this.prisma.chapter.findMany({
+        where: { active: true },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        select: { name: true },
+      }),
+    ]);
+
+    const directory = attendees.map((attendee) => ({
+      id: attendee.id,
+      name: attendee.name,
+      businessName: attendee.businessName,
+      businessCategory: attendee.businessCategory,
+      city: attendee.city,
+      photoUrl: attendee.photoUrl,
+      tableNumber: attendee.tableNumber,
+      chapterName: attendee.chapter?.name ?? null,
+      checkedIn: Boolean(attendee.checkIn),
+    }));
+
+    const unique = (values: Array<string | null>) =>
+      [...new Set(values.filter((value): value is string => Boolean(value)))].sort((a, b) => a.localeCompare(b));
+
+    return {
+      attendees: directory,
+      facets: {
+        businessCategories: businessCategories.map((option) => option.name),
+        companies: unique(directory.map((attendee) => attendee.businessName)),
+        chapters: chapters.map((chapter) => chapter.name),
+        cities: cities.map((city) => this.cityValue(city)),
+        hasAttendeesWithoutChapter: directory.some((attendee) => !attendee.chapterName),
+      },
+    };
+  }
+
+  async getDirectoryProfile(attendeeId: string) {
+    const attendee = await this.prisma.attendee.findUnique({
+      where: { id: attendeeId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        businessName: true,
+        businessCategory: true,
+        city: true,
+        photoUrl: true,
+        tableNumber: true,
+        lookingFor: true,
+        offering: true,
+        goals: true,
+        bio: true,
+        chapter: { select: { name: true } },
+        checkIn: { select: { createdAt: true } },
+      },
+    });
+    if (!attendee) throw new NotFoundException("Attendee not found");
+
+    return {
+      ...attendee,
+      chapterName: attendee.chapter?.name ?? null,
+      chapter: undefined,
+      checkedIn: Boolean(attendee.checkIn),
+      checkIn: undefined,
+    };
   }
 
   // F3.5 (Print Badges) — qrToken is otherwise never exposed over the API.

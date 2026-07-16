@@ -22,7 +22,7 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 
 **User Interactions:**
 - Tap business category dropdown → open dropdown picker (single select — e.g., Manufacturer, Trader/Distributor, Service Provider, Retailer, Professional)
-- Type in "City" text field (required; pre-filled read-only if the import file provided it)
+- Search/select City from the database-backed `City, State/UT` suggestions (required; pre-filled if the import file provided a valid or preserved legacy value)
 - Tap "Looking for" dropdown → open multi-select checklist overlay (shared business-type taxonomy with Offering — e.g. Real Estate Builders, Interior Designer, Digital Marketing); selected items shown in the closed field
 - Tap "Offering" dropdown → open multi-select checklist overlay (same business-type taxonomy as Looking for); selected items shown in the closed field
 - Tap "Goals" tags → open tag selector (multi-select)
@@ -37,6 +37,7 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 **Data Needed to Display:**
 - Pre-filled and read-only, from registration: name, email, phone, business/profession name, RMB chapter (if any), photo (initials avatar shown if no photo on file)
 - Business category options (dropdown list — the only categorization field; no separate "industry" field, to avoid asking the same thing twice)
+- Active city options from the nationwide database catalogue, displayed as `City, State/UT` with type-ahead/search suggestions
 - "Looking for" dropdown options (multi-select, shared business-type taxonomy with Offering)
 - "Offering" dropdown options (multi-select, same taxonomy as Looking for)
 - "Goals" tag options (multi-select)
@@ -369,9 +370,13 @@ and keeps the whole check-in experience on one URL.
 
 **Data Needed to Display:**
 - Full attendee list: photo (initials avatar if none on file), name, company, business category, RMB chapter (if any), table number, check-in status
-- Filter options: industries list, companies list, chapter list (from registration data)
+- Filter options: active business-category reference list, active nationwide city reference list, active chapter reference list, and attendee-derived company list
 - Search index (client-side for offline)
-- Bookmark status for each attendee
+- Bookmark status for each attendee (added by F5.1; omitted from the F2.4-only response/UI)
+
+**Canonical dropdown sources:** business-category, city and chapter filter options come from active database reference tables. They remain populated even when the directory has no attendee cards. Cities use a nationwide Indian catalogue and display as `City, State/UT`; the UI must remain usable with the larger list. Company options remain attendee-derived.
+
+**Implementation sequencing:** F2.4 initially hides bookmark controls until F5.1 is available. Directory browsing, search, filters, sorting, check-in state and offline cache are independently complete.
 
 **Edge Cases:**
 - Directory is empty (0 attendees registered) → show "No attendees yet. Check back later."
@@ -415,12 +420,15 @@ and keeps the whole check-in experience on one URL.
 - Attendee name, company, business category, RMB chapter (if any), phone, email
 - Table number
 - Photo (from registration; initials avatar if none on file)
+
 - Bio/description
 - Match reason, when arrived from Matches (1.4) — states the chapter relationship explicitly: e.g. "You're both Manufacturers — she's from the Surat chapter" (cross-chapter) or "You're both in the Ahmedabad chapter" (same-chapter); omitted if either party has no chapter
 - Meeting status (met or not)
 - Bookmark status
 - Any existing notes from current user
 - Timestamp of when they met (if met)
+
+**Implementation sequencing:** the base F2.5 profile currently ships registered/profile details, tags, bio, check-in/table state, Call, WhatsApp, native Share and offline cache. It hides bookmark/note state until F5 and personalized match reasons until the decoupled matching service F2.1 is available. Missing dependent actions must not render as disabled dead ends.
 
 **Edge Cases:**
 - Phone number missing → disable "Call" button, show message "Phone not available"

@@ -16,12 +16,13 @@ type MenuItem = {
   href?: string;
   icon: () => React.ReactNode;
   available: boolean;
+  activePrefixes?: string[];
 };
 
 const MENU_ITEMS: MenuItem[] = [
   { href: "/home", label: "Home", icon: HomeIcon, available: true },
   { label: "People to Meet", icon: SparkIcon, available: false },
-  { label: "Attendee Directory", icon: DirectoryIcon, available: false },
+  { href: "/directory", label: "Attendee Directory", icon: DirectoryIcon, available: true, activePrefixes: ["/attendees/"] },
   { label: "My Connections", icon: ConnectionsIcon, available: false },
   { label: "Leaderboard", icon: TrophyIcon, available: false },
   { label: "My Profile", icon: ProfileIcon, available: false },
@@ -175,7 +176,7 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
                 if (!item.available) return <DisabledMenuItem key={item.label} item={item} />;
 
                 const Icon = item.icon;
-                const active = pathname === item.href;
+                const active = pathname === item.href || Boolean(item.activePrefixes?.some((prefix) => pathname.startsWith(prefix)));
                 return (
                   <Link
                     key={item.label}

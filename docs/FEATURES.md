@@ -41,13 +41,21 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 | PF5 | QR signing & verification (shared utility — signed opaque JWT payload, server-side verify) | — | P0 | — | — | ⬜ Not started |
 | PF6 | API hardening — rate limiting, CORS, input validation, CSRF (currently only on auth endpoints) | — | P0 | — | — | 🟡 Partial |
 | PF7 | Authenticated attendee navigation shell — flat side-menu drawer, identity header, active state, auth/onboarding visibility gate, accessible close/back behavior, shared route inventory | All attendee screens | P0 | Yes (shell) | PF1, PF2 | 🟡 Partial |
+| PF8 | Database-backed dropdown reference data — business categories, nationwide Indian cities with state/UT labels, active/sort controls, and existing Chapter options | Screen 1.1, Directory filters | P0 | Cacheable | F1.2 | ✅ Done |
 
 **Known gap:** F1.1 (Admin CSV Import) is live at `/admin/import` with no login gate yet — PF3 needs to land and get wired in front of every `/admin/*` route before real attendee data goes through it.
 
 **PF7 build notes:**
 - Implemented on Home: authenticated-only drawer, attendee identity with initials fallback, flat finalized inventory, active Home state, focus trap, Escape/backdrop/browser-Back close, scroll lock and working Sign Out.
 - Public login/magic-link pages and focused onboarding do not render the menu. Planned destinations appear disabled with a **Soon** label only in local development; production hides them until their owning feature ships.
+- Attendee Directory is now a working production destination; `/attendees/[id]` preserves its active navigation state.
 - Remaining before ✅: move the header/drawer into a shared authenticated route-group layout, register real routes as F2/F4/F6 ship, and complete 360/428/768px device verification. The pilot uses no persistent bottom-tab bar.
+
+**PF8 build notes:**
+- Added normalized, active/sortable database reference tables for business categories and cities; Chapter received the same active/sort controls.
+- Seeded a broad Indian city catalogue spanning states and union territories. The profile city field provides searchable browser suggestions labelled `City, State/UT`.
+- Profile options are read from the database and profile writes validate the submitted category and city against active records. Existing unambiguous city values are normalized during migration; unmatched imported values remain valid legacy options.
+- Directory filter facets for business category, city, and chapter are sourced directly from the same active reference tables, independent of how many attendee cards are returned. Company remains attendee-derived.
 
 **PF4 build notes:**
 - Implemented client-side only, per the architecture note in `DEVELOPMENT_PLAN.md` ("offline-first is a client concern, not a backend one"): a small Dexie (IndexedDB) write queue (`apps/web/app/lib/offlineQueue.ts`) that queues a POST when it can't reach the server, and replays it on the `online` event / every 15s while online / on next page load. No Background Sync API (spotty cross-browser support, notably Safari) — deliberate, matches the PRD's iOS Safari testing requirement.
@@ -81,10 +89,21 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 | F2.1 | Matching engine service — looking-for/offering overlap + shared business category + same/cross-chapter reasoning, decoupled module (`matching.service.ts`) | — | P1 | — | F1.2 | ⬜ Not started |
 | F2.2 | Day-3 pre-computation job — runs F2.1 server-side, caches results per attendee for offline read | — | P1 | Yes (writes cache) | F2.1 | ⬜ Not started |
 | F2.3 | Pre-event matches & directory (top-10 "People to meet" + fallback to full directory) | Screen 1.4 | P1 | Yes | F2.2 | ⬜ Not started |
-| F2.4 | Directory / all attendees — filters (business category/company/chapter/city/checked-in), search, sort | Screen 2.2 | P1 | Yes | F1.1 | ⬜ Not started |
-| F2.5 | Individual attendee profile — full detail + match-reason display | Screen 2.3 | P1 | Yes | F2.1, F2.4 | ⬜ Not started |
+| F2.4 | Directory / all attendees — filters (business category/company/chapter/city/checked-in), search, sort | Screen 2.2 | P1 | Yes | F1.1 | ✅ Done |
+| F2.5 | Individual attendee profile — full detail + match-reason display | Screen 2.3 | P1 | Yes | F2.1, F2.4 | 🟡 Partial |
 
 **Design note:** matching logic must live in its own service module (F2.1) — a stated non-functional requirement, not just tidiness, because Phase 2 swaps the algorithm without rewriting the profile schema.
+
+**F2.4/F2.5 implementation boundary:**
+- Routes: authenticated `/directory` and `/attendees/[id]`; API reads: authenticated `GET /attendees` and `GET /attendees/:id`.
+- Directory ships with name/company search, business category/company/chapter/city/check-in filters, name/company sorting, result count, initials fallback, responsive cards and last-successful-response caching for offline reads.
+- Individual profile ships with registered/profile details, looking-for/offering/goals/bio, check-in state, table number when assigned, Call/WhatsApp actions and offline cache. The signed QR token is never exposed.
+- Bookmark controls remain hidden until F5.1 supplies bookmark state/actions. Personalized match reasons remain hidden until F2.1 supplies its decoupled result; therefore F2.5 cannot be marked ✅ solely by this build.
+
+**F2.4/F2.5 build notes:**
+- F2.4 is complete: protected directory API, self-exclusion, filter facets, responsive cards, search, sorting, filter sheet, empty/error/loading/offline states, initials fallback and cached last-successful response. The production menu now enables Attendee Directory.
+- F2.5 base profile is complete: protected detail API without `qrToken`, registered/profile fields, check-in/table state, Call/WhatsApp/native Share, tag sections, offline cache and Directory active-state preservation on nested routes.
+- F2.5 remains 🟡 only because F2.1 has not supplied personalized match reasons. F5-owned bookmark/note actions are deliberately not counted against F2.5 completion.
 
 ---
 

@@ -94,7 +94,7 @@ The approved drawer inventory is fixed as follows. This is the display order; se
 |---|---|---|---|
 | 1 | Home | Home / Dashboard (2.1, F3.2) | Available |
 | 2 | People to Meet | Matches (1.4, F2.3) | Planned |
-| 3 | Attendee Directory | Directory (2.2, F2.4) | Planned |
+| 3 | Attendee Directory | `/directory` (2.2, F2.4) | Available |
 | 4 | My Connections | Connections (2.6, F4.3/F5.2) | Planned |
 | 5 | Leaderboard | Leaderboard (2.5, F6.2) | Planned |
 | 6 | My Profile | Settings / Profile (2.11, F4.1) | Planned |
@@ -159,15 +159,22 @@ rmb-event-app/
 Entities, in build order (matches the dependency chain in `FEATURES.md`):
 
 **Attendee**
-`id, name, email (unique), phone (unique), businessName, businessCategory (nullable), city (nullable), chapterId (nullable), photoUrl (nullable), qrToken (signed, unique), importRowFlag (nullable — mismatched-email etc.), createdAt`
+`id, name, email (unique), phone (unique), businessName, businessCategory (nullable), city (nullable), chapterId (nullable), tableNumber (nullable), photoUrl (nullable), qrToken (signed, unique), importRowFlag (nullable — mismatched-email etc.), createdAt`
 — no separate `industry` column: `businessCategory` is the only categorization field, avoiding two overlapping fields on the same form.
 — `city` and `businessCategory` are collected in profile setup (Screen 1.1) since the registration form doesn't capture them; the import maps them if a future file has City/Category columns.
+— dropdown option records are normalized reference data, while the pilot continues storing the selected canonical display value on `Attendee` to avoid a disruptive attendee-data migration. Profile writes validate both selections against active database options.
 
 **Profile** *(or merged into Attendee — separate only if profile completion needs its own timestamp/status)*
 `attendeeId, lookingFor[], offering[], goals[], bio, profileCompletedAt`
 
 **Chapter**
-`id, name` — seeded from the distinct values seen in the import; not user-creatable in the pilot admin.
+`id, name, active, sortOrder` — seeded from the distinct values seen in the import; not user-creatable in the pilot admin.
+
+**BusinessCategoryOption**
+`id, name (unique), active, sortOrder` — database-backed source for onboarding and directory dropdowns. The existing pilot taxonomy is seeded by migration; imported legacy values are preserved as options.
+
+**CityOption**
+`id, name, stateOrUt, active, sortOrder, unique(name, stateOrUt)` — a curated nationwide catalogue of major Indian cities across every state and union territory. The UI displays `City, State/UT` in the dropdown; legacy attendee city values are backfilled rather than discarded.
 
 **Event**
 `id, name, venueLat, venueLng, checkinRadiusM, startAt, endAt, feedbackPromptAt`
@@ -212,6 +219,8 @@ Grouped by NestJS module. All attendee-facing writes are idempotent (safe to ret
 
 **attendees / import** — *F1.1, F1.2, F2.4*
 `POST /admin/import` (upload + column mapping) · `GET /admin/import/:batchId` (status/report) · `GET /attendees/me` · `PATCH /attendees/me/profile` · `GET /attendees` (directory, filterable by businessCategory/chapter/company/checkedIn) · `GET /attendees/:id`
+
+For F2.4/F2.5, both directory endpoints require an attendee session. `GET /attendees` returns public directory-card fields plus check-in state and filter facets. Business category, city, and chapter facets come from their active database reference tables and therefore remain populated even when the attendee result set is empty; company and “No chapter” availability remain attendee-derived. `GET /attendees/:id` returns the detailed attendee profile but never `qrToken`. The client caches the last successful list and per-profile responses for mid-session offline access. Bookmark state is added by F5; match reasons are added only by the decoupled F2.1 service.
 
 **matching** — *F2.1, F2.2, F2.3*
 `GET /attendees/me/matches` (top-10 + reasons, cacheable/offline)
