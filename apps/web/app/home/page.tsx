@@ -314,6 +314,10 @@ export default function HomePage() {
             {checkin?.method && `Checked in ${METHOD_LABEL[checkin.method]}${pendingSync ? " · syncing…" : ""}`}
           </div>
         </div>
+
+        <button className="btn-primary" onClick={() => router.push("/scan")}>
+          Scan to connect
+        </button>
       </div>
     </div>
   );

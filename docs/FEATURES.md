@@ -86,11 +86,11 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
-| F2.1 | Matching engine service — looking-for/offering overlap + shared business category + same/cross-chapter reasoning, decoupled module (`matching.service.ts`) | — | P1 | — | F1.2 | ⬜ Not started |
+| F2.1 | Matching engine service — looking-for/offering overlap + shared business category + same/cross-chapter reasoning, decoupled module (`matching.service.ts`) | — | P1 | — | F1.2 | ✅ Done |
 | F2.2 | Day-3 pre-computation job — runs F2.1 server-side, caches results per attendee for offline read | — | P1 | Yes (writes cache) | F2.1 | ⬜ Not started |
 | F2.3 | Pre-event matches & directory (top-10 "People to meet" + fallback to full directory) | Screen 1.4 | P1 | Yes | F2.2 | ⬜ Not started |
 | F2.4 | Directory / all attendees — filters (business category/company/chapter/city/checked-in), search, sort | Screen 2.2 | P1 | Yes | F1.1 | ✅ Done |
-| F2.5 | Individual attendee profile — full detail + match-reason display | Screen 2.3 | P1 | Yes | F2.1, F2.4 | 🟡 Partial |
+| F2.5 | Individual attendee profile — full detail + match-reason display | Screen 2.3 | P1 | Yes | F2.1, F2.4 | ✅ Done |
 
 **Design note:** matching logic must live in its own service module (F2.1) — a stated non-functional requirement, not just tidiness, because Phase 2 swaps the algorithm without rewriting the profile schema.
 
@@ -98,12 +98,17 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 - Routes: authenticated `/directory` and `/attendees/[id]`; API reads: authenticated `GET /attendees` and `GET /attendees/:id`.
 - Directory ships with name/company search, business category/company/chapter/city/check-in filters, name/company sorting, result count, initials fallback, responsive cards and last-successful-response caching for offline reads.
 - Individual profile ships with registered/profile details, looking-for/offering/goals/bio, check-in state, table number when assigned, Call/WhatsApp actions and offline cache. The signed QR token is never exposed.
-- Bookmark controls remain hidden until F5.1 supplies bookmark state/actions. Personalized match reasons remain hidden until F2.1 supplies its decoupled result; therefore F2.5 cannot be marked ✅ solely by this build.
+- Bookmark controls remain hidden until F5.1 supplies bookmark state/actions. F5-owned bookmark/note actions are deliberately not counted against F2.5 completion.
+
+**F2.1 build notes:**
+- The engine is a standalone Nest module (`apps/api/src/matching/`) with no Prisma dependency — `MatchingService.computeMatch(viewer, candidate)` and `rankMatches(viewer, candidates)` take a schema-independent `MatchProfile` and return `{ score, reasons, headline, chapterRelation }`. This satisfies US2.3's decoupling requirement (Phase 2 can swap the algorithm without touching the profile schema) and keeps the functions pure so they can later run client-side for offline matching.
+- Rules: looking-for↔offering overlap (both directions), shared business category, and same/cross-chapter reasoning. Cross-chapter is surfaced deliberately (neutral score, names the other chapter); a chapter difference alone is never a match reason. Non-RMBians (no chapter) match on category/tags only, with no chapter clause — per PRD US2.1.
+- Reason phrasing uses "they" rather than inferring gendered pronouns from names (the PRD's illustrative "she's from…" becomes "they're in the … chapter").
+- **What remains for F2:** F2.2 (day-3 pre-computation cache) and F2.3 ("People to meet" matches screen) still consume this engine but aren't built. `rankMatches` is the seam they'll use; no `GET /attendees/me/matches` endpoint exists yet.
 
 **F2.4/F2.5 build notes:**
 - F2.4 is complete: protected directory API, self-exclusion, filter facets, responsive cards, search, sorting, filter sheet, empty/error/loading/offline states, initials fallback and cached last-successful response. The production menu now enables Attendee Directory.
-- F2.5 base profile is complete: protected detail API without `qrToken`, registered/profile fields, check-in/table state, Call/WhatsApp/native Share, tag sections, offline cache and Directory active-state preservation on nested routes.
-- F2.5 remains 🟡 only because F2.1 has not supplied personalized match reasons. F5-owned bookmark/note actions are deliberately not counted against F2.5 completion.
+- F2.5 is complete: protected detail API without `qrToken`, registered/profile fields, check-in/table state, Call/WhatsApp/native Share, tag sections, offline cache and Directory active-state preservation on nested routes — **plus the personalized "Why you're a match" reason** from the F2.1 engine (`GET /attendees/:id` now computes the viewer↔target match server-side and returns `match`, cached per-profile for offline reads; hidden when there's no meaningful match or when viewing your own profile).
 
 ---
 
@@ -132,11 +137,25 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
-| F4.1 | Settings/Profile screen + own-QR display (top of screen, offline-rendered, tap-to-enlarge with brightness boost) | Screen 2.11 | P0 | Yes | PF5, F1.2 | ⬜ Not started |
-| F4.2 | QR scanner & unified exchange — one scan swaps contact details and logs a confirmed meeting, duplicate-pair protection | Screen 2.4 | P0 | Yes (queued, synced) | F4.1, F3.2, PF4 | ⬜ Not started |
+| F4.1 | Settings/Profile screen + own-QR display (top of screen, offline-rendered, tap-to-enlarge with brightness boost) | Screen 2.11 | P0 | Yes | PF5, F1.2 | ✅ Done |
+| F4.2 | QR scanner & unified exchange — one scan swaps contact details and logs a confirmed meeting, duplicate-pair protection | Screen 2.4 | P0 | Yes (queued, synced) | F4.1, F3.2, PF4 | ✅ Done |
 | F4.3 | My Connections — Already Met tab (name/company/phone/bio/table, Call/WhatsApp/Save/Remove actions, private note) | Screen 2.6 (partial) | P0 | Yes | F4.2 | ⬜ Not started |
 
 **Feeds into:** F5 (bookmarks share this view), F6 (each meeting = 1 leaderboard point), F9 (summary data), F10 (vCard source).
+
+**F4.1 build notes:**
+- New `/profile` route (Screen 2.11): the attendee's own QR is the first thing on screen, rendered client-side from their signed `qrToken` via the `qrcode` lib (same lib as F3.5 badges) — no network call, so it works offline. Name + company sit directly below; tapping the code opens a full-screen white view (maximises perceived brightness — web has no screen-brightness API) with the enlarged QR and name. `?qr=1` deep-links straight to the enlarged view (the "Show My QR" menu item).
+- `GET /attendees/me` now returns the caller's own `qrToken` (plus lookingFor/offering/goals/bio/tableNumber). This is self-only — `getDirectoryProfile` still strips `qrToken`, so it is never exposed for other attendees.
+- Offline: the me-response (incl. token) is cached in localStorage (`apps/web/app/lib/profileCache.ts`). **`AttendeePageShell` was made offline-tolerant** as part of this: an unreachable API (thrown fetch or 5xx via the Next proxy) now falls back to the cached profile instead of redirecting to `/login`; only a real 401/403 signs the attendee out. Verified by stopping the API and reloading `/profile` — the screen and QR still render.
+- Profile fields render read-only (registered details); inline editing, notification toggles and the tutorial re-launch (Screen 2.11's other elements) are deferred — F1.5 owns the tutorial, and edit/notifications aren't pilot-critical. Menu now enables **My Profile** and **Show My QR**.
+- Not built here: the exchange/scan itself (F4.2) and My Connections (F4.3). This was built incrementally, F4.1 first.
+
+**F4.2 build notes:**
+- New `Meeting` model (migration `add_meeting`): a confirmed meeting stored as a **canonical unordered attendee pair** (the service sorts the two ids before writing). The `@@unique([attendeeAId, attendeeBId])` constraint *is* the duplicate-pair protection — a second scan in **either** direction hits the constraint and returns `already_met` instead of creating a second row. `scannedById` is kept for audit/analytics.
+- `POST /meetings/scan { qrToken }` ([meetings.service.ts](../apps/api/src/meetings/meetings.service.ts)) resolves the target by `qrToken`, guards self-scan (`self`) and unknown codes (`not_found`), and upserts the pair — returning `met` / `already_met` with the target's card (name + company). It's idempotent, so it's safe to replay from the PF4 offline queue (new `meeting-scan` queue kind).
+- `/scan` screen (Screen 2.4): live `html5-qrcode` camera scanner (same lib as the F3.4 staff scanner), with result cards for met / already-met / self / not-found / camera-unavailable / saved-offline, and View profile / Scan next actions. Entry points: a **Scan a Code** menu item and a **Scan to connect** button on the checked-in Home screen.
+- **Verified:** all four API outcomes + bidirectional dedupe (curl + DB row count stays 1); the offline path end-to-end (queued a `meeting-scan`, fired `online`, the meeting was created and the queue drained to 0); page render + graceful camera-unavailable state (the preview browser can't grant a camera, so the camera-driven success card was verified at the API layer, not on-screen).
+- The "exchange" is realised by the `Meeting` link — both parties now surface in each other's connections. The actual **My Connections list is F4.3** (not built). Optional scanner extras (torch, flip camera, upload-QR-from-gallery fallback) are not included.
 
 ---
 

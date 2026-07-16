@@ -23,6 +23,13 @@ export interface DirectoryResponse {
   facets: DirectoryFacets;
 }
 
+export interface MatchReason {
+  score: number;
+  reasons: string[];
+  headline: string | null;
+  chapterRelation: "same" | "cross" | "none";
+}
+
 export interface AttendeeProfile extends DirectoryAttendee {
   email: string;
   phone: string;
@@ -30,6 +37,9 @@ export interface AttendeeProfile extends DirectoryAttendee {
   offering: string[];
   goals: string[];
   bio: string | null;
+  // F2.5 — personalised match reason from the F2.1 engine; null when there is
+  // no meaningful match or when viewing your own profile.
+  match: MatchReason | null;
 }
 
 const DIRECTORY_KEY = "evento-directory-v1";
