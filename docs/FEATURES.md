@@ -40,8 +40,14 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 | PF4 | Offline sync engine — IndexedDB write queue + background sync | — | P0 | Yes | PF1 | ✅ Done |
 | PF5 | QR signing & verification (shared utility — signed opaque JWT payload, server-side verify) | — | P0 | — | — | ⬜ Not started |
 | PF6 | API hardening — rate limiting, CORS, input validation, CSRF (currently only on auth endpoints) | — | P0 | — | — | 🟡 Partial |
+| PF7 | Authenticated attendee navigation shell — flat side-menu drawer, identity header, active state, auth/onboarding visibility gate, accessible close/back behavior, shared route inventory | All attendee screens | P0 | Yes (shell) | PF1, PF2 | 🟡 Partial |
 
 **Known gap:** F1.1 (Admin CSV Import) is live at `/admin/import` with no login gate yet — PF3 needs to land and get wired in front of every `/admin/*` route before real attendee data goes through it.
+
+**PF7 build notes:**
+- Implemented on Home: authenticated-only drawer, attendee identity with initials fallback, flat finalized inventory, active Home state, focus trap, Escape/backdrop/browser-Back close, scroll lock and working Sign Out.
+- Public login/magic-link pages and focused onboarding do not render the menu. Planned destinations appear disabled with a **Soon** label only in local development; production hides them until their owning feature ships.
+- Remaining before ✅: move the header/drawer into a shared authenticated route-group layout, register real routes as F2/F4/F6 ship, and complete 360/428/768px device verification. The pilot uses no persistent bottom-tab bar.
 
 **PF4 build notes:**
 - Implemented client-side only, per the architecture note in `DEVELOPMENT_PLAN.md` ("offline-first is a client concern, not a backend one"): a small Dexie (IndexedDB) write queue (`apps/web/app/lib/offlineQueue.ts`) that queues a POST when it can't reach the server, and replays it on the `online` event / every 15s while online / on next page load. No Background Sync API (spotty cross-browser support, notably Safari) — deliberate, matches the PRD's iOS Safari testing requirement.
@@ -203,7 +209,7 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 
 Ordered by dependency chain, not by epic number — this is the order to pick features up in for the fastest path to a demoable pilot. Each row is sized to be buildable and shippable on its own; compress or parallelize across people if more than one engineer is available.
 
-1. **Platform Foundations** — PF1 → PF2 → PF5 → PF4 → PF6 (PF3 Admin Login can slot in alongside F1.1)
+1. **Platform Foundations** — PF1 → PF2 → PF5 → PF4 → PF6 → PF7 (PF3 Admin Login can slot in alongside F1.1)
 2. **F1** — F1.1 → PF3 (wire the gate onto it) → F1.2 → F1.3 → F1.4 → F1.5
 3. **F3** — F3.1 → F3.2 → F3.3 → F3.4 → F3.5 (first real on-device offline flow — validates PF4 early)
 4. **F4** — F4.1 → F4.2 → F4.3 (the core loop — get this rock-solid before layering gamification on top)

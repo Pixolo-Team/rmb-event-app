@@ -755,6 +755,34 @@ Acceptance Criteria:
 
 ---
 
+### Cross-Cutting Feature 12: Authenticated Attendee Navigation
+
+**Description:** A consistent, low-friction navigation shell for the attendee PWA. The pilot uses one left slide-over drawer rather than duplicating destinations in a bottom-tab bar.
+
+**US12.1 - Attendee navigates the app after login**
+```
+As Radha (attendee)
+I want one simple menu containing the important networking destinations
+So that I can move around the event app without learning multiple navigation systems
+Acceptance Criteria:
+- Menu renders only after a valid attendee session and completed required onboarding
+- It never renders on Login, magic-link verification, expired-link/error or focused onboarding screens, including while session verification is loading
+- Header shows a 44×44px menu trigger; drawer slides from the left and occupies at most 88% of a phone width / 360px
+- One flat list with no main/submenu hierarchy or section headings, ordered:
+  Home, People to Meet, Attendee Directory, My Connections, Leaderboard, My Profile, Show My QR
+- Sign Out is visually separated at the bottom and clears the secure attendee session
+- Scan QR remains a prominent contextual action on Home/networking screens, not a permanent navigation item
+- Feed, Feedback, Summary, Tutorial, Install, About and Terms are surfaced contextually from Home/Profile rather than added to the primary drawer
+- Current destination is visibly highlighted and programmatically marked
+- Close works through the close button, backdrop, Escape and Android/browser Back without leaving the current screen
+- Drawer traps focus while open, restores focus to its trigger, locks background scrolling and respects reduced motion
+- Drawer uses cached attendee identity offline; missing photos fall back to initials
+- Production hides destinations until their feature route works; local development may show them disabled with a clear "Soon" label and no placeholder navigation
+- No persistent attendee bottom-tab bar in the pilot
+```
+
+---
+
 ## Future Considerations (Phase 2)
 
 These ideas were on the original brainstorm and are deliberately deferred, not dropped.

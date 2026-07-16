@@ -576,20 +576,6 @@ p.sub-desc{color:var(--ink-muted); font-size:.9rem; margin:0 0 18px; max-width:6
 .mini-card .body{flex:1; min-width:0;}
 .mini-card .name{font-size:.8rem; font-weight:700;}
 .mini-card .sub{font-size:.68rem; color:var(--ink-muted); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-.tabbar{
-  display:flex; align-items:center; justify-content:space-around; padding:8px 8px 12px;
-  border-top:1px solid var(--border); background:var(--surface); flex:0 0 auto;
-}
-.tabbar .t{display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--ink-faint);}
-.tabbar .t svg{width:19px;height:19px;}
-.tabbar .t span{font-size:.58rem; font-weight:600;}
-.tabbar .t.active{color:var(--brand-600);}
-.tabbar .t.scan{
-  width:46px;height:46px; background:var(--accent-500); border-radius:50%; margin-top:-22px;
-  display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-2);
-}
-.tabbar .t.scan svg{width:21px;height:21px; stroke:#402A12;}
-.tabbar .t.scan span{display:none;}
 .scan-flash{
   position:absolute; inset:0; background:rgba(15,20,30,.82); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px; color:#fff; text-align:center; padding:0 24px;
 }
@@ -898,7 +884,7 @@ footer.doc-footer p{font-size:.8rem; color:var(--ink-faint); margin:4px 0;}
   <div class="wrap">
     <div class="sec-head">
       <div><span class="sec-index">05</span><h2 class="sec-title">Iconography &amp; motion</h2></div>
-      <p class="sec-desc">1.6px stroke on a 24px grid, rounded joins, filled only in the active/selected state (bookmark, tab bar). No icon font &mdash; every mark below is inline SVG so it never disappears on a flaky venue connection.</p>
+      <p class="sec-desc">1.6px stroke on a 24px grid, rounded joins, filled only in the active/selected state (bookmark, active drawer item). No icon font &mdash; every mark below is inline SVG so it never disappears on a flaky venue connection.</p>
     </div>
     <div class="icon-grid">
       <div class="icon-tile"><svg><use href="#i-home"/></svg><span>home</span></div>
@@ -1141,26 +1127,19 @@ footer.doc-footer p{font-size:.8rem; color:var(--ink-faint); margin:4px 0;}
   <div class="wrap">
     <div class="sec-head">
       <div><span class="sec-index">07</span><h2 class="sec-title">Applied: attendee app</h2></div>
-      <p class="sec-desc">Four moments from Radha's event day, built from the tokens above. The scan button is the only accent-colored control on the screen &mdash; everything else stays in restrained blue and neutral ink so that CTA is unmistakable.</p>
+      <p class="sec-desc">Four moments from Radha's event day, built from the tokens above. Authenticated screens use one flat side-menu drawer rather than a bottom-tab bar. The scan button is the only accent-colored control on the screen &mdash; everything else stays in restrained blue and neutral ink so that CTA is unmistakable.</p>
     </div>
 
     <div class="phone-strip">
       <div>
         <div class="phone"><div class="phone-screen">
           <div class="phone-notch"><div class="pill"></div></div>
-          <div class="app-topbar"><div class="wordmark"><span class="dot"></span>Evento</div><span class="badge badge-success"><svg><use href="#i-check"/></svg>Checked in</span></div>
+          <div class="app-topbar"><div class="wordmark"><span class="dot"></span>Evento</div><div class="icon-btn" aria-label="Menu"><svg><use href="#i-grid"/></svg></div></div>
           <div class="app-body">
             <div class="app-hero-stat"><div class="h">Your table</div><div class="v">7</div><div class="s">You've met 5 people &middot; Rank 12th</div></div>
             <div class="app-section-label">People to meet</div>
             <div class="mini-card"><div class="avatar av-32">DS</div><div class="body"><div class="name">Deepak Sharma</div><div class="sub">TechCorp &middot; Table 7</div></div><div class="icon-btn on" style="width:28px;height:28px;"><svg style="width:13px;height:13px;"><use href="#i-bookmark-fill"/></svg></div></div>
             <div class="mini-card"><div class="avatar av-32">MV</div><div class="body"><div class="name">Meera Verma</div><div class="sub">Verma Auto &middot; Table 3</div></div><div class="icon-btn" style="width:28px;height:28px;"><svg style="width:13px;height:13px;"><use href="#i-bookmark"/></svg></div></div>
-          </div>
-          <div class="tabbar">
-            <div class="t active"><svg><use href="#i-home"/></svg><span>Home</span></div>
-            <div class="t"><svg><use href="#i-users"/></svg><span>People</span></div>
-            <div class="t scan"><svg><use href="#i-qr"/></svg></div>
-            <div class="t"><svg><use href="#i-trophy"/></svg><span>Board</span></div>
-            <div class="t"><svg><use href="#i-image"/></svg><span>Feed</span></div>
           </div>
         </div></div>
         <div class="phone-caption">Home &middot; check-in + matches</div>
@@ -1182,7 +1161,7 @@ footer.doc-footer p{font-size:.8rem; color:var(--ink-faint); margin:4px 0;}
       <div>
         <div class="phone"><div class="phone-screen">
           <div class="phone-notch"><div class="pill"></div></div>
-          <div class="app-topbar"><div class="wordmark"><span class="dot"></span>Connections</div></div>
+          <div class="app-topbar"><div class="wordmark"><span class="dot"></span>Connections</div><div class="icon-btn" aria-label="Menu"><svg><use href="#i-grid"/></svg></div></div>
           <div class="app-body">
             <div style="display:flex; gap:8px;">
               <span class="chip on" style="flex:1; justify-content:center;">Already met (5)</span>
@@ -1192,13 +1171,6 @@ footer.doc-footer p{font-size:.8rem; color:var(--ink-faint); margin:4px 0;}
             <div class="mini-card"><div class="avatar av-32 ring">AK</div><div class="body"><div class="name">Anand Kapoor</div><div class="sub">Met 12:05 PM</div></div></div>
             <div class="mini-card"><div class="avatar av-32 ring">HK</div><div class="body"><div class="name">Harpreet Kaur</div><div class="sub">Met 1:20 PM</div></div></div>
           </div>
-          <div class="tabbar">
-            <div class="t"><svg><use href="#i-home"/></svg><span>Home</span></div>
-            <div class="t"><svg><use href="#i-users"/></svg><span>People</span></div>
-            <div class="t scan"><svg><use href="#i-qr"/></svg></div>
-            <div class="t active"><svg><use href="#i-trophy"/></svg><span>Board</span></div>
-            <div class="t"><svg><use href="#i-image"/></svg><span>Feed</span></div>
-          </div>
         </div></div>
         <div class="phone-caption">My Connections</div>
       </div>
@@ -1206,19 +1178,12 @@ footer.doc-footer p{font-size:.8rem; color:var(--ink-faint); margin:4px 0;}
       <div>
         <div class="phone"><div class="phone-screen">
           <div class="phone-notch"><div class="pill"></div></div>
-          <div class="app-topbar"><div class="wordmark"><span class="dot"></span>Leaderboard</div></div>
+          <div class="app-topbar"><div class="wordmark"><span class="dot"></span>Leaderboard</div><div class="icon-btn" aria-label="Menu"><svg><use href="#i-grid"/></svg></div></div>
           <div class="app-body" style="gap:6px;">
             <div class="lb-row top"><span class="lb-rank">1</span><div class="avatar av-32">AK</div><div class="lb-name">Anand Kapoor<span>12 met</span></div><span class="lb-count tnum">12</span></div>
             <div class="lb-row top"><span class="lb-rank">2</span><div class="avatar av-32">HK</div><div class="lb-name">Harpreet Kaur<span>9 met</span></div><span class="lb-count tnum">9</span></div>
             <div class="lb-row top"><span class="lb-rank">3</span><div class="avatar av-32">MV</div><div class="lb-name">Meera Verma<span>8 met</span></div><span class="lb-count tnum">8</span></div>
             <div class="lb-row me"><span class="lb-rank">12</span><div class="avatar av-32">RS</div><div class="lb-name">Radha Sharma (you)<span>5 met</span></div><span class="lb-count tnum">5</span></div>
-          </div>
-          <div class="tabbar">
-            <div class="t"><svg><use href="#i-home"/></svg><span>Home</span></div>
-            <div class="t"><svg><use href="#i-users"/></svg><span>People</span></div>
-            <div class="t scan"><svg><use href="#i-qr"/></svg></div>
-            <div class="t active"><svg><use href="#i-trophy"/></svg><span>Board</span></div>
-            <div class="t"><svg><use href="#i-image"/></svg><span>Feed</span></div>
           </div>
         </div></div>
         <div class="phone-caption">Live leaderboard</div>
