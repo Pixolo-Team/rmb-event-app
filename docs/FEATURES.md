@@ -282,14 +282,24 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
 | F11.1 | Attendee personal stats (people met, rank, bookmarks, photos, time at event) | Part of Home/Settings | P1 | Yes (cached) | F4.3, F6.1 | ✅ Done |
-| F11.2 | Admin analytics overview dashboard (check-ins, meetings, avg/attendee, engagement %, time-series) | Screen 3.2 | P1 | No | F3.4, F4.2, F6.1, F8.1 | ⬜ Not started |
-| F11.3 | Admin analytics export (CSV/PDF for stakeholder/sponsor reporting) | Part of Screen 3.2 | P1 | No | F11.2 | ⬜ Not started |
+| F11.2 | Admin analytics overview dashboard (check-ins, meetings, avg/attendee, engagement %, time-series) | Screen 3.2 | P1 | No | F3.4, F4.2, F6.1, F8.1 | ✅ Done |
+| F11.3 | Admin analytics export (CSV/PDF for stakeholder/sponsor reporting) | Part of Screen 3.2 | P1 | No | F11.2 | ✅ Done |
 
 **F11.1 build notes:**
 - Authenticated `GET /attendees/me/stats` ([stats.service.ts](../apps/api/src/stats/stats.service.ts)) aggregates the five personal figures in one round-trip: **people met** (confirmed `Meeting` pairs the attendee is part of, counted identically to the leaderboard so the two never disagree), **rank** + **totalRanked** (delegated to `LeaderboardService.getForAttendee` — reuses its tie-aware ranking and 5-second cache rather than re-deriving it), **bookmarks** (`Bookmark` count), **photos** (live `Photo` count for the attendee — hard deletes drop out, so it always matches what the feed shows), and the **check-in timestamp/method + event end** used to render *time at event*.
 - Rather than freezing a duration server-side, the endpoint returns `checkedInAt`, `checkInMethod` and `eventEndAt`; the client computes *time at event* as `min(now, eventEndAt) − checkedInAt` and ticks it live once a minute, so a cached response keeps counting correctly while offline. Not-yet-checked-in attendees get a `null` `checkedInAt` and the tile reads "Not checked in yet"; rank for a not-checked-in attendee falls through to `totalRanked + 1` via the leaderboard service.
 - Surfaced on the Settings surface (Screen 2.11, `/profile`) as a "Your stats" section — the profile page already owns the authenticated cache-first/offline-tolerant pattern, so stats reuse it. A new `apps/web/app/lib/statsCache.ts` caches the last successful response in `localStorage`; the section renders from cache instantly, refreshes from the network when reachable, and stays visible (with the live timer running) when the API is unreachable. `LeaderboardService` is now exported from `LeaderboardModule` for this reuse.
 - Not built here: F11.2/F11.3 (organizer-facing analytics) — attendee-facing stats only.
+
+**F11.2 build notes:**
+- `GET /admin/analytics` (same [stats.service.ts](../apps/api/src/stats/stats.service.ts) module, behind `AdminGuard`) aggregates the organizer dashboard in one response: attendance totals + method breakdown, confirmed meeting count, average meetings per checked-in attendee, networking engagement percentage (checked-in attendees who have logged at least one meeting), photo/like totals, feedback average/response count, top connectors from the existing leaderboard snapshot, and an hourly check-in/meeting time series for the last 8 hours.
+- `/admin` is now the live Screen 3.2 overview rather than just a link hub. It auto-refreshes every 30 seconds, caches the most recent successful payload in `localStorage`, and shows that cached snapshot with an "Offline cache" badge if the organizer loses connectivity. Existing admin tools remain available lower on the page, so drill-down routes like Check-In and Feedback stay one tap away.
+- Assumption used for this first build: the spec's singular "engagement %" is the clearest currently-supported organizer metric when defined as **checked-in attendees with at least one confirmed meeting / checked-in attendees**. F11.3 export can reuse the same server aggregate later.
+
+**F11.3 build notes:**
+- `GET /admin/analytics/export?format=csv|pdf` now reuses the exact F11.2 organizer aggregate so the on-screen dashboard and exported report never drift. CSV includes the event snapshot, key metrics, check-in method breakdown, top connectors, and the same 8-hour time-series rows that power the dashboard.
+- The PDF export is generated server-side as a lightweight single-file report for stakeholder/sponsor sharing, with the same metrics laid out as a readable summary rather than requiring the organizer to print the browser view.
+- `/admin` now exposes both export actions directly in the header, keeping F11.3 inside Screen 3.2 as scoped in the PRD.
 
 ---
 
@@ -301,14 +311,26 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 |---|---|---|---|---|---|---|
 | PF7.1 | Bottom tab bar (Home · People · Want to Meet · Profile) + drawer demoted to secondary destinations; Scan as center FAB (pending confirmation) | All attendee screens | P0 | Yes (shell) | PF7 | ⬜ Not started |
 | F3.6 | Home as an **appealing dashboard** — check-in status plus at-a-glance data (people met, rank, bookmarks, table number, time at event) and quick actions. Restores `SCREENS.md` 2.1's original "central hub" intent, which the F3.2 full-page revision stripped to check-in only. Surfaces F11.1's stats here, not just on Profile | Screen 2.1 | P0 | Yes (cached) | F3.2, F11.1 | ⬜ Not started |
-| F4.4 | **Attendee Card** on Profile — a designed identity card (photo/initials, name, company, category, city, chapter, tags, LinkedIn), *not* a list of `dt`/`dd` detail rows. QR stays pinned above it | Screen 2.11 | P1 | Yes | F4.1 | ⬜ Not started |
-| F4.5 | **Edit Profile** — dedicated form page reached from a Profile button. Editable = exactly the fields onboarding collects (business category, city, looking-for, offering, goals, bio) **plus** photo (F4.6) and LinkedIn (F4.7). Registered details (name, phone, email) stay read-only per the PRD's "Contact organizer to change this" rule — import dedup keys on phone+email | Screen 2.11a (new) | P1 | No | F1.2, F4.4 | ⬜ Not started |
+| F4.4 | **Attendee Card** on Profile — a designed identity card (photo/initials, name, company, category, city, chapter, tags, LinkedIn, website), *not* a list of `dt`/`dd` detail rows. QR stays pinned above it | Screen 2.11 | P1 | Yes | F4.1 | ⬜ Not started |
+| F4.5 | **Edit Profile** — dedicated form page reached from a Profile button. Editable = exactly the fields onboarding collects (business category, city, looking-for, offering, goals, bio, LinkedIn, website) **plus** photo (F4.6). Registered details (name, phone, email) stay read-only per the PRD's "Contact organizer to change this" rule — import dedup keys on phone+email | Screen 2.11a (new) | P1 | No | F1.2, F4.4 | ⬜ Not started |
 | F4.6 | **Profile photo upload** — capture/choose, crop, replace; feeds the Attendee Card and every avatar. Reuses F7.1's client-side crop/resize pipeline | Screen 2.11a | P1 | No | F4.5 | ⬜ Not started |
-| F4.7 | **LinkedIn profile field** — new `Attendee.linkedinUrl` column + migration, optional import-column mapping (F1.1), onboarding/edit input, URL validation; surfaced as an action on cards and profiles | Screen 1.1, 2.3, 2.11a | P2 | Yes | F1.2 | ⬜ Not started |
+| F4.7 | **LinkedIn & website URL fields** — new `Attendee.linkedinUrl` + `Attendee.websiteUrl` columns + migration, optional import-column mapping (F1.1), onboarding (Screen 1.1) and edit-form input, URL validation/normalization; surfaced as tap actions on cards and profiles; added to the F9.2 CSV and F10.1 vCard exports. **Both fields optional everywhere** — see PRD US1.6 | Screen 1.1, 2.3, 2.11, 2.11a | P2 | Yes | F1.2 | ⬜ Not started |
 | F4.8 | **Logout on Profile** — sign-out action on the Profile screen itself (today it lives only in the drawer). Already anticipated by `SCREENS.md` 2.11 ("Tap Sign out") | Screen 2.11 | P2 | No | PF2 | ⬜ Not started |
 | F2.6 | **"Met" indicator on cards** — attendee/match/directory cards show when you've already met the person. Data already exists (`Meeting`, F4.2); this is the missing card affordance | Screens 2.2, 2.3, 1.4 | P1 | Yes | F4.2, F2.4 | ⬜ Not started |
-| F2.7 | **Icon action row on People / Want-to-Meet cards** — bookmark, call, LinkedIn and share as icon buttons, consistent with the polished F2.5 profile action row; cards open the full profile | Screens 2.2, 2.6 | P1 | Partial | F2.4, F4.7 | ⬜ Not started |
+| F2.7 | **Icon action row on People / Want-to-Meet cards** — bookmark, call, LinkedIn/website and share as icon buttons, consistent with the polished F2.5 profile action row; link icons are omitted (never disabled) when the attendee has no link; cards open the full profile | Screens 2.2, 2.6 | P1 | Partial | F2.4, F4.7 | ⬜ Not started |
 | F7.4 | **LinkedIn-grade feed UI** — rebuild like/comment/post affordances to the social-network standard already named as the reference in `DESIGN_SYSTEM.md` ("LinkedIn / Facebook-familiar patterns"). Deprioritized with F7 overall | Screens 2.7, 2.8 | P2 | Read: yes | F7.2 | ⬜ Not started |
+
+**F4.7 scope notes (decided 2026-07-17):**
+- **Two fields, one build unit.** LinkedIn and website are the same shape — nullable column, optional import mapping, optional form input, URL validation, tap action — so they ship together rather than as two rows. PRD **US1.6** is the traceability anchor; before this, F4.7 had no PRD story at all.
+- **Optional everywhere, and that has teeth:** a blank link is a complete profile. Nothing gates on either field, no reminder nags for them, and an empty link renders **no control at all** rather than a disabled one — the same rule F2.5 already follows for a missing phone number.
+- **Validation:** syntactically valid http/https; a bare host is normalized to `https://` rather than rejected; LinkedIn additionally enforces a `linkedin.com` host. No resolution check, no LinkedIn API, no scraping, no unfurling — the pilot stores and links out.
+- **F4.7 reaches into three features that are already ✅ Done** — it is not self-contained:
+  - **F1.1** (import) — two new optional columns in the mapping UI.
+  - **F9.2** (connections CSV) — two new columns.
+  - **F10.1** (vCard) — LinkedIn/website as `URL` properties, omitted when absent.
+  Each needs a regression pass; the exports have shipped shapes that consumers may already depend on.
+- **Onboarding cost accepted:** Screen 1.1 gains two fields, which brushes against US1.3's "under a minute" criterion. Mitigated by grouping both last under an "Add your links (optional)" heading, so the required path is unchanged in length; US1.3's field-count wording is updated to match rather than left contradicting the screen.
+- **F4.7 now blocks F2.7 and half of F4.4/F4.5's field list**, despite being P2 to their P1 — worth sequencing it before them rather than after, or accepting that those two ship without link affordances and get a follow-up.
 
 **Open questions to close before building:**
 - **Scan placement** — center FAB vs contextual button vs its own tab. Left unresolved in review; PF7.1 assumes the FAB.

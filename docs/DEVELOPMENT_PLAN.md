@@ -161,8 +161,9 @@ rmb-event-app/
 Entities, in build order (matches the dependency chain in `FEATURES.md`):
 
 **Attendee**
-`id, name, email (unique), phone (unique), businessName, businessCategory (nullable), city (nullable), chapterId (nullable), tableNumber (nullable), photoUrl (nullable), qrToken (signed, unique), importRowFlag (nullable — mismatched-email etc.), createdAt`
+`id, name, email (unique), phone (unique), businessName, businessCategory (nullable), city (nullable), chapterId (nullable), tableNumber (nullable), photoUrl (nullable), linkedinUrl (nullable), websiteUrl (nullable), qrToken (signed, unique), importRowFlag (nullable — mismatched-email etc.), createdAt`
 — no separate `industry` column: `businessCategory` is the only categorization field, avoiding two overlapping fields on the same form.
+— `linkedinUrl` / `websiteUrl` (F4.7, PRD US1.6) are **nullable with no default and no uniqueness constraint** — both are optional everywhere, two attendees may legitimately share a company website, and `NULL` (not `''`) is the single representation of "not provided" so the UI has one condition to test when deciding whether to render the action. Stored normalized (scheme included, trimmed) by the write path, so any non-null value is safe to render as an `href` without re-parsing. Added by migration to a table that already has production rows — the columns must be nullable for that migration to be non-breaking.
 — `city` and `businessCategory` are collected in profile setup (Screen 1.1) since the registration form doesn't capture them; the import maps them if a future file has City/Category columns.
 — dropdown option records are normalized reference data, while the pilot continues storing the selected canonical display value on `Attendee` to avoid a disruptive attendee-data migration. Profile writes validate both selections against active database options.
 
@@ -221,6 +222,8 @@ Grouped by NestJS module. All attendee-facing writes are idempotent (safe to ret
 
 **attendees / import** — *F1.1, F1.2, F2.4*
 `POST /admin/import` (upload + column mapping) · `GET /admin/import/:batchId` (status/report) · `GET /attendees/me` · `PATCH /attendees/me/profile` · `GET /attendees` (directory, filterable by businessCategory/chapter/company/checkedIn) · `GET /attendees/:id`
+
+For F4.7, `PATCH /attendees/me/profile` accepts `linkedinUrl` and `websiteUrl` (both optional, both nullable-to-clear), validating and normalizing server-side — the client's inline validation is a convenience, not the boundary. `GET /attendees/:id` and `GET /attendees` return them as nullable fields on the directory/profile shape; they are non-sensitive attendee-published links, so they need no special gating beyond the existing attendee session. `POST /admin/import` gains two optional column mappings.
 
 For F2.4/F2.5, both directory endpoints require an attendee session. `GET /attendees` returns public directory-card fields plus check-in state and filter facets. Business category, city, and chapter facets come from their active database reference tables and therefore remain populated even when the attendee result set is empty; company and “No chapter” availability remain attendee-derived. `GET /attendees/:id` returns the detailed attendee profile but never `qrToken`. The client caches the last successful list and per-profile responses for mid-session offline access. Bookmark state is added by F5; match reasons are added only by the decoupled F2.1 service.
 
@@ -298,7 +301,17 @@ Mirrors `FEATURES.md`'s [Suggested Build Sequence](./FEATURES.md#suggested-build
 - **Exit criteria:** the full attendee journey (import → onboard → check in → scan → match → bookmark → feedback → summary) runs end-to-end against staging with no manual database intervention
 
 ### Days 32+ (cut first under schedule pressure): F7 (Photo Feed)
-- **F7.1** · **F7.2** · **F7.3** — per the PRD's own framing of this as secondary engagement
+- **F7.1** ✅ · **F7.2** ✅ · **F7.3** ✅ — per the PRD's own framing of this as secondary engagement
+
+### UX Revision v1.1 (post-review — reshapes shipped screens, not greenfield)
+Added after the pilot UX review; see `FEATURES.md` → [UX Revision (v1.1)](./FEATURES.md#ux-revision-v11--post-review-scope). These were never sequenced onto calendar days, which is why they're a block of their own rather than a day range — slot them against whatever build window remains before the event. Dependency order within the block:
+
+- **F4.7** (LinkedIn + website URL fields, PRD US1.6) — do this **first in the block despite its P2 label**: F2.7's icon row and part of F4.4/F4.5's field list depend on it, and it carries the schema migration the rest of the block builds on. Its blast radius reaches three shipped features (F1.1 import mapping, F9.2 CSV, F10.1 vCard), so budget a regression pass on the exports, not just the new form fields.
+- **PF7.1** (bottom tab bar) · **F3.6** (Home as dashboard) — the two P0s; both reshape the attendee shell, so build them adjacent to avoid touching navigation twice
+- **F4.4** (Attendee Card) → **F4.5** (Edit Profile) → **F4.6** (photo upload — ⚠️ **blocked on durable object storage**; local-disk `/uploads` does not survive a hosted deploy, so Supabase Storage must land first)
+- **F2.6** (Met indicator) · **F2.7** (card icon row — needs F4.7) · **F4.8** (logout on Profile)
+- **F7.4** (feed UI) — deprioritized with F7 overall; cut first
+- **Exit criteria:** an attendee can add, edit and clear both links; a profile with neither renders no link controls anywhere (card, directory, profile); the CSV and vCard exports carry both when present and omit them when absent; and the existing export consumers still parse.
 
 ### Final buffer: Hardening & Pre-Event Validation
 See the [Runbook](#pre-event-event-day--post-event-runbook) below — this stretch is QA, device testing, and the venue dry run, not new features. Verify the final side-menu inventory against the features actually enabled in production so no hidden, disabled or unfinished destination reaches attendees.

@@ -14,7 +14,7 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 **Purpose:** Attendee answers questions about themselves to set up a profile before the event
 
 **States:**
-- **Default:** Form displayed with business-category/looking-for/offering/goals/bio empty; name, email, phone, business/profession name, chapter and photo already filled in (read-only) from registration
+- **Default:** Form displayed with business-category/looking-for/offering/goals/bio/LinkedIn/website empty; name, email, phone, business/profession name, chapter and photo already filled in (read-only) from registration
 - **Loading:** Spinner on "Submit" button; fields disabled while saving
 - **Success:** "Profile saved!" confirmation → auto-redirect to PWA install prompt
 - **Error:** "Something went wrong. Please try again." (with retry button)
@@ -27,6 +27,7 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 - Tap "Offering" dropdown → open multi-select checklist overlay (same business-type taxonomy as Looking for); selected items shown in the closed field
 - Tap "Goals" tags → open tag selector (multi-select)
 - Type in "Bio" text field (optional, 200 char max)
+- Type in "LinkedIn URL" and "Website URL" fields — both optional (F4.7), grouped last under an "Add your links (optional)" heading so they never read as blockers on the under-a-minute path; validated on blur/submit, not per keystroke
 - Tap "Submit" button → validate & submit
 - Tap "Skip for now" → move to PWA install prompt without saving; profile stays incomplete, so the attendee is routed back to this form on their next login
 
@@ -36,6 +37,7 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 
 **Data Needed to Display:**
 - Pre-filled and read-only, from registration: name, email, phone, business/profession name, RMB chapter (if any), photo (initials avatar shown if no photo on file)
+- LinkedIn URL and website URL, pre-filled and **editable** if the import file supplied them (F1.1's optional column mapping); empty otherwise
 - Business category options (dropdown list — the only categorization field; no separate "industry" field, to avoid asking the same thing twice)
 - Active city options from the nationwide database catalogue, displayed as `City, State/UT` with type-ahead/search suggestions
 - "Looking for" dropdown options (multi-select, shared business-type taxonomy with Offering)
@@ -51,6 +53,11 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 - User fills only required fields and submits → save successfully, move forward
 - User fills all fields and submits → save and show success state
 - Registration photo failed to upload / file corrupted → treat as no photo, initials avatar used everywhere; no blocking error shown to attendee
+- LinkedIn/website left blank → valid, submit proceeds; the profile is complete without them and no reminder or nag is shown later
+- Bare host typed ("acme.in", "linkedin.com/in/radha") → accepted, normalized to `https://` on save, no error
+- Malformed URL → inline error on that field only ("Enter a valid link, e.g. https://acme.in"); the rest of the form is retained
+- Non-LinkedIn URL in the LinkedIn field → inline error "That doesn't look like a LinkedIn URL"; the value is not silently moved to the website field
+- Imported LinkedIn/website value is malformed → keep it as the field's starting value and flag on blur, so the attendee can fix the organizer's data rather than being blocked by it
 
 ---
 
@@ -406,6 +413,7 @@ and keeps the whole check-in experience on one URL.
 - Tap "Scan QR" → open QR Scanner (2.4) pre-focused on this person
 - Tap "Call" → native dialer with their phone number
 - Tap "WhatsApp" → open WhatsApp with pre-filled message
+- Tap "LinkedIn" / "Website" → open the attendee's link in a new tab (F4.7); shown only when they added that link — an empty one renders no control at all, never a disabled one
 - Tap "Save to Contacts" → export vCard to native contacts (2.10)
 - Tap "Add Note" → open note editor
 - Tap "View Note" → show existing note in modal
@@ -420,6 +428,7 @@ and keeps the whole check-in experience on one URL.
 - Attendee name, company, business category, RMB chapter (if any), phone, email
 - Table number
 - Photo (from registration; initials avatar if none on file)
+- LinkedIn URL and website URL, when present (F4.7) — both nullable, both rendered as tap actions rather than raw text
 
 - Bio/description
 - Match reason, when arrived from Matches (1.4) — states the chapter relationship explicitly: e.g. "You're both Manufacturers — she's from the Surat chapter" (cross-chapter) or "You're both in the Ahmedabad chapter" (same-chapter); omitted if either party has no chapter
@@ -432,6 +441,7 @@ and keeps the whole check-in experience on one URL.
 
 **Edge Cases:**
 - Phone number missing → disable "Call" button, show message "Phone not available"
+- Attendee has no LinkedIn/website → omit that action entirely (no disabled dead end); if they have neither, the link row itself doesn't render
 - Attendee has no company → show just name
 - Bio is very long → truncate and show "Read more" button
 - User viewing their own profile → hide "Scan QR" button, show "This is you" badge
@@ -746,7 +756,7 @@ and keeps the whole check-in experience on one URL.
 
 > **Revised (UX revision v1.1 — F4.4/F4.5/F4.8).** The screen's vertical order is fixed as:
 > 1. **Own QR code** — pinned at the top, the thing another attendee scans to connect (unchanged intent; already built in F4.1).
-> 2. **Attendee Card** — a *designed identity card* (photo/initials, name, company, business category, city, chapter, tags, LinkedIn), **not** the list of label/value detail rows shipped today.
+> 2. **Attendee Card** — a *designed identity card* (photo/initials, name, company, business category, city, chapter, tags, LinkedIn, website), **not** the list of label/value detail rows shipped today. The two links appear as icon actions on the card and are omitted when empty.
 > 3. **Edit Profile button** — opens Screen 2.11a as its own page (replaces the "tap a field to edit inline" interaction described below).
 > 4. **Logout** — sign-out lives on this screen, not only in the drawer.
 >
@@ -776,7 +786,7 @@ and keeps the whole check-in experience on one URL.
 
 **Data Needed to Display:**
 - Attendee's own signed QR code (generated/cached locally — must render offline, no network call)
-- User's profile: name, company, business category, bio, phone (some read-only)
+- User's profile: name, company, business category, bio, phone (some read-only), LinkedIn URL and website URL (nullable, F4.7)
 - Notification settings
 - App version
 - Support contact
@@ -795,7 +805,7 @@ and keeps the whole check-in experience on one URL.
 **Module:** Settings  
 **Purpose:** Let the attendee edit their own card on a dedicated form page, reached from the Edit Profile button on 2.11.
 
-**Editable vs read-only:** editable fields are **exactly the ones onboarding collects** (Screen 1.1) plus photo and LinkedIn. Registered details are read-only — changing them is an organizer action, because CSV import dedups on phone+email.
+**Editable vs read-only:** editable fields are **exactly the ones onboarding collects** (Screen 1.1) plus photo. Since onboarding now collects LinkedIn and website (US1.6), those two are editable here by the same rule rather than as exceptions to it. Registered details are read-only — changing them is an organizer action, because CSV import dedups on phone+email.
 
 | Field | Editable? |
 |---|---|
@@ -805,8 +815,11 @@ and keeps the whole check-in experience on one URL.
 | Looking for / Offering | ✅ multi-select, shared taxonomy |
 | Networking goals | ✅ |
 | Bio | ✅ optional, character-capped |
-| LinkedIn URL | ✅ optional, URL-validated (F4.7) |
+| LinkedIn URL | ✅ optional, URL-validated, linkedin.com host enforced, clearable (F4.7) |
+| Website URL | ✅ optional, URL-validated, any host, clearable (F4.7) |
 | Name, company, phone, email, chapter, table number | ❌ read-only → "Contact the event organizer to change this" |
+
+Both link fields are **clearable** — emptying one and saving removes it, which also removes its action from the card and profile. That's a valid save, not a validation error.
 
 **States:** Default (prefilled) · Editing (Save enabled once dirty) · Saving (spinner on Save) · Saved ("Saved!" toast, return to 2.11) · Error ("Can't save changes. Try again.", form retained) · Uploading photo (progress + cancel) · Offline (Save disabled with "You're offline — reconnect to save"; edits are **not** queued, unlike check-in).
 
@@ -825,7 +838,10 @@ and keeps the whole check-in experience on one URL.
 - Photo too large / wrong type → client-side resize (reuse F7.1's pipeline); reject non-images with a clear message
 - Upload fails mid-save → keep other field edits, surface a retry on the photo only
 - Category/city no longer active in reference data → keep the existing value as a valid legacy option, per PF8
-- Invalid LinkedIn URL → inline validation, block save
+- Invalid LinkedIn or website URL → inline validation on that field, block save; other edits on the form are retained
+- Bare host typed → normalized to `https://` on save rather than rejected
+- Non-LinkedIn host in the LinkedIn field → "That doesn't look like a LinkedIn URL"; not auto-moved to the website field
+- Link field emptied → saves as removed; the corresponding card/profile action disappears
 - Session expires while editing → preserve form state, re-auth, resume
 - ⚠️ **Storage dependency:** photo upload requires durable object storage (Supabase Storage). Local-disk `/uploads` does not survive a hosted deploy — see the open question in `FEATURES.md`.
 
