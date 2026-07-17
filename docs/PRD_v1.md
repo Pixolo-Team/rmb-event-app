@@ -152,8 +152,9 @@ Acceptance Criteria:
 - Columns: name (required), email (required), phone (required), business/profession
   name (required), RMB chapter (optional — attendee may not be an RMB member),
   photo (optional — URL/file reference; falls back to initials avatar if missing),
-  city (optional) and business category (optional — both are asked during profile
-  setup when not present in the import file)
+  city (optional), business category (optional), LinkedIn URL (optional) and
+  website URL (optional — all four are asked during profile setup when not present
+  in the import file)
 - Source is the organizer's own registration form (observed as a Google Form export:
   Timestamp, Email Address ×2 [Google-account-captured + form-question field — use the
   form-question value as canonical, flag mismatches for admin review], Full Name,
@@ -193,8 +194,9 @@ I want to tap the group link, sign in with my email, and answer a few quick ques
 So that I can get personalized match suggestions and not have to install an app first
 Acceptance Criteria:
 - Profile form opens in a mobile web view (does not require app install yet)
-- Fields: business category (database-backed dropdown — e.g., Manufacturer, Trader/Distributor, Service Provider, Retailer, Professional), city (searchable database-backed picker using `City, State/UT`), looking for (multi-select dropdown, shared business-type taxonomy — e.g. Real Estate Builders, Interior Designer, Digital Marketing), offering (multi-select dropdown, same taxonomy as looking for), goals (multi-select), optional free-text bio. No separate "industry" field — business category is the only categorization field, and looking-for/offering tags carry the business-type detail so nothing is asked twice.
-- Form is under a minute to complete (5–6 fields) — name, email, phone, business/profession name, chapter and photo are already known from registration and are pre-filled/read-only, not re-asked. City and business category are asked here because the registration form does not capture them (if a future import file includes City/Category columns, they are imported and pre-filled instead)
+- Fields: business category (database-backed dropdown — e.g., Manufacturer, Trader/Distributor, Service Provider, Retailer, Professional), city (searchable database-backed picker using `City, State/UT`), looking for (multi-select dropdown, shared business-type taxonomy — e.g. Real Estate Builders, Interior Designer, Digital Marketing), offering (multi-select dropdown, same taxonomy as looking for), goals (multi-select), optional free-text bio, optional LinkedIn URL, optional website URL (see US1.6). No separate "industry" field — business category is the only categorization field, and looking-for/offering tags carry the business-type detail so nothing is asked twice.
+- Form is under a minute to complete — 5–6 required-path fields plus up to three optional ones (bio, LinkedIn, website), which an attendee can leave untouched and submit past. Name, email, phone, business/profession name, chapter and photo are already known from registration and are pre-filled/read-only, not re-asked. City, business category, LinkedIn and website are asked here because the registration form does not capture them (if a future import file includes City/Category/LinkedIn/Website columns, they are imported and pre-filled instead)
+- The optional link fields are visually subordinate to the required ones (grouped last, under a "Add your links (optional)" heading) so they never read as blockers on the under-a-minute path
 - Validation: phone number and email already in system (auto-filled), name is required
 - After completion, user sees: "Great! Get suggestions by installing the app" → PWA install prompt
 - Profile is saved even if attendee doesn't install PWA
@@ -238,6 +240,38 @@ Acceptance Criteria:
   link only ever reaches the address on file, never whoever typed it in
 - Staff-assisted lookup (via admin Check-In Management) is the only fallback,
   for an attendee with no working access to email at the venue
+```
+
+**US1.6 - Attendee shares their LinkedIn and website** *(added UX revision v1.1 — builds as F4.7)*
+```
+As Radha (attendee)
+I want to add my LinkedIn profile and my business website to my card
+So that the people I meet can look me up properly instead of only having my phone number
+Acceptance Criteria:
+- Two new optional fields on the attendee record: LinkedIn URL and website URL.
+  Both are optional everywhere they appear — onboarding (US1.3), Edit Profile
+  (F4.5) and CSV import (US1.1). A profile with neither is complete and valid,
+  and nothing in the app gates on them
+- Enterable in three places: profile setup (Screen 1.1), Edit Profile
+  (Screen 2.11a), and optional import column mapping. Neither field is ever
+  required to submit any of those three
+- Validation on save: must be a syntactically valid http/https URL; a bare host
+  ("acme.in", "linkedin.com/in/radha") is accepted and normalized to https://.
+  LinkedIn additionally must be a linkedin.com host — anything else is rejected
+  inline with "That doesn't look like a LinkedIn URL". Invalid input blocks save
+  on that field only; it never discards the rest of the form
+- Non-empty values are stored normalized (scheme included, whitespace trimmed) so
+  a stored value is always safe to render as a link
+- Displayed on the attendee's own card (Screen 2.11) and on other attendees'
+  profiles (Screen 2.3) as a tap action opening the link in a new tab; the
+  affordance is **absent, not disabled**, when the field is empty — an empty link
+  must never render as a dead control
+- Included in the connections CSV export and the vCard export (US9.1/US10.1), so a
+  saved contact carries both links into the phone's address book
+- Both fields are attendee-owned data, editable by the attendee at any time —
+  unlike name/phone/email, they are not organizer-controlled registered details
+- Out of scope: no verification that the URL resolves, no LinkedIn API, no
+  profile scraping, no link preview/unfurling — the pilot stores and links out
 ```
 
 ---
@@ -671,7 +705,9 @@ Acceptance Criteria:
 - Stats: "You met 7 people", "You collected 7 cards", "Your rank: 14th"
 - Top 5 connections list: name, company, phone, table number
 - "View all connections" link opens full list
-- "Download connections" button exports as CSV or vCard (for importing to contacts)
+- "Download connections" button exports as CSV or vCard (for importing to contacts).
+  The CSV carries LinkedIn and website columns (US1.6) — empty for connections who
+  didn't add them
 - Attendee can share summary to WhatsApp
 ```
 
@@ -706,7 +742,9 @@ I want to save any connection's details to my phone's contacts app
 So that I can call or message them after the event without opening Evento
 Acceptance Criteria:
 - "Save to contacts" button on every connection card
-- Tapping generates a vCard (.vcf) with: name, company, phone, email (if available)
+- Tapping generates a vCard (.vcf) with: name, company, phone, email (if available),
+  and LinkedIn/website as `URL` properties when the connection has them (US1.6) —
+  omitted entirely rather than written empty when they don't
 - vCard is passed to native contact picker or auto-imported
 - If contact already exists, show: "Contact exists. Update?" option
 - Confirmation: "Saved to contacts as Deepak Sharma"
@@ -1194,7 +1232,7 @@ Mapping original sticky-note brainstorm to decisions in this PRD, for transparen
 
 ✓ Attendee import & auto-generate QR  
 ✓ Group-link onboarding flow (admin posts sign-up link in WhatsApp group; email magic-link login)  
-✓ Profile setup (structured tags + free text)  
+✓ Profile setup (structured tags + free text + optional LinkedIn/website links)  
 ✓ Rule-based attendee matching  
 ✓ Leaderboard & met counter  
 ✓ QR scan to exchange cards + log meeting  
