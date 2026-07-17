@@ -16,16 +16,14 @@ async function bootstrap() {
   app.useStaticAssets(uploadsRoot, { prefix: "/uploads" });
 
   app.use(cookieParser());
-  app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, transform: true }),
-  );
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.enableCors({
     origin: process.env.WEB_ORIGIN ?? "http://localhost:3000",
     credentials: true,
   });
 
-  const port = process.env.PORT ?? 4000;
-  await app.listen(port);
+  const port = Number(process.env.PORT) ?? 4000;
+  await app.listen(port, "0.0.0.0");
   // eslint-disable-next-line no-console
   console.log(`[api] listening on http://localhost:${port}`);
 }

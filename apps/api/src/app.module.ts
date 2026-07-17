@@ -14,9 +14,11 @@ import { MatchingModule } from "./matching/matching.module";
 import { MeetingsModule } from "./meetings/meetings.module";
 import { LeaderboardModule } from "./leaderboard/leaderboard.module";
 import { AppController } from "./app.controller";
+import { HealthModule } from "./health/health.module";
 
 @Module({
   imports: [
+    HealthModule,
     PrismaModule,
     MailModule,
     WhatsAppModule,
