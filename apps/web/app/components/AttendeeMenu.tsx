@@ -19,18 +19,19 @@ type MenuItem = {
   activePrefixes?: string[];
 };
 
-const MENU_ITEMS: MenuItem[] = [
-  { href: "/home", label: "Home", icon: HomeIcon, available: true },
-  { href: "/scan", label: "Scan a Code", icon: ScanIcon, available: true },
-  { href: "/matches", label: "People to Meet", icon: SparkIcon, available: true },
-  { href: "/directory", label: "Attendee Directory", icon: DirectoryIcon, available: true, activePrefixes: ["/attendees/"] },
-  { href: "/connections", label: "My Connections", icon: ConnectionsIcon, available: true },
+const DRAWER_ITEMS: MenuItem[] = [
   { href: "/leaderboard", label: "Leaderboard", icon: TrophyIcon, available: true },
-  { href: "/feed", label: "Event Photos", icon: PhotoIcon, available: true },
   { href: "/summary", label: "Event Summary", icon: SummaryIcon, available: true },
   { href: "/feedback", label: "Give Feedback", icon: FeedbackIcon, available: true },
-  { href: "/profile", label: "My Profile", icon: ProfileIcon, available: true },
+  { href: "/feed", label: "Event Photos", icon: PhotoIcon, available: true },
   { href: "/profile?qr=1", label: "Show My QR", icon: QrIcon, available: true },
+];
+
+const TAB_ITEMS: MenuItem[] = [
+  { href: "/home", label: "Home", icon: HomeIcon, available: true },
+  { href: "/directory", label: "People", icon: DirectoryIcon, available: true, activePrefixes: ["/attendees/"] },
+  { href: "/matches", label: "Want to Meet", icon: SparkIcon, available: true },
+  { href: "/profile", label: "Profile", icon: ProfileIcon, available: true },
 ];
 
 const SHOW_PLANNED_ITEMS = process.env.NODE_ENV !== "production";
@@ -176,11 +177,15 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
             </div>
 
             <nav className="menu-nav" aria-label="Attendee navigation">
-              {MENU_ITEMS.filter((item) => item.available || SHOW_PLANNED_ITEMS).map((item) => {
+              {DRAWER_ITEMS.filter((item) => item.available || SHOW_PLANNED_ITEMS).map((item) => {
                 if (!item.available) return <DisabledMenuItem key={item.label} item={item} />;
 
                 const Icon = item.icon;
-                const active = pathname === item.href || Boolean(item.activePrefixes?.some((prefix) => pathname.startsWith(prefix)));
+                const active = Boolean(
+                  item.href &&
+                  !item.href.includes("?") &&
+                  (pathname === item.href || item.activePrefixes?.some((prefix) => pathname.startsWith(prefix))),
+                );
                 return (
                   <Link
                     key={item.label}
@@ -209,6 +214,35 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
         </div>
       )}
     </>
+  );
+}
+
+export function AttendeeBottomTabs() {
+  const pathname = usePathname();
+  const scanActive = pathname === "/scan";
+
+  return (
+    <nav className="attendee-tabs" aria-label="Primary attendee navigation">
+      <div className="attendee-tabs-track">
+        {TAB_ITEMS.slice(0, 2).map((item) => <TabLink key={item.label} item={item} pathname={pathname} />)}
+        <Link className={`attendee-scan-fab${scanActive ? " active" : ""}`} href="/scan" aria-label="Scan QR code" aria-current={scanActive ? "page" : undefined}>
+          <ScanIcon />
+        </Link>
+        {TAB_ITEMS.slice(2).map((item) => <TabLink key={item.label} item={item} pathname={pathname} />)}
+      </div>
+    </nav>
+  );
+}
+
+function TabLink({ item, pathname }: { item: MenuItem; pathname: string }) {
+  const Icon = item.icon;
+  const active = pathname === item.href || Boolean(item.activePrefixes?.some((prefix) => pathname.startsWith(prefix)));
+
+  return (
+    <Link className={`attendee-tab${active ? " active" : ""}`} href={item.href!} aria-current={active ? "page" : undefined}>
+      <Icon />
+      <span>{item.label}</span>
+    </Link>
   );
 }
 

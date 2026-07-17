@@ -48,6 +48,15 @@ function readOnlyValue(value: string | null | undefined, fallback = "Not availab
   return value && value.trim() ? value : fallback;
 }
 
+function initials(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+}
+
 export function EditProfileForm({
   attendee,
   onSaved,
@@ -155,15 +164,6 @@ export function EditProfileForm({
     }
     setPhotoFile(file);
     setPhotoPreview(file ? URL.createObjectURL(file) : attendee.photoUrl ?? null);
-  }
-
-  function handleRemovePhoto() {
-    if (photoPreview && photoPreview.startsWith("blob:")) {
-      URL.revokeObjectURL(photoPreview);
-    }
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    setPhotoFile(null);
-    setPhotoPreview(null);
   }
 
   function handleAttemptClose() {
@@ -322,17 +322,13 @@ export function EditProfileForm({
 
         <div className="field profile-edit-photo-field">
           <label htmlFor="edit-photo">Photo</label>
-          <label htmlFor="edit-photo" className="photo-picker photo-picker-round profile-edit-photo-picker">
-            {photoPreview ? (
+          <label htmlFor="edit-photo" className="profile-edit-photo-picker" aria-label="Change profile photo">
+            {photoPreview && (
               <img src={photoPreview} alt="Profile preview" />
-            ) : (
-              <span className="photo-picker-placeholder">
-                <span className="photo-picker-icon" aria-hidden="true">
-                  +
-                </span>
-                Add photo
-              </span>
             )}
+            <span className="profile-edit-photo-badge" aria-hidden="true">
+              +
+            </span>
           </label>
           <input
             id="edit-photo"
@@ -340,18 +336,8 @@ export function EditProfileForm({
             type="file"
             accept="image/*"
             onChange={handlePhotoChange}
-            className="visually-hidden"
+            className="sr-only"
           />
-          <div className="profile-edit-photo-actions">
-            <button className="btn-secondary" type="button" onClick={() => fileInputRef.current?.click()}>
-              {photoPreview ? "Replace photo" : "Choose photo"}
-            </button>
-            {photoPreview ? (
-              <button className="btn-secondary" type="button" onClick={handleRemovePhoto}>
-                Remove photo
-              </button>
-            ) : null}
-          </div>
         </div>
 
         <section className="profile-edit-readonly">

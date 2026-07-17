@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { AttendeeMenu, type MenuAttendee } from "./AttendeeMenu";
+import { AttendeeBottomTabs, AttendeeMenu, type MenuAttendee } from "./AttendeeMenu";
 import { profileCache, type MyProfile } from "../lib/profileCache";
 
 const PROFILE_REVALIDATE_MS = 60_000;
@@ -116,6 +116,7 @@ export function AttendeePageShell({ children }: { children: ReactNode }) {
         <AttendeeMenu attendee={attendee} />
       </header>
       {children}
+      <AttendeeBottomTabs />
     </div>
   );
 }

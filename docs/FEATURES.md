@@ -309,7 +309,7 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
-| PF7.1 | Bottom tab bar (Home · People · Want to Meet · Profile) + drawer demoted to secondary destinations; Scan as center FAB (pending confirmation) | All attendee screens | P0 | Yes (shell) | PF7 | ⬜ Not started |
+| PF7.1 | Bottom tab bar (Home · People · Want to Meet · Profile) + drawer demoted to secondary destinations; Scan as center FAB (pending confirmation) | All attendee screens | P0 | Yes (shell) | PF7 | ✅ Done |
 | F3.6 | Home as an **appealing dashboard** — check-in status plus at-a-glance data (people met, rank, bookmarks, table number, time at event) and quick actions. Restores `SCREENS.md` 2.1's original "central hub" intent, which the F3.2 full-page revision stripped to check-in only. Surfaces F11.1's stats here, not just on Profile | Screen 2.1 | P0 | Yes (cached) | F3.2, F11.1 | ⬜ Not started |
 | F4.4 | **Attendee Card** on Profile — a designed identity card (photo/initials, name, company, category, city, chapter, tags, LinkedIn, website), *not* a list of `dt`/`dd` detail rows. QR stays pinned above it | Screen 2.11 | P1 | Yes | F4.1 | ⬜ Not started |
 | F4.5 | **Edit Profile** — dedicated form page reached from a Profile button. Editable = exactly the fields onboarding collects (business category, city, looking-for, offering, goals, bio, LinkedIn, website) **plus** photo (F4.6). Registered details (name, phone, email) stay read-only per the PRD's "Contact organizer to change this" rule — import dedup keys on phone+email | Screen 2.11a (new) | P1 | No | F1.2, F4.4 | ⬜ Not started |

@@ -10,7 +10,7 @@ import {
   useOfflineSync,
   type QueueKind,
 } from "../lib/offlineQueue";
-import { AttendeeMenu, type MenuAttendee } from "../components/AttendeeMenu";
+import { AttendeeBottomTabs, AttendeeMenu, type MenuAttendee } from "../components/AttendeeMenu";
 
 // Full-page flow (no floating card — see globals.css .full-page*): detect
 // proximity to the venue, then the attendee taps to confirm rather than
@@ -198,7 +198,7 @@ export default function HomePage() {
 
   if (step === "loading" || step === "locating") {
     return (
-      <div className="full-page">
+      <div className="full-page attendee-tabbed-page">
         <PageHeader attendee={attendee} />
         <div className="full-page-band tone-info">
           <span className="ring info lg">📍</span>
@@ -209,13 +209,14 @@ export default function HomePage() {
             {step === "locating" ? "Hold on while we check your location." : ""}
           </p>
         </div>
+        {attendee && <AttendeeBottomTabs />}
       </div>
     );
   }
 
   if (step === "arrived" || step === "confirming_arrival") {
     return (
-      <div className="full-page">
+      <div className="full-page attendee-tabbed-page">
         <PageHeader attendee={attendee} />
         <div className="full-page-band tone-success">
           <span className="ring ok lg">📍</span>
@@ -244,13 +245,14 @@ export default function HomePage() {
             Not at the venue yet?
           </button>
         </div>
+        {attendee && <AttendeeBottomTabs />}
       </div>
     );
   }
 
   if (step === "need_manual" || step === "confirming_manual") {
     return (
-      <div className="full-page">
+      <div className="full-page attendee-tabbed-page">
         <PageHeader attendee={attendee} />
         <div className="full-page-band tone-warning">
           <span className="ring warn lg">!</span>
@@ -273,13 +275,14 @@ export default function HomePage() {
             )}
           </button>
         </div>
+        {attendee && <AttendeeBottomTabs />}
       </div>
     );
   }
 
   // step === "checked_in" — this screen is the one attendees show at the registration desk.
   return (
-    <div className="full-page">
+    <div className="full-page attendee-tabbed-page">
       <PageHeader attendee={attendee} />
       <div className="full-page-band tone-success">
         <span className="ring ok lg">✓</span>
@@ -319,6 +322,7 @@ export default function HomePage() {
           Scan to connect
         </button>
       </div>
+      {attendee && <AttendeeBottomTabs />}
     </div>
   );
 }
