@@ -982,7 +982,7 @@ p.copy {
 .directory-toolbar {
   margin: 24px 0 14px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
 }
@@ -1049,14 +1049,6 @@ p.copy {
   color: var(--brand-700);
   font-size: 0.72rem;
 }
-.sort-control {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--ink-muted);
-  font-size: 0.82rem;
-}
-.sort-control select,
 .filter-field select {
   min-height: 48px;
   border: 1.5px solid var(--border-strong);
@@ -1586,9 +1578,40 @@ p.copy {
 .profile-name-line { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .profile-company { margin: 6px 0 0; font-size: 1.05rem; font-weight: 600; }
 .profile-meta { margin: 4px 0 10px; color: var(--ink-muted); }
+/* F2.5 / F5 — polished want-to-meet / call / whatsapp / share action row. */
 .profile-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 16px 0 24px; }
-.profile-action { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid var(--border-strong); border-radius: var(--radius-md); background: var(--surface); color: var(--brand-600); font: 700 0.9rem var(--font-body); text-decoration: none; cursor: pointer; }
-.profile-action.primary { border-color: var(--brand-500); background: var(--brand-500); color: var(--ink-on-brand); }
+.profile-action,
+.profile-actions .bookmark-button {
+  min-height: 50px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 0 14px; border: 1.5px solid var(--border-strong); border-radius: var(--radius-md);
+  background: var(--surface); color: var(--brand-600); font: 700 0.9rem var(--font-body);
+  text-decoration: none; cursor: pointer;
+  transition: transform .06s ease, background .15s ease, border-color .15s ease, color .15s ease;
+}
+.profile-action svg,
+.profile-actions .bookmark-button svg { width: 19px; height: 19px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.profile-action:hover,
+.profile-actions .bookmark-button:hover { border-color: var(--brand-500); }
+.profile-action:active,
+.profile-actions .bookmark-button:active { transform: translateY(1px); }
+.profile-action:focus-visible,
+.profile-actions .bookmark-button:focus-visible { outline: 2px solid var(--brand-500); outline-offset: 2px; }
+
+/* Want to meet — outlined toggle that fills with brand colour once saved. */
+.profile-actions .bookmark-button.is-bookmarked { background: var(--brand-500); border-color: var(--brand-500); color: var(--ink-on-brand); }
+.profile-actions .bookmark-button.is-bookmarked svg { fill: currentColor; stroke: currentColor; }
+
+/* Call — solid brand primary with a filled handset. */
+.profile-action.call { background: var(--brand-500); border-color: var(--brand-500); color: var(--ink-on-brand); }
+.profile-action.call:hover { background: var(--brand-600); border-color: var(--brand-600); }
+.profile-action.call svg { fill: currentColor; stroke: none; }
+
+/* WhatsApp — its recognizable green. */
+.profile-action.whatsapp { background: #1fa855; border-color: #1fa855; color: #fff; }
+.profile-action.whatsapp:hover { background: #1c934b; border-color: #1c934b; }
+
+/* Share — full-width secondary row beneath the primary three. */
+.profile-action.share { grid-column: 1 / -1; }
 .profile-details-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .profile-section { padding: 20px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
 .profile-section > h2 { margin: 0 0 14px; font: 700 1rem var(--font-display); }
@@ -1748,7 +1771,6 @@ a.contact-row:active { background: var(--brand-100); }
 @media (max-width: 680px) {
   .attendee-page { padding-top: 22px; }
   .directory-toolbar { grid-template-columns: minmax(0, 1fr) auto; }
-  .sort-control { grid-column: 1 / -1; justify-content: flex-end; }
   .directory-grid { grid-template-columns: 1fr; }
   .directory-card { min-height: 108px; }
   .profile-hero { align-items: flex-start; padding: 18px; }
@@ -1760,7 +1782,8 @@ a.contact-row:active { background: var(--brand-100); }
 }
 @media (max-width: 420px) {
   .profile-actions { grid-template-columns: 1fr 1fr; }
-  .profile-action:last-child { grid-column: 1 / -1; }
+  .profile-actions > .bookmark-button { grid-column: 1 / -1; }
+  .profile-action.share { grid-column: 1 / -1; }
 }
 .full-page-band {
   display: flex;
@@ -1848,7 +1871,6 @@ a.contact-row:active { background: var(--brand-100); }
 .bookmark-button.is-bookmarked { color: #124e96; border-color: #7ea9d8; background: #edf5ff; }
 .bookmark-button.is-bookmarked svg { fill: currentColor; }
 .bookmark-button.compact { width: 44px; padding: 0; border-radius: 50%; }
-.profile-actions .bookmark-button { flex: 1 1 100%; }
 .bookmark-card > .bookmark-button { margin-left: auto; }
 
 /* F7 — lightweight, touch-friendly photo adjustments before upload. */

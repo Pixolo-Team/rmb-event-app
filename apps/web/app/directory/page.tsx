@@ -7,7 +7,6 @@ import { DirectoryAvatar } from "../components/DirectoryAvatar";
 import { directoryCache, type DirectoryAttendee, type DirectoryResponse } from "../lib/directoryCache";
 import { BookmarkButton } from "../components/BookmarkButton";
 
-type SortOption = "name" | "company";
 type CheckinFilter = "all" | "checked-in" | "not-checked-in";
 
 const EMPTY_FILTERS = { category: "", company: "", chapter: "", city: "", checkin: "all" as CheckinFilter };
@@ -18,7 +17,6 @@ export default function DirectoryPage() {
   const [offlineResult, setOfflineResult] = useState(false);
   const [error, setError] = useState(false);
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<SortOption>("name");
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
 
@@ -73,12 +71,8 @@ export default function DirectoryPage() {
           (filters.checkin === "all" || attendee.checkedIn === (filters.checkin === "checked-in"))
         );
       })
-      .sort((a, b) => {
-        const first = sort === "company" ? a.businessName ?? a.name : a.name;
-        const second = sort === "company" ? b.businessName ?? b.name : b.name;
-        return first.localeCompare(second);
-      });
-  }, [data, filters, query, sort]);
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [data, filters, query]);
 
   const activeFilterCount = Object.entries(filters).filter(([key, value]) => key === "checkin" ? value !== "all" : Boolean(value)).length;
 
@@ -105,13 +99,6 @@ export default function DirectoryPage() {
           <button className="filter-button" type="button" onClick={() => setFilterOpen(true)}>
             <FilterIcon /> Filters {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
           </button>
-          <label className="sort-control">
-            <span>Sort</span>
-            <select value={sort} onChange={(event) => setSort(event.target.value as SortOption)}>
-              <option value="name">Name</option>
-              <option value="company">Company</option>
-            </select>
-          </label>
         </div>
 
         {loading && <DirectorySkeleton />}
