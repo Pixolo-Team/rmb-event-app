@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { TutorialPage } from "./(app)/tutorial/TutorialPage";
 
-export default function Home() {
-  redirect("/login");
+export default function RootPage() {
+  return <TutorialPage initialView="posts" />;
 }

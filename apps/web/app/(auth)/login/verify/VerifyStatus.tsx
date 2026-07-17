@@ -44,7 +44,7 @@ export function VerifyStatus() {
           router.replace("/onboarding");
           return;
         }
-        router.replace("/tutorial");
+        router.replace("/");
       })
       .catch(() => {
         if (!cancelled) router.replace("/login?expired=1");

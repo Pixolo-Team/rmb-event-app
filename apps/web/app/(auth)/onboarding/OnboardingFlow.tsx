@@ -167,7 +167,7 @@ export function OnboardingFlow() {
               : "See you at the event. If you skipped profile setup, we'll bring you back here on your next login."}
           </p>
           {profileSaved ? (
-            <button className="btn-primary" style={{ width: "auto", padding: "0 24px" }} onClick={() => router.push("/tutorial")}>
+            <button className="btn-primary" style={{ width: "auto", padding: "0 24px" }} onClick={() => router.push("/")}>
               Open app
             </button>
           ) : null}

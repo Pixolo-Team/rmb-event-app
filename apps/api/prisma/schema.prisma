@@ -76,6 +76,7 @@ model Attendee {
   offering           String[] @default([])
   goals              String[] @default([])
   bio                String?
+  linkedInUrl        String?
   profileCompletedAt DateTime?
 
   // Signed, opaque, non-sequential — generated at import time (PRD Security & Privacy).

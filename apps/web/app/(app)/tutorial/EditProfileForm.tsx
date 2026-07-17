@@ -3,6 +3,7 @@
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { AttendeeMe } from "./TutorialPage";
 import { TEMP_BYPASS_LOGIN } from "./TutorialPage";
+import { getInitials } from "./AttendeeCard";
 
 type CityOption = {
   name: string;
@@ -29,6 +30,16 @@ const DEMO_OPTIONS: ProfileOptions = {
   lookingFor: ["Distributors", "Suppliers", "Clients", "Investors", "Partners", "Mentors"],
   offering: ["Wholesale", "Logistics", "Consulting", "Manufacturing", "Retail space", "Financing"],
   goals: ["Grow network", "Find partners", "Generate leads", "Learn", "Hire"],
+};
+
+// Real mode starts empty and fills from /profile-options. Seeding DEMO_OPTIONS here
+// would flash fake categories/cities and blank out a real value that isn't in that list.
+const EMPTY_OPTIONS: ProfileOptions = {
+  businessCategories: [],
+  cities: [],
+  lookingFor: [],
+  offering: [],
+  goals: [],
 };
 
 function toggle(list: string[], value: string): string[] {
@@ -58,7 +69,7 @@ export function EditProfileForm({
   onClose: () => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [options, setOptions] = useState<ProfileOptions>(DEMO_OPTIONS);
+  const [options, setOptions] = useState<ProfileOptions>(TEMP_BYPASS_LOGIN ? DEMO_OPTIONS : EMPTY_OPTIONS);
   const [isOffline, setIsOffline] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(attendee.photoUrl ?? null);
@@ -326,13 +337,24 @@ export function EditProfileForm({
             {photoPreview ? (
               <img src={photoPreview} alt="Profile preview" />
             ) : (
-              <span className="photo-picker-placeholder">
-                <span className="photo-picker-icon" aria-hidden="true">
-                  +
-                </span>
-                Add photo
+              <span className="photo-picker-placeholder profile-avatar-placeholder" aria-hidden="true">
+                {getInitials(attendee.name)}
               </span>
             )}
+            <span className="profile-edit-photo-badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M4 20h3.75L18.4 9.35a1.6 1.6 0 0 0 0-2.25l-1.5-1.5a1.6 1.6 0 0 0-2.25 0L4 16.25V20Z"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinejoin="round"
+                />
+                <path d="m13.5 6.5 4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+              </svg>
+            </span>
+            <span className="sr-only">
+              {photoPreview ? "Change profile photo" : "Add profile photo"}
+            </span>
           </label>
           <input
             id="edit-photo"
@@ -342,16 +364,11 @@ export function EditProfileForm({
             onChange={handlePhotoChange}
             className="visually-hidden"
           />
-          <div className="profile-edit-photo-actions">
-            <button className="btn-secondary" type="button" onClick={() => fileInputRef.current?.click()}>
-              {photoPreview ? "Replace photo" : "Choose photo"}
+          {photoPreview ? (
+            <button className="profile-edit-photo-remove" type="button" onClick={handleRemovePhoto}>
+              Remove photo
             </button>
-            {photoPreview ? (
-              <button className="btn-secondary" type="button" onClick={handleRemovePhoto}>
-                Remove photo
-              </button>
-            ) : null}
-          </div>
+          ) : null}
         </div>
 
         <section className="profile-edit-readonly">
@@ -385,19 +402,14 @@ export function EditProfileForm({
 
           <div className="field">
             <label htmlFor="edit-city">City</label>
-            <input
-              id="edit-city"
-              list="city-options"
-              maxLength={100}
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="Search your city"
-            />
-            <datalist id="city-options">
+            <select id="edit-city" value={city} onChange={(e) => setCity(e.target.value)}>
+              <option value="">Select your city</option>
               {knownCities.map((option) => (
-                <option key={option} value={option} />
+                <option key={option} value={option}>
+                  {option}
+                </option>
               ))}
-            </datalist>
+            </select>
           </div>
 
           <ChipField label="Looking for" options={options.lookingFor} selected={lookingFor} onToggle={(v) => setLookingFor((s) => toggle(s, v))} />
@@ -436,7 +448,7 @@ export function EditProfileForm({
             Back
           </button>
           <button className="btn-primary" type="button" disabled={saving || isOffline || !isDirty} onClick={handleSave}>
-            {saving ? "Saving..." : "Save changes"}
+            {saving ? "Saving..." : "Save"}
           </button>
         </div>
       </section>

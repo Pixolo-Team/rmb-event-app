@@ -1,6 +1,6 @@
 "use client";
 
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 import type { AttendeeMe, DirectoryAttendee } from "./TutorialPage";
@@ -32,17 +32,27 @@ export function ProfileView({
   directory,
   setDirectory,
   onReplayTutorial,
+  onEditingChange,
+  editingRoute = false,
 }: {
   attendee: AttendeeMe;
   setAttendee: Dispatch<SetStateAction<AttendeeMe | null>>;
   directory: DirectoryAttendee[];
   setDirectory: Dispatch<SetStateAction<DirectoryAttendee[]>>;
   onReplayTutorial: () => void;
+  onEditingChange?: (editing: boolean) => void;
+  editingRoute?: boolean;
 }) {
   const router = useRouter();
   const [showEditPage, setShowEditPage] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
   const [qrEnlarged, setQrEnlarged] = useState(false);
+
+  const isEditing = editingRoute || showEditPage;
+
+  useEffect(() => {
+    onEditingChange?.(isEditing);
+  }, [isEditing, onEditingChange]);
 
   const qrValue = attendee.qrToken ?? attendee.id;
   const metaLine = [attendee.businessCategory, attendee.city, attendee.chapterName].filter(Boolean).join(" · ");
@@ -86,12 +96,18 @@ export function ProfileView({
     router.push("/login");
   }
 
-  if (showEditPage) {
+  if (isEditing) {
     return (
       <EditProfileForm
         attendee={attendee}
         onSaved={(patch) => setAttendee((current) => (current ? { ...current, ...patch } : current))}
-        onClose={() => setShowEditPage(false)}
+        onClose={() => {
+          if (editingRoute) {
+            router.push("/profile");
+            return;
+          }
+          setShowEditPage(false);
+        }}
       />
     );
   }
@@ -129,20 +145,46 @@ export function ProfileView({
         <TagGroup label="Offering" values={attendee.offering} />
         <TagGroup label="Goals" values={attendee.goals} />
 
-        <div className="business-card-contact">
-          <div>
-            <p className="person-line muted">{attendee.phone}</p>
-            <p className="person-line muted">{attendee.email}</p>
+        <div className="profile-card-divider" aria-hidden="true" />
+
+        <div className="profile-contact-panel">
+          <div className="profile-contact-item">
+            <p className="profile-contact-label">Phone</p>
+            <a className="profile-contact-value" href={`tel:${attendee.phone}`}>
+              {attendee.phone}
+            </a>
           </div>
+          <div className="profile-contact-item">
+            <p className="profile-contact-label">Email</p>
+            <a className="profile-contact-value" href={`mailto:${attendee.email}`}>
+              {attendee.email}
+            </a>
+          </div>
+        </div>
+
+        <div className="profile-card-actions">
           {attendee.linkedInUrl ? (
-            <a className="icon-btn" href={attendee.linkedInUrl} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+            <a
+              className="icon-btn profile-social-btn"
+              href={attendee.linkedInUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="LinkedIn"
+            >
               <LinkedInIcon />
             </a>
           ) : null}
+          <button
+            type="button"
+            className="btn-secondary profile-edit-cta"
+            onClick={() => {
+              if (editingRoute) return;
+              router.push("/profile/edit");
+            }}
+          >
+            Edit profile
+          </button>
         </div>
-        <button type="button" className="btn-secondary" onClick={() => setShowEditPage(true)} style={{ marginTop: 16 }}>
-          Edit profile
-        </button>
       </section>
 
       <section className="settings-card">

@@ -1,10 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { promises as fs } from "fs";
+import path from "path";
 import { PrismaService } from "../prisma/prisma.service";
 import { SessionService } from "../session/session.service";
 import { MatchingService } from "../matching/matching.service";
 import type { MatchProfile } from "../matching/matching.types";
 import { hashToken } from "../common/tokens";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
+import { AVATARS_UPLOAD_DIR } from "./avatar-upload.config";
 import { GOALS_TAGS, LOOKING_FOR_TAGS, OFFERING_TAGS } from "./profile-options";
 
 export type ResolveOnboardingResult =
@@ -194,21 +197,48 @@ export class AttendeesService {
         lookingFor: dto.lookingFor,
         offering: dto.offering,
         goals: dto.goals,
-        bio: dto.bio,
-        linkedInUrl: dto.linkedInUrl,
+        bio: dto.bio?.trim() || null,
+        linkedInUrl: dto.linkedInUrl?.trim() || null,
         profileCompletedAt: new Date(),
       },
     });
   }
 
   async updatePhoto(attendeeId: string, photoUrl: string | null) {
-    return this.prisma.attendee.update({
+    const attendee = await this.prisma.attendee.findUnique({
+      where: { id: attendeeId },
+      select: { photoUrl: true },
+    });
+    if (!attendee) throw new NotFoundException("Attendee not found");
+
+    const updated = await this.prisma.attendee.update({
       where: { id: attendeeId },
       data: { photoUrl },
     });
+    if (attendee.photoUrl && attendee.photoUrl !== photoUrl) {
+      await this.deleteStoredAvatar(attendee.photoUrl);
+    }
+    return updated;
   }
+
   private cityValue(city: { name: string; stateOrUt: string }) {
     return city.stateOrUt === "Legacy / Imported" ? city.name : `${city.name}, ${city.stateOrUt}`;
+  }
+
+  private async deleteStoredAvatar(photoUrl: string) {
+    const uploadPrefix = "/uploads/avatars/";
+    if (!photoUrl.startsWith(uploadPrefix)) return;
+
+    const fileName = photoUrl.slice(uploadPrefix.length);
+    if (!fileName || fileName.includes("/") || fileName.includes("\\")) return;
+
+    const filePath = path.join(AVATARS_UPLOAD_DIR, fileName);
+    try {
+      await fs.unlink(filePath);
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "ENOENT") throw error;
+    }
   }
 
   async getProfileOptions() {

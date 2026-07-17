@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function TutorialRoutePage() {
+export default function TutorialHomePage() {
   redirect("/");
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FeedView } from "./FeedView";
 import { AttendeeCard } from "./AttendeeCard";
 import { FullProfileModal } from "./FullProfileModal";
@@ -73,7 +73,7 @@ export type FeedPhotoData = {
 };
 
 const TUTORIAL_STORAGE_KEY = "evento:first-time-tutorial-seen";
-export const TEMP_BYPASS_LOGIN = true;
+export const TEMP_BYPASS_LOGIN = process.env.NEXT_PUBLIC_TEMP_BYPASS_LOGIN === "true";
 
 const DEMO_ATTENDEE: AttendeeMe = {
   id: "demo-attendee",
@@ -199,12 +199,19 @@ const TUTORIAL_CARDS: readonly TutorialCard[] = [
   },
 ];
 
-export function TutorialPage() {
+export function TutorialPage({
+  initialView = "posts",
+  initialProfileEditing = false,
+}: {
+  initialView?: AppView;
+  initialProfileEditing?: boolean;
+}) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [attendee, setAttendee] = useState<AttendeeMe | null>(null);
   const [directory, setDirectory] = useState<DirectoryAttendee[]>([]);
-  const [view, setView] = useState<AppView>("posts");
+  const [view, setView] = useState<AppView>(initialView);
   const [search, setSearch] = useState("");
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [tutorialIndex, setTutorialIndex] = useState(0);
@@ -213,6 +220,21 @@ export function TutorialPage() {
   const [photos, setPhotos] = useState<FeedPhotoData[]>([]);
   const [openProfileId, setOpenProfileId] = useState<string | null>(null);
   const [composerRequestKey, setComposerRequestKey] = useState(0);
+  const [profileEditing, setProfileEditing] = useState(initialProfileEditing);
+
+  useEffect(() => {
+    setView(initialView);
+  }, [initialView]);
+
+  useEffect(() => {
+    setProfileEditing(initialProfileEditing);
+  }, [initialProfileEditing]);
+
+  useEffect(() => {
+    if (searchParams.get("compose") === "1") {
+      setComposerRequestKey((current) => current + 1);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (TEMP_BYPASS_LOGIN) {
@@ -220,7 +242,9 @@ export function TutorialPage() {
       setDirectory(DEMO_DIRECTORY);
       setPhotos(DEMO_PHOTOS);
       setState("ready");
-      setTutorialOpen(true);
+      if (initialView === "posts" && typeof window !== "undefined" && !window.localStorage.getItem(TUTORIAL_STORAGE_KEY)) {
+        setTutorialOpen(true);
+      }
       return;
     }
 
@@ -248,7 +272,7 @@ export function TutorialPage() {
         setAttendee(me);
         setDirectory(directoryData);
         setState("ready");
-        if (typeof window !== "undefined" && !window.localStorage.getItem(TUTORIAL_STORAGE_KEY)) {
+        if (initialView === "posts" && typeof window !== "undefined" && !window.localStorage.getItem(TUTORIAL_STORAGE_KEY)) {
           setTutorialOpen(true);
         }
       } catch {
@@ -257,7 +281,7 @@ export function TutorialPage() {
     }
 
     load();
-  }, [router]);
+  }, [initialView, router]);
 
   const tutorialStep = useMemo(() => TUTORIAL_CARDS[tutorialIndex], [tutorialIndex]);
   const wantToMeet = useMemo(
@@ -367,7 +391,7 @@ export function TutorialPage() {
   const openProfile = directory.find((person) => person.id === openProfileId) ?? null;
 
   return (
-    <div className="app-shell-screen has-bottom-nav">
+    <div className={`app-shell-screen${profileEditing ? "" : " has-bottom-nav"}`}>
       <div className="app-shell">
         <header className="app-topbar">
           <div>
@@ -473,16 +497,18 @@ export function TutorialPage() {
             directory={directory}
             setDirectory={setDirectory}
             onReplayTutorial={restartTutorial}
+            onEditingChange={setProfileEditing}
+            editingRoute={initialProfileEditing}
           />
         ) : null}
       </div>
 
-      <nav className="bottom-nav">
-        <button type="button" className={`bottom-nav-item${view === "posts" ? " active" : ""}`} onClick={() => setView("posts")}>
+      {!profileEditing ? <nav className="bottom-nav">
+        <button type="button" className={`bottom-nav-item${view === "posts" ? " active" : ""}`} onClick={() => router.push("/")}>
           <HomeIcon active={view === "posts"} />
           <span>Home</span>
         </button>
-        <button type="button" className={`bottom-nav-item${view === "people" ? " active" : ""}`} onClick={() => setView("people")}>
+        <button type="button" className={`bottom-nav-item${view === "people" ? " active" : ""}`} onClick={() => router.push("/people")}>
           <PeopleIcon active={view === "people"} />
           <span>People</span>
         </button>
@@ -490,8 +516,7 @@ export function TutorialPage() {
           type="button"
           className="bottom-nav-item bottom-nav-item-create"
           onClick={() => {
-            setView("posts");
-            setComposerRequestKey((current) => current + 1);
+            router.push("/?compose=1");
           }}
           aria-label="Create a new post"
         >
@@ -499,15 +524,15 @@ export function TutorialPage() {
             <AddPostIcon />
           </span>
         </button>
-        <button type="button" className={`bottom-nav-item${view === "wantToMeet" ? " active" : ""}`} onClick={() => setView("wantToMeet")}>
+        <button type="button" className={`bottom-nav-item${view === "wantToMeet" ? " active" : ""}`} onClick={() => router.push("/want-to-meet")}>
           <BookmarkTabIcon active={view === "wantToMeet"} />
           <span>Want to Meet</span>
         </button>
-        <button type="button" className={`bottom-nav-item${view === "profile" ? " active" : ""}`} onClick={() => setView("profile")}>
+        <button type="button" className={`bottom-nav-item${view === "profile" ? " active" : ""}`} onClick={() => router.push("/profile")}>
           <ProfileIcon active={view === "profile"} />
           <span>Profile</span>
         </button>
-      </nav>
+      </nav> : null}
 
       {openProfile ? (
         <FullProfileModal
