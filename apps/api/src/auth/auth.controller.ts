@@ -57,9 +57,8 @@ export class AuthController {
   }
 
   @Post("logout")
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.NO_CONTENT)
   logout(@Res({ passthrough: true }) res: Response) {
     this.session.clearSessionCookie(res);
-    return { status: "ok" };
   }
 }

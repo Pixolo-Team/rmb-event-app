@@ -33,7 +33,7 @@ export class ConnectionsService {
 
     const meeting = await this.prisma.meeting.upsert({
       where: { attendeeAId_attendeeBId: { attendeeAId, attendeeBId } },
-      create: { attendeeAId, attendeeBId },
+      create: { attendeeAId, attendeeBId, scannedById: attendeeId },
       update: {},
     });
 
@@ -50,7 +50,7 @@ export class ConnectionsService {
         phone: target.phone,
         photoUrl: target.photoUrl,
         linkedInUrl: target.linkedInUrl,
-        metAt: meeting.metAt,
+        metAt: meeting.createdAt,
       },
     };
   }
@@ -59,7 +59,7 @@ export class ConnectionsService {
   async listForAttendee(attendeeId: string): Promise<ConnectionAttendeeData[]> {
     const meetings = await this.prisma.meeting.findMany({
       where: { OR: [{ attendeeAId: attendeeId }, { attendeeBId: attendeeId }] },
-      orderBy: { metAt: "desc" },
+      orderBy: { createdAt: "desc" },
       include: {
         attendeeA: { include: { chapter: true } },
         attendeeB: { include: { chapter: true } },
@@ -79,7 +79,7 @@ export class ConnectionsService {
         phone: other.phone,
         photoUrl: other.photoUrl,
         linkedInUrl: other.linkedInUrl,
-        metAt: meeting.metAt,
+        metAt: meeting.createdAt,
       };
     });
   }

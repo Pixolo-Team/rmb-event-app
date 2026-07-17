@@ -3,14 +3,17 @@ import {
   Controller,
   Post,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import type { Express } from "express";
+import { AdminGuard } from "../admin-auth/admin.guard";
 import { AdminImportService } from "./admin-import.service";
 import { ColumnMappingError } from "./column-mapper";
 
 @Controller("admin/import")
+@UseGuards(AdminGuard)
 export class AdminImportController {
   constructor(private readonly adminImport: AdminImportService) {}
 

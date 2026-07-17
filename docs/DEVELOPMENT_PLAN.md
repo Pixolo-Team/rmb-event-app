@@ -2,7 +2,7 @@
 
 Turns [`PRD_v1.md`](./PRD_v1.md), [`FEATURES.md`](./FEATURES.md), [`SCREENS.md`](./SCREENS.md) and [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) into an executable build plan: architecture, data model, API surface, a granular build sequence against the PRD's under-1-month window, and the pre-event/event-day/post-event runbook.
 
-`FEATURES.md`'s Feature Index is the source of truth for what's actually built vs. not — see its ✅/🟡/⬜ status per feature (currently: Platform Foundations PF1/PF2 and F1.1–F1.4 are done; everything else is spec-only). This plan's job is to sequence and pace what's left, not to re-describe scope already captured there.
+`FEATURES.md`'s Feature Index is the source of truth for what's actually built vs. not — see its ✅/🟡/⬜ status per feature (currently: Platform Foundations PF1/PF2/PF4 and F1.1–F1.4, F3.1–F3.5 are done — including offline queuing now that PF4 exists; everything else is spec-only). This plan's job is to sequence and pace what's left, not to re-describe scope already captured there.
 
 ---
 
@@ -10,14 +10,15 @@ Turns [`PRD_v1.md`](./PRD_v1.md), [`FEATURES.md`](./FEATURES.md), [`SCREENS.md`]
 
 1. [Decisions Needed Before Week 1](#decisions-needed-before-week-1)
 2. [Architecture](#architecture)
-3. [Repository Structure](#repository-structure)
-4. [Data Model](#data-model)
-5. [API Surface](#api-surface)
-6. [Build Sequence & Pacing](#build-sequence--pacing)
-7. [Testing & QA Plan](#testing--qa-plan)
-8. [Environments & Deployment](#environments--deployment)
-9. [Pre-Event, Event-Day & Post-Event Runbook](#pre-event-event-day--post-event-runbook)
-10. [Risk Tracking](#risk-tracking)
+3. [Attendee Navigation & Side Menu](#attendee-navigation--side-menu)
+4. [Repository Structure](#repository-structure)
+5. [Data Model](#data-model)
+6. [API Surface](#api-surface)
+7. [Build Sequence & Pacing](#build-sequence--pacing)
+8. [Testing & QA Plan](#testing--qa-plan)
+9. [Environments & Deployment](#environments--deployment)
+10. [Pre-Event, Event-Day & Post-Event Runbook](#pre-event-event-day--post-event-runbook)
+11. [Risk Tracking](#risk-tracking)
 
 ---
 
@@ -77,6 +78,64 @@ The PRD names the frontend/backend stack (Next.js + NestJS) but leaves several v
 
 ---
 
+## Attendee Navigation & Side Menu
+
+The attendee PWA uses a **persistent bottom tab bar** for its four primary destinations (Home, People, Want to Meet, Profile), plus an **authenticated side-menu drawer** for lower-frequency destinations (Leaderboard, Event Summary, Give Feedback, Event Photos, Show My QR, Sign Out).
+
+> **Revised (UX revision v1.1).** This section previously read: *"There is no persistent bottom-tab bar in the pilot: duplicating the same destinations in two navigation systems adds choice and consumes valuable vertical space on small phones."* That call is **reversed**. The vertical-space cost is accepted — bottom tabs are the current convention for this app category, and the primary destinations are used constantly during the event, where a two-tap drawer is friction at the wrong moment. The duplication objection still stands and is answered structurally: **each destination lives in exactly one navigation system, never both.** Scan QR is proposed as a center FAB in the tab bar (OPEN — pending confirmation); until that is settled it remains a prominent contextual action on Home. See PF7.1 in `FEATURES.md` and US12.1 in `PRD_v1.md`.
+
+### Side-menu information architecture
+
+The drawer opens from the attendee avatar/menu button in the app header. It uses **one flat list with no main/submenu hierarchy and no section headings**. Only destinations central to the attendee's networking journey belong in this drawer. Attendee photo or initials, name, company and chapter remain as non-navigation identity context at the top; Sign Out remains visually separated at the bottom.
+
+### Final menu inventory and rollout state
+
+The approved drawer inventory is fixed as follows. This is the display order; secondary and lifecycle-specific features such as Feed, Feedback, Summary, Tutorial, Install, About and Terms belong on Home, Profile or their contextual prompts—not in the primary drawer.
+
+| Order | Menu item | Destination / owner | Initial state |
+|---|---|---|---|
+| 1 | Home | Home / Dashboard (2.1, F3.2) | Available |
+| 2 | People to Meet | Matches (1.4, F2.3) | Planned |
+| 3 | Attendee Directory | `/directory` (2.2, F2.4) | Available |
+| 4 | My Connections | Connections (2.6, F4.3/F5.2) | Planned |
+| 5 | Leaderboard | Leaderboard (2.5, F6.2) | Planned |
+| 6 | My Profile | Settings / Profile (2.11, F4.1) | Planned |
+| 7 | Show My QR | Own-QR view (2.11, F4.1) | Planned |
+| Footer | Sign Out | `POST /auth/logout` | Available |
+
+**Development preview rule:** in local development, render the complete approved inventory so its hierarchy, labels, density and scrolling can be reviewed before the dependent screens ship. Items without a working route are non-interactive, carry a compact **Soon** label and expose `aria-disabled="true"`; they must not navigate to placeholder pages. In production, omit those planned items entirely until their owning feature is enabled. Lifecycle gates still apply after a feature ships.
+
+### Visibility and interaction rules
+
+- **Authenticated-only:** the attendee header and side menu render only after a valid attendee session has been established. They must never render on `/`, `/login`, `/login/verify`, expired-link/error states or any other public route. A client-side loading state must not briefly flash authenticated navigation before session verification completes.
+- **Focused onboarding:** `/onboarding` may have a valid attendee session, but deliberately omits the menu until the attendee completes or exits the required onboarding flow. Successful onboarding then enters the authenticated shell at Home.
+- **Session expiry:** if an API response establishes that the attendee session has expired, close the drawer, clear attendee navigation state and return to Login without leaving profile information visible in the shell.
+- **Context-aware outside the drawer:** the flat drawer inventory stays stable; Home and Profile surface pre-event install, event-day scan, feedback and post-event summary actions at the appropriate time.
+- **Capability-aware:** production shows a destination only when its feature and route are usable. Local development may show the finalized planned inventory in the documented disabled preview state.
+- **Offline-aware:** cached destinations remain tappable offline. Network-only actions explain that connectivity is required before navigation or submission.
+- **Accessible:** the drawer is a modal navigation region with an accessible name, focus trap, Escape/back-button close, focus returned to its trigger, 44px minimum targets and no background scrolling while open.
+- **One-handed:** it slides from the left, occupies at most 88% of a phone width, keeps Sign Out separated from ordinary destinations, and closes after navigation.
+- **Responsive:** phones and tablets use the drawer. The attendee PWA may render it as a compact persistent rail only at desktop widths; the organizer dashboard continues to use its own unrelated admin sidebar.
+- **State-preserving:** opening or closing the menu must not restart geolocation, clear scanner state, discard unsaved profile edits or trigger a page reload.
+
+### Navigation shell implementation
+
+Implement one shared authenticated attendee shell in `apps/web` containing the app header, side-menu drawer, offline/sync banner slot and main-content region. The shell is mounted only inside an authenticated attendee route group/layout; public auth pages and focused onboarding use separate layouts. Routes provide menu metadata (label, icon, availability and lifecycle visibility) from one typed configuration so every authenticated screen uses the same inventory.
+
+The shell initially wraps the existing Home route. F4.1 then supplies the real attendee identity/profile and own-QR content; subsequent features register their destinations as they ship. No new backend endpoint exists solely for the menu — it consumes attendee, event, feedback and sync state already required by the destination screens.
+
+**Acceptance criteria**
+- Menu opens and closes with touch, keyboard, Escape and Android/browser Back without navigating away.
+- Menu is absent before login, during session verification and throughout focused onboarding; it becomes available on Home only after successful authentication/onboarding routing.
+- Current destination is visibly and programmatically marked.
+- Only implemented, authorized and currently relevant items are shown.
+- Attendee identity has an initials fallback when the photo is unavailable.
+- Menu renders from cached attendee/event data and remains usable during a mid-session connection loss.
+- All drawer destinations are driven by one typed route configuration.
+- Layout is verified at 360px, 428px and 768px widths, including long attendee and company names.
+
+---
+
 ## Repository Structure
 
 Recommend a single monorepo (pnpm workspaces), since frontend and backend ship together for one pilot and share types (attendee shape, tag enums, API contracts):
@@ -102,15 +161,22 @@ rmb-event-app/
 Entities, in build order (matches the dependency chain in `FEATURES.md`):
 
 **Attendee**
-`id, name, email (unique), phone (unique), businessName, businessCategory (nullable), city (nullable), chapterId (nullable), photoUrl (nullable), qrToken (signed, unique), importRowFlag (nullable — mismatched-email etc.), createdAt`
+`id, name, email (unique), phone (unique), businessName, businessCategory (nullable), city (nullable), chapterId (nullable), tableNumber (nullable), photoUrl (nullable), qrToken (signed, unique), importRowFlag (nullable — mismatched-email etc.), createdAt`
 — no separate `industry` column: `businessCategory` is the only categorization field, avoiding two overlapping fields on the same form.
 — `city` and `businessCategory` are collected in profile setup (Screen 1.1) since the registration form doesn't capture them; the import maps them if a future file has City/Category columns.
+— dropdown option records are normalized reference data, while the pilot continues storing the selected canonical display value on `Attendee` to avoid a disruptive attendee-data migration. Profile writes validate both selections against active database options.
 
 **Profile** *(or merged into Attendee — separate only if profile completion needs its own timestamp/status)*
 `attendeeId, lookingFor[], offering[], goals[], bio, profileCompletedAt`
 
 **Chapter**
-`id, name` — seeded from the distinct values seen in the import; not user-creatable in the pilot admin.
+`id, name, active, sortOrder` — seeded from the distinct values seen in the import; not user-creatable in the pilot admin.
+
+**BusinessCategoryOption**
+`id, name (unique), active, sortOrder` — database-backed source for onboarding and directory dropdowns. The existing pilot taxonomy is seeded by migration; imported legacy values are preserved as options.
+
+**CityOption**
+`id, name, stateOrUt, active, sortOrder, unique(name, stateOrUt)` — a curated nationwide catalogue of major Indian cities across every state and union territory. The UI displays `City, State/UT` in the dropdown; legacy attendee city values are backfilled rather than discarded.
 
 **Event**
 `id, name, venueLat, venueLng, checkinRadiusM, startAt, endAt, feedbackPromptAt`
@@ -156,6 +222,8 @@ Grouped by NestJS module. All attendee-facing writes are idempotent (safe to ret
 **attendees / import** — *F1.1, F1.2, F2.4*
 `POST /admin/import` (upload + column mapping) · `GET /admin/import/:batchId` (status/report) · `GET /attendees/me` · `PATCH /attendees/me/profile` · `GET /attendees` (directory, filterable by businessCategory/chapter/company/checkedIn) · `GET /attendees/:id`
 
+For F2.4/F2.5, both directory endpoints require an attendee session. `GET /attendees` returns public directory-card fields plus check-in state and filter facets. Business category, city, and chapter facets come from their active database reference tables and therefore remain populated even when the attendee result set is empty; company and “No chapter” availability remain attendee-derived. `GET /attendees/:id` returns the detailed attendee profile but never `qrToken`. The client caches the last successful list and per-profile responses for mid-session offline access. Bookmark state is added by F5; match reasons are added only by the decoupled F2.1 service.
+
 **matching** — *F2.1, F2.2, F2.3*
 `GET /attendees/me/matches` (top-10 + reasons, cacheable/offline)
 
@@ -166,13 +234,13 @@ Grouped by NestJS module. All attendee-facing writes are idempotent (safe to ret
 `POST /meetings/scan` (the unified QR exchange — idempotent on the attendee pair) · `GET /attendees/me/connections` (met + bookmarked)
 
 **bookmarks** — *F5.1, F5.2*
-`POST /bookmarks` · `DELETE /bookmarks/:id` · `PATCH /bookmarks/:id/note`
+`GET /bookmarks` · `POST /bookmarks` (legacy toggle) · `PUT /bookmarks/:attendeeId` · `DELETE /bookmarks/:attendeeId`
 
 **leaderboard** — *F6.1, F6.2, F6.3*
 `GET /leaderboard` (top 20 + requester's own rank; polled every 5–10s)
 
 **feed** — *F7.1, F7.2, F7.3*
-`POST /feed/posts` (multipart photo upload) · `GET /feed/posts` · `DELETE /feed/posts/:id` (self or admin) · `POST /feed/posts/:id/like` · `POST /feed/posts/:id/comments`
+`POST /photos` (multipart photo upload) · `GET /photos` · `DELETE /photos/:id` (self) · `POST /photos/:id/like` · `POST /photos/:id/comments` · admin moderation under `/admin/photos`
 
 **feedback** — *F8.1, F8.2*
 `POST /feedback` · `GET /admin/feedback` (analytics + CSV export)
@@ -197,7 +265,7 @@ Mirrors `FEATURES.md`'s [Suggested Build Sequence](./FEATURES.md#suggested-build
 - Repo scaffolded, CI running lint/typecheck/build on every push
 - Postgres provisioned, Prisma schema drafted from the Data Model section, first migration committed
 - Design tokens ported from `DESIGN_SYSTEM.md` into a Tailwind config — unblocks every screen after
-- **PF1** ✅ · **PF2** ✅ · **PF5** · **PF4** · **PF6** (partial — extend rate limiting/CORS/validation past the auth endpoints)
+- **PF1** ✅ · **PF2** ✅ · **PF5** · **PF4** ✅ · **PF6** (partial — extend rate limiting/CORS/validation past the auth endpoints)
 - **Exit criteria:** an empty Next.js page and an empty NestJS `/health` endpoint both deployed to staging
 
 ### Days 3–6: F1 (Attendee Onboarding & Import) + PF3
@@ -205,12 +273,13 @@ Mirrors `FEATURES.md`'s [Suggested Build Sequence](./FEATURES.md#suggested-build
 - **Exit criteria:** a test attendee can be imported (behind admin login), open the generic app link, request a magic link by email, complete a profile, and install the PWA
 
 ### Days 7–11: F3 (Attendance & Check-In)
-- **F3.1** · **F3.2** · **F3.3** · **F3.4** · **F3.5**
-- **Exit criteria:** two test attendees can check in (one via geolocation, one manually), staff can QR-scan a badge at the desk, and the live dashboard shows a correct counter/method breakdown
+- **F3.1** ✅ · **F3.2** ✅ · **F3.3** ✅ · **F3.4** ✅ · **F3.5** ✅ — all five done, including offline queuing via PF4
+- **Exit criteria:** two test attendees can check in (one via geolocation, one manually), staff can QR-scan a badge at the desk, the live dashboard shows a correct counter/method breakdown, and all three still work with connectivity dropped mid-session (queued, synced on reconnect) — ✅ met
 
 ### Days 12–16: F4 (QR Exchange & Met Detection — the core loop)
-- **F4.1** · **F4.2** · **F4.3**
-- **Exit criteria:** two test attendees scan each other's QR, see the exchange confirmation, and a repeat scan is correctly rejected as a duplicate
+- Build the shared authenticated attendee navigation shell first (header, side menu and sync-banner slot), initially wrapping the existing Home route
+- **F4.1** · **F4.2** · **F4.3** — wire Profile/My QR, Scan and My Connections into the shared route configuration as each becomes usable
+- **Exit criteria:** the side menu is keyboard/touch accessible and lifecycle/capability-aware; two test attendees can scan each other's QR, see the exchange confirmation, and a repeat scan is correctly rejected as a duplicate
 
 ### Days 17–19: F6 (Leaderboard)
 - **F6.1** · **F6.2** · **F6.3**
@@ -232,7 +301,7 @@ Mirrors `FEATURES.md`'s [Suggested Build Sequence](./FEATURES.md#suggested-build
 - **F7.1** · **F7.2** · **F7.3** — per the PRD's own framing of this as secondary engagement
 
 ### Final buffer: Hardening & Pre-Event Validation
-See the [Runbook](#pre-event-event-day--post-event-runbook) below — this stretch is QA, device testing, and the venue dry run, not new features.
+See the [Runbook](#pre-event-event-day--post-event-runbook) below — this stretch is QA, device testing, and the venue dry run, not new features. Verify the final side-menu inventory against the features actually enabled in production so no hidden, disabled or unfinished destination reaches attendees.
 
 ---
 
