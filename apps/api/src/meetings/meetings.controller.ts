@@ -3,6 +3,8 @@ import { MeetingsService } from "./meetings.service";
 import { ScanDto } from "./dto/scan.dto";
 import { SessionGuard, RequestWithAttendee } from "../session/session.guard";
 import { UpdateConnectionNoteDto } from "./dto/update-connection-note.dto";
+import { RateLimit } from "../common/rate-limit/rate-limit.decorator";
+import { RateLimitGuard } from "../common/rate-limit/rate-limit.guard";
 
 @Controller("meetings")
 export class MeetingsController {
@@ -11,7 +13,8 @@ export class MeetingsController {
   // One scan = exchange cards + log a confirmed meeting (F4.2). Idempotent, so
   // the client can safely queue and replay it while offline (PF4).
   @Post("scan")
-  @UseGuards(SessionGuard)
+  @UseGuards(SessionGuard, RateLimitGuard)
+  @RateLimit(60)
   @HttpCode(HttpStatus.OK)
   scan(@Req() req: RequestWithAttendee, @Body() dto: ScanDto) {
     return this.meetings.scan(req.attendeeId, dto.qrToken);

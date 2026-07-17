@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { withCsrfHeaders } from "../lib/csrf";
 
 const TOOLS = [
   { href: "/admin/import", title: "Attendee Import", desc: "Upload the guest list (CSV / Excel)" },
@@ -102,7 +103,7 @@ export default function AdminHome() {
   async function signOut() {
     setSigningOut(true);
     try {
-      await fetch("/api/admin/auth/logout", { method: "POST", credentials: "include" });
+      await fetch("/api/admin/auth/logout", withCsrfHeaders({ method: "POST", credentials: "include" }));
     } finally {
       router.replace("/admin/login");
     }

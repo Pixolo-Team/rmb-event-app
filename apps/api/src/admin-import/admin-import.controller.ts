@@ -11,13 +11,16 @@ import type { Express } from "express";
 import { AdminGuard } from "../admin-auth/admin.guard";
 import { AdminImportService } from "./admin-import.service";
 import { ColumnMappingError } from "./column-mapper";
+import { RateLimit } from "../common/rate-limit/rate-limit.decorator";
+import { RateLimitGuard } from "../common/rate-limit/rate-limit.guard";
 
 @Controller("admin/import")
-@UseGuards(AdminGuard)
+@UseGuards(AdminGuard, RateLimitGuard)
 export class AdminImportController {
   constructor(private readonly adminImport: AdminImportService) {}
 
   @Post()
+  @RateLimit(10)
   @UseInterceptors(FileInterceptor("file"))
   async import(@UploadedFile() file?: Express.Multer.File) {
     if (!file) {

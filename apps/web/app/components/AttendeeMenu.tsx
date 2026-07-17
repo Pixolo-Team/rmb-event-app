@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
+import { withCsrfHeaders } from "../lib/csrf";
 
 export interface MenuAttendee {
   name: string;
@@ -120,7 +121,7 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
   async function signOut() {
     setSigningOut(true);
     try {
-      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+      await fetch("/api/auth/logout", withCsrfHeaders({ method: "POST", credentials: "include" }));
     } finally {
       removeMenuHistoryMarker();
       setOpen(false);

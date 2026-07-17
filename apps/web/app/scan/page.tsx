@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Html5Qrcode } from "html5-qrcode";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { enqueueWrite, useOfflineSync } from "../lib/offlineQueue";
+import { withCsrfHeaders } from "../lib/csrf";
 
 type ScanApiResult =
   | { status: "not_found" }
@@ -43,12 +44,12 @@ export default function ScanPage() {
           showResult({ kind: "offline" });
           return;
         }
-        const res = await fetch("/api/meetings/scan", {
+        const res = await fetch("/api/meetings/scan", withCsrfHeaders({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({ qrToken }),
-        });
+        }));
         if (!res.ok) throw new Error("scan failed");
         const data = (await res.json()) as ScanApiResult;
         if (data.status === "self") showResult({ kind: "self" });

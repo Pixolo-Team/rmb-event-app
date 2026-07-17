@@ -4,19 +4,23 @@ import { GeolocationCheckinDto } from "./dto/geolocation-checkin.dto";
 import { QrScanCheckinDto } from "./dto/qr-scan-checkin.dto";
 import { SessionGuard, RequestWithAttendee } from "../session/session.guard";
 import { AdminGuard } from "../admin-auth/admin.guard";
+import { RateLimit } from "../common/rate-limit/rate-limit.decorator";
+import { RateLimitGuard } from "../common/rate-limit/rate-limit.guard";
 
 @Controller()
 export class CheckinController {
   constructor(private readonly checkin: CheckinService) {}
 
   @Post("checkin/geolocation")
-  @UseGuards(SessionGuard)
+  @UseGuards(SessionGuard, RateLimitGuard)
+  @RateLimit(20)
   async geolocation(@Req() req: RequestWithAttendee, @Body() dto: GeolocationCheckinDto) {
     return this.checkin.checkInByGeolocation(req.attendeeId, dto.lat, dto.lng);
   }
 
   @Post("checkin/manual")
-  @UseGuards(SessionGuard)
+  @UseGuards(SessionGuard, RateLimitGuard)
+  @RateLimit(20)
   async manual(@Req() req: RequestWithAttendee) {
     return this.checkin.checkInManual(req.attendeeId);
   }
@@ -28,7 +32,8 @@ export class CheckinController {
   }
 
   @Post("admin/checkin/qr-scan")
-  @UseGuards(AdminGuard)
+  @UseGuards(AdminGuard, RateLimitGuard)
+  @RateLimit(120)
   async qrScan(@Body() dto: QrScanCheckinDto) {
     return this.checkin.checkInByStaffQrScan(dto.qrToken);
   }

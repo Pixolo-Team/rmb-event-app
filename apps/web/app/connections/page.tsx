@@ -7,6 +7,7 @@ import { DirectoryAvatar } from "../components/DirectoryAvatar";
 import { BookmarkConnection, Connection, ConnectionsResponse, connectionsCache } from "../lib/connectionsCache";
 import { SaveContactButton } from "../components/SaveContactButton";
 import { BookmarkButton } from "../components/BookmarkButton";
+import { withCsrfHeaders } from "../lib/csrf";
 
 type SortOption = "recent" | "name";
 
@@ -118,7 +119,7 @@ function ConnectionCard({ connection, offline, onNote, onRemove }: { connection:
     setSaving(true);
     setMessage("");
     try {
-      const response = await fetch(`/api/attendees/me/connections/${connection.id}/note`, { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note }) });
+      const response = await fetch(`/api/attendees/me/connections/${connection.id}/note`, withCsrfHeaders({ method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note }) }));
       if (!response.ok) throw new Error();
       const result = await response.json() as { note: string };
       setNote(result.note);
@@ -132,7 +133,7 @@ function ConnectionCard({ connection, offline, onNote, onRemove }: { connection:
     if (!window.confirm(`Remove ${connection.name} from My Connections? Your confirmed meeting will remain in event statistics.`)) return;
     setMessage("");
     try {
-      const response = await fetch(`/api/attendees/me/connections/${connection.id}`, { method: "DELETE", credentials: "include" });
+      const response = await fetch(`/api/attendees/me/connections/${connection.id}`, withCsrfHeaders({ method: "DELETE", credentials: "include" }));
       if (!response.ok) throw new Error();
       onRemove();
     } catch { setMessage("Couldn’t remove this connection. Try again when online."); }

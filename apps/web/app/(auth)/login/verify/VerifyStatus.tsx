@@ -2,18 +2,19 @@
 
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { withCsrfHeaders } from "../../../../lib/csrf";
 
 const inFlightVerifications = new Map<string, Promise<Response>>();
 
 function verifyOnce(token: string): Promise<Response> {
   let request = inFlightVerifications.get(token);
   if (!request) {
-    request = fetch("/api/auth/magic-link/verify", {
+    request = fetch("/api/auth/magic-link/verify", withCsrfHeaders({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token }),
       credentials: "include",
-    });
+    }));
     inFlightVerifications.set(token, request);
   }
   return request;

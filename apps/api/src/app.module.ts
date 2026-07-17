@@ -1,4 +1,6 @@
 import { Module } from "@nestjs/common";
+import { APP_GUARD } from "@nestjs/core";
+import { CsrfGuard } from "./common/csrf/csrf.guard";
 import { PrismaModule } from "./prisma/prisma.module";
 import { MailModule } from "./mail/mail.module";
 import { WhatsAppModule } from "./whatsapp/whatsapp.module";
@@ -43,5 +45,11 @@ import { FeedbackModule } from "./feedback/feedback.module";
     FeedbackModule,
   ],
   controllers: [AppController],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: CsrfGuard,
+    },
+  ],
 })
 export class AppModule {}

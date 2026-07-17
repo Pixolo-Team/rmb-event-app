@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { withCsrfHeaders } from "../../../lib/csrf";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -15,11 +16,11 @@ export function LoginForm() {
     setDevLink(null);
 
     try {
-      const response = await fetch("/api/auth/magic-link", {
+      const response = await fetch("/api/auth/magic-link", withCsrfHeaders({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
-      });
+      }));
 
       const body = await response.json();
       const bodyMessage = Array.isArray(body.message) ? body.message.join(" ") : body.message;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { withCsrfHeaders } from "../../../lib/csrf";
 
 type RowStatus = "OK" | "DUPLICATE" | "ERROR" | "FLAGGED";
 
@@ -49,7 +50,7 @@ export default function AdminImportPage() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/admin/import", { method: "POST", body: formData });
+      const res = await fetch("/api/admin/import", withCsrfHeaders({ method: "POST", body: formData }));
       const body = await res.json();
 
       if (!res.ok) {
