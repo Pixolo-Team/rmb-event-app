@@ -5,6 +5,7 @@ import QRCode from "qrcode";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { ContactRows } from "../components/ContactRows";
 import { PersonalStats } from "../components/PersonalStats";
+import { PhotoUploadModal } from "../components/PhotoUploadModal";
 import { profileCache, type MyProfile } from "../lib/profileCache";
 
 export default function ProfilePage() {
@@ -12,6 +13,36 @@ export default function ProfilePage() {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [enlarged, setEnlarged] = useState(false);
   const [offline, setOffline] = useState(false);
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
+
+  const handlePhotoUpload = async (file: File) => {
+    setPhotoUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("photo", file);
+
+      const res = await fetch("/api/attendees/me/photo", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("Upload failed");
+
+      const data = await res.json() as { status: string; photoUrl: string };
+      setProfile((prev) => (prev ? { ...prev, photoUrl: data.photoUrl } : null));
+      profileCache.set({
+        ...profile!,
+        photoUrl: data.photoUrl,
+      });
+    } catch (error) {
+      console.error("Photo upload error:", error);
+      throw error;
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
 
   // Cache-first so the screen (and QR) appear instantly and work offline, then
   // refresh from the network when reachable.
@@ -69,14 +100,32 @@ export default function ProfilePage() {
 
             <section className="qr-card">
               <p className="qr-eyebrow">Your business card</p>
-              {qrDataUrl ? (
-                <button className="qr-frame" type="button" onClick={() => setEnlarged(true)} aria-label="Enlarge your QR code">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={qrDataUrl} alt="Your personal QR code" />
-                </button>
-              ) : (
-                <div className="qr-frame qr-frame-placeholder" role="status">Preparing your QR…</div>
-              )}
+              <div className="qr-card-container">
+                <div className="qr-with-photo">
+                  {profile.photoUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={profile.photoUrl} alt={profile.name} className="profile-photo" />
+                  )}
+                  {!profile.photoUrl && <div className="profile-photo-placeholder">{getInitials(profile.name)}</div>}
+                  <button
+                    className="photo-add-button"
+                    type="button"
+                    onClick={() => setPhotoModalOpen(true)}
+                    aria-label="Add or change photo"
+                    title="Add or change photo"
+                  >
+                    +
+                  </button>
+                </div>
+                {qrDataUrl ? (
+                  <button className="qr-frame" type="button" onClick={() => setEnlarged(true)} aria-label="Enlarge your QR code">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={qrDataUrl} alt="Your personal QR code" />
+                  </button>
+                ) : (
+                  <div className="qr-frame qr-frame-placeholder" role="status">Preparing your QR…</div>
+                )}
+              </div>
               <p className="qr-name">{profile.name}</p>
               {profile.businessName && <p className="qr-sub">{profile.businessName}</p>}
               <p className="qr-hint">Tap the code to enlarge it for scanning</p>
@@ -122,8 +171,20 @@ export default function ProfilePage() {
           <button className="qr-fullscreen-close" type="button" aria-label="Close">Tap anywhere to close</button>
         </div>
       )}
+
+      <PhotoUploadModal
+        isOpen={photoModalOpen}
+        onClose={() => setPhotoModalOpen(false)}
+        onPhotoUpload={handlePhotoUpload}
+        isLoading={photoUploading}
+      />
     </AttendeePageShell>
   );
+}
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("") || "EV";
 }
 
 function ProfileSection({ title, children }: { title: string; children: React.ReactNode }) {
