@@ -282,7 +282,7 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
 | F11.1 | Attendee personal stats (people met, rank, bookmarks, photos, time at event) | Part of Home/Settings | P1 | Yes (cached) | F4.3, F6.1 | ✅ Done |
-| F11.2 | Admin analytics overview dashboard (check-ins, meetings, avg/attendee, engagement %, time-series) | Screen 3.2 | P1 | No | F3.4, F4.2, F6.1, F8.1 | ⬜ Not started |
+| F11.2 | Admin analytics overview dashboard (check-ins, meetings, avg/attendee, engagement %, time-series) | Screen 3.2 | P1 | No | F3.4, F4.2, F6.1, F8.1 | ✅ Done |
 | F11.3 | Admin analytics export (CSV/PDF for stakeholder/sponsor reporting) | Part of Screen 3.2 | P1 | No | F11.2 | ⬜ Not started |
 
 **F11.1 build notes:**
@@ -290,6 +290,11 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 - Rather than freezing a duration server-side, the endpoint returns `checkedInAt`, `checkInMethod` and `eventEndAt`; the client computes *time at event* as `min(now, eventEndAt) − checkedInAt` and ticks it live once a minute, so a cached response keeps counting correctly while offline. Not-yet-checked-in attendees get a `null` `checkedInAt` and the tile reads "Not checked in yet"; rank for a not-checked-in attendee falls through to `totalRanked + 1` via the leaderboard service.
 - Surfaced on the Settings surface (Screen 2.11, `/profile`) as a "Your stats" section — the profile page already owns the authenticated cache-first/offline-tolerant pattern, so stats reuse it. A new `apps/web/app/lib/statsCache.ts` caches the last successful response in `localStorage`; the section renders from cache instantly, refreshes from the network when reachable, and stays visible (with the live timer running) when the API is unreachable. `LeaderboardService` is now exported from `LeaderboardModule` for this reuse.
 - Not built here: F11.2/F11.3 (organizer-facing analytics) — attendee-facing stats only.
+
+**F11.2 build notes:**
+- `GET /admin/analytics` (same [stats.service.ts](../apps/api/src/stats/stats.service.ts) module, behind `AdminGuard`) aggregates the organizer dashboard in one response: attendance totals + method breakdown, confirmed meeting count, average meetings per checked-in attendee, networking engagement percentage (checked-in attendees who have logged at least one meeting), photo/like totals, feedback average/response count, top connectors from the existing leaderboard snapshot, and an hourly check-in/meeting time series for the last 8 hours.
+- `/admin` is now the live Screen 3.2 overview rather than just a link hub. It auto-refreshes every 30 seconds, caches the most recent successful payload in `localStorage`, and shows that cached snapshot with an "Offline cache" badge if the organizer loses connectivity. Existing admin tools remain available lower on the page, so drill-down routes like Check-In and Feedback stay one tap away.
+- Assumption used for this first build: the spec's singular "engagement %" is the clearest currently-supported organizer metric when defined as **checked-in attendees with at least one confirmed meeting / checked-in attendees**. F11.3 export can reuse the same server aggregate later.
 
 ---
 
