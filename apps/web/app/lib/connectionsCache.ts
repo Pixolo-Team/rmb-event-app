@@ -8,6 +8,8 @@ export type Connection = {
   bio: string | null;
   tableNumber: string | null;
   photoUrl: string | null;
+  linkedInUrl: string | null;
+  met: boolean;
   metAt: string;
   note: string;
 };

@@ -62,14 +62,17 @@ export function FeedView({
   photos,
   setPhotos,
   composerRequestKey = 0,
+  demoMode = false,
 }: {
   attendee: AttendeeMe;
   photos: FeedPhotoData[];
   setPhotos: Dispatch<SetStateAction<FeedPhotoData[]>>;
   composerRequestKey?: number;
+  demoMode?: boolean;
 }) {
+  const localMode = TEMP_BYPASS_LOGIN || demoMode;
   const [feedState, setFeedState] = useState<"loading" | "ready" | "error">(
-    TEMP_BYPASS_LOGIN ? "ready" : "loading",
+    localMode ? "ready" : "loading",
   );
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -116,7 +119,10 @@ export function FeedView({
   }, [composerOpen, enlargedPhotoId]);
 
   useEffect(() => {
-    if (TEMP_BYPASS_LOGIN) return;
+    if (localMode) {
+      setFeedState("ready");
+      return;
+    }
 
     let cancelled = false;
     async function load() {
@@ -141,7 +147,7 @@ export function FeedView({
     return () => {
       cancelled = true;
     };
-  }, [setPhotos]);
+  }, [localMode, setPhotos]);
 
   useEffect(() => {
     if (composerRequestKey > 0) {
@@ -180,7 +186,7 @@ export function FeedView({
     }
     setComposerError(null);
 
-    if (TEMP_BYPASS_LOGIN) {
+    if (localMode) {
       const newPhoto: FeedPhotoData = {
         id: `demo-photo-${Date.now()}`,
         url: URL.createObjectURL(selectedFile),
@@ -217,7 +223,7 @@ export function FeedView({
   }
 
   async function handleToggleLike(photo: FeedPhotoData) {
-    if (TEMP_BYPASS_LOGIN) {
+    if (localMode) {
       setPhotos((current) =>
         current.map((item) =>
           item.id === photo.id
@@ -260,7 +266,7 @@ export function FeedView({
     const message = (commentDrafts[photoId] ?? "").trim();
     if (!message) return;
 
-    if (TEMP_BYPASS_LOGIN) {
+    if (localMode) {
       const newComment: FeedCommentData = {
         id: `demo-comment-${Date.now()}`,
         name: attendee.name,
@@ -310,7 +316,7 @@ export function FeedView({
     if (typeof window !== "undefined" && !window.confirm("Delete this photo?")) return;
     setOpenMenuId(null);
 
-    if (TEMP_BYPASS_LOGIN) {
+    if (localMode) {
       setPhotos((current) => current.filter((item) => item.id !== photoId));
       if (enlargedPhotoId === photoId) setEnlargedPhotoId(null);
       return;
@@ -404,7 +410,7 @@ export function FeedView({
             ))
           : null}
 
-        {!TEMP_BYPASS_LOGIN && nextCursor ? (
+        {!localMode && nextCursor ? (
           <button className="btn-primary" type="button" disabled={loadingMore} onClick={handleLoadMore}>
             {loadingMore ? "Loading..." : "Load more"}
           </button>
