@@ -7,7 +7,7 @@ import { AttendeeCard } from "./AttendeeCard";
 import { FullProfileModal } from "./FullProfileModal";
 import { ProfileView } from "./ProfileView";
 import { AddPostIcon, BookmarkTabIcon, HomeIcon, PeopleIcon, ProfileIcon } from "./icons";
-import { withCsrfHeaders } from "../../../lib/csrf";
+import { withCsrfHeaders } from "../../lib/csrf";
 
 type AppView = "posts" | "people" | "wantToMeet" | "profile";
 

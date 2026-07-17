@@ -1,4 +1,5 @@
-import { IsInt, IsOptional, IsString, Max, Min, Type } from 'class-validator';
+import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { Type } from 'class-transformer';
 
 /** DTO for GET /photos (feed) query parameters */
 export class ListPhotosQueryDto {

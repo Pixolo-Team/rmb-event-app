@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { usePwaInstall } from "./usePwaInstall";
-import { withCsrfHeaders } from "../../../lib/csrf";
+import { withCsrfHeaders } from "../../lib/csrf";
 
 type Step = "loading" | "form" | "install" | "thanks";
 

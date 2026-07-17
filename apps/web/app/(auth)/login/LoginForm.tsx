@@ -1,11 +1,19 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { withCsrfHeaders } from "../../../lib/csrf";
+import { FormEvent, useEffect, useState } from "react";
+import { withCsrfHeaders, getCsrfToken } from "../../lib/csrf";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "rate-limited" | "error">("idle");
+
+  // Ensure the CSRF cookie exists before the user's first POST.
+  // The cookie is set by API middleware, so we need at least one API round-trip.
+  useEffect(() => {
+    if (!getCsrfToken()) {
+      fetch("/api/attendees/profile-options").catch(() => {});
+    }
+  }, []);
   const [message, setMessage] = useState<string | null>(null);
   const [devLink, setDevLink] = useState<string | null>(null);
 

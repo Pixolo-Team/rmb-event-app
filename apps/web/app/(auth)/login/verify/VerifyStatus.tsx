@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { withCsrfHeaders } from "../../../../lib/csrf";
+import { withCsrfHeaders } from "../../../lib/csrf";
 
 const inFlightVerifications = new Map<string, Promise<Response>>();
 
