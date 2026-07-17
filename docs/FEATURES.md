@@ -283,7 +283,7 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 |---|---|---|---|---|---|---|
 | F11.1 | Attendee personal stats (people met, rank, bookmarks, photos, time at event) | Part of Home/Settings | P1 | Yes (cached) | F4.3, F6.1 | ✅ Done |
 | F11.2 | Admin analytics overview dashboard (check-ins, meetings, avg/attendee, engagement %, time-series) | Screen 3.2 | P1 | No | F3.4, F4.2, F6.1, F8.1 | ✅ Done |
-| F11.3 | Admin analytics export (CSV/PDF for stakeholder/sponsor reporting) | Part of Screen 3.2 | P1 | No | F11.2 | ⬜ Not started |
+| F11.3 | Admin analytics export (CSV/PDF for stakeholder/sponsor reporting) | Part of Screen 3.2 | P1 | No | F11.2 | ✅ Done |
 
 **F11.1 build notes:**
 - Authenticated `GET /attendees/me/stats` ([stats.service.ts](../apps/api/src/stats/stats.service.ts)) aggregates the five personal figures in one round-trip: **people met** (confirmed `Meeting` pairs the attendee is part of, counted identically to the leaderboard so the two never disagree), **rank** + **totalRanked** (delegated to `LeaderboardService.getForAttendee` — reuses its tie-aware ranking and 5-second cache rather than re-deriving it), **bookmarks** (`Bookmark` count), **photos** (live `Photo` count for the attendee — hard deletes drop out, so it always matches what the feed shows), and the **check-in timestamp/method + event end** used to render *time at event*.
@@ -295,6 +295,11 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 - `GET /admin/analytics` (same [stats.service.ts](../apps/api/src/stats/stats.service.ts) module, behind `AdminGuard`) aggregates the organizer dashboard in one response: attendance totals + method breakdown, confirmed meeting count, average meetings per checked-in attendee, networking engagement percentage (checked-in attendees who have logged at least one meeting), photo/like totals, feedback average/response count, top connectors from the existing leaderboard snapshot, and an hourly check-in/meeting time series for the last 8 hours.
 - `/admin` is now the live Screen 3.2 overview rather than just a link hub. It auto-refreshes every 30 seconds, caches the most recent successful payload in `localStorage`, and shows that cached snapshot with an "Offline cache" badge if the organizer loses connectivity. Existing admin tools remain available lower on the page, so drill-down routes like Check-In and Feedback stay one tap away.
 - Assumption used for this first build: the spec's singular "engagement %" is the clearest currently-supported organizer metric when defined as **checked-in attendees with at least one confirmed meeting / checked-in attendees**. F11.3 export can reuse the same server aggregate later.
+
+**F11.3 build notes:**
+- `GET /admin/analytics/export?format=csv|pdf` now reuses the exact F11.2 organizer aggregate so the on-screen dashboard and exported report never drift. CSV includes the event snapshot, key metrics, check-in method breakdown, top connectors, and the same 8-hour time-series rows that power the dashboard.
+- The PDF export is generated server-side as a lightweight single-file report for stakeholder/sponsor sharing, with the same metrics laid out as a readable summary rather than requiring the organizer to print the browser view.
+- `/admin` now exposes both export actions directly in the header, keeping F11.3 inside Screen 3.2 as scoped in the PRD.
 
 ---
 
