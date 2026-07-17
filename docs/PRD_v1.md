@@ -152,8 +152,9 @@ Acceptance Criteria:
 - Columns: name (required), email (required), phone (required), business/profession
   name (required), RMB chapter (optional — attendee may not be an RMB member),
   photo (optional — URL/file reference; falls back to initials avatar if missing),
-  city (optional) and business category (optional — both are asked during profile
-  setup when not present in the import file)
+  city (optional), business category (optional), LinkedIn URL (optional) and
+  website URL (optional — all four are asked during profile setup when not present
+  in the import file)
 - Source is the organizer's own registration form (observed as a Google Form export:
   Timestamp, Email Address ×2 [Google-account-captured + form-question field — use the
   form-question value as canonical, flag mismatches for admin review], Full Name,
@@ -193,8 +194,9 @@ I want to tap the group link, sign in with my email, and answer a few quick ques
 So that I can get personalized match suggestions and not have to install an app first
 Acceptance Criteria:
 - Profile form opens in a mobile web view (does not require app install yet)
-- Fields: business category (database-backed dropdown — e.g., Manufacturer, Trader/Distributor, Service Provider, Retailer, Professional), city (searchable database-backed picker using `City, State/UT`), looking for (multi-select dropdown, shared business-type taxonomy — e.g. Real Estate Builders, Interior Designer, Digital Marketing), offering (multi-select dropdown, same taxonomy as looking for), goals (multi-select), optional free-text bio. No separate "industry" field — business category is the only categorization field, and looking-for/offering tags carry the business-type detail so nothing is asked twice.
-- Form is under a minute to complete (5–6 fields) — name, email, phone, business/profession name, chapter and photo are already known from registration and are pre-filled/read-only, not re-asked. City and business category are asked here because the registration form does not capture them (if a future import file includes City/Category columns, they are imported and pre-filled instead)
+- Fields: business category (database-backed dropdown — e.g., Manufacturer, Trader/Distributor, Service Provider, Retailer, Professional), city (searchable database-backed picker using `City, State/UT`), looking for (multi-select dropdown, shared business-type taxonomy — e.g. Real Estate Builders, Interior Designer, Digital Marketing), offering (multi-select dropdown, same taxonomy as looking for), goals (multi-select), optional free-text bio, optional LinkedIn URL, optional website URL (see US1.6). No separate "industry" field — business category is the only categorization field, and looking-for/offering tags carry the business-type detail so nothing is asked twice.
+- Form is under a minute to complete — 5–6 required-path fields plus up to three optional ones (bio, LinkedIn, website), which an attendee can leave untouched and submit past. Name, email, phone, business/profession name, chapter and photo are already known from registration and are pre-filled/read-only, not re-asked. City, business category, LinkedIn and website are asked here because the registration form does not capture them (if a future import file includes City/Category/LinkedIn/Website columns, they are imported and pre-filled instead)
+- The optional link fields are visually subordinate to the required ones (grouped last, under a "Add your links (optional)" heading) so they never read as blockers on the under-a-minute path
 - Validation: phone number and email already in system (auto-filled), name is required
 - After completion, user sees: "Great! Get suggestions by installing the app" → PWA install prompt
 - Profile is saved even if attendee doesn't install PWA
@@ -238,6 +240,38 @@ Acceptance Criteria:
   link only ever reaches the address on file, never whoever typed it in
 - Staff-assisted lookup (via admin Check-In Management) is the only fallback,
   for an attendee with no working access to email at the venue
+```
+
+**US1.6 - Attendee shares their LinkedIn and website** *(added UX revision v1.1 — builds as F4.7)*
+```
+As Radha (attendee)
+I want to add my LinkedIn profile and my business website to my card
+So that the people I meet can look me up properly instead of only having my phone number
+Acceptance Criteria:
+- Two new optional fields on the attendee record: LinkedIn URL and website URL.
+  Both are optional everywhere they appear — onboarding (US1.3), Edit Profile
+  (F4.5) and CSV import (US1.1). A profile with neither is complete and valid,
+  and nothing in the app gates on them
+- Enterable in three places: profile setup (Screen 1.1), Edit Profile
+  (Screen 2.11a), and optional import column mapping. Neither field is ever
+  required to submit any of those three
+- Validation on save: must be a syntactically valid http/https URL; a bare host
+  ("acme.in", "linkedin.com/in/radha") is accepted and normalized to https://.
+  LinkedIn additionally must be a linkedin.com host — anything else is rejected
+  inline with "That doesn't look like a LinkedIn URL". Invalid input blocks save
+  on that field only; it never discards the rest of the form
+- Non-empty values are stored normalized (scheme included, whitespace trimmed) so
+  a stored value is always safe to render as a link
+- Displayed on the attendee's own card (Screen 2.11) and on other attendees'
+  profiles (Screen 2.3) as a tap action opening the link in a new tab; the
+  affordance is **absent, not disabled**, when the field is empty — an empty link
+  must never render as a dead control
+- Included in the connections CSV export and the vCard export (US9.1/US10.1), so a
+  saved contact carries both links into the phone's address book
+- Both fields are attendee-owned data, editable by the attendee at any time —
+  unlike name/phone/email, they are not organizer-controlled registered details
+- Out of scope: no verification that the URL resolves, no LinkedIn API, no
+  profile scraping, no link preview/unfurling — the pilot stores and links out
 ```
 
 ---
@@ -402,6 +436,40 @@ Acceptance Criteria:
 - List of not-yet-checked-in attendees
 - Admin can copy the not-yet-checked-in list (names/phones) to nudge them manually in the WhatsApp group — no system-sent reminders (no WhatsApp vendor)
 - Check-in timeline chart: graph of check-ins over time (optional)
+```
+
+**US3.5 - Home is the hub for the whole event, not just for checking in** *(added UX revision v1.1 — builds as F3.6)*
+```
+As Radha (attendee)
+I want Home to show me what matters right now — where my table is, who I should meet,
+how I'm doing — and not just the check-in receipt I already used hours ago
+So that the app stays useful for the seven hours after I walk in, not the first ninety seconds
+Acceptance Criteria:
+- Home renders one of four modes, chosen from event start/end time and check-in state:
+  pre-event · arrival · checked-in dashboard · event ended
+- BEFORE THE EVENT (now < startAt): Home shows a countdown, the event name/venue, and links
+  to browse who's coming and see match suggestions. It does NOT request geolocation, does NOT
+  attempt check-in, and shows no warning tone. (Today Home has no start-time guard, so every
+  attendee who opens the group link ~5 days early sees a false "Not checked in — Outside
+  venue area" warning. This criterion is the fix.)
+- ON EVENT DAY, NOT CHECKED IN: unchanged from US3.1/US3.1A — the full-page arrival flow
+- ONCE CHECKED IN: Home becomes a dashboard carrying, in order — a compact check-in strip,
+  table number (when assigned), a prominent "Scan to connect" action, three stats
+  (people met, leaderboard rank, time at event), and a 2-3 person "people to meet" preview
+- The check-in strip expands back to the full-page "show this at the registration counter"
+  view on tap — shrinking the receipt must not cost the attendee the thing they show staff
+- AFTER THE EVENT (now >= endAt): check-in affordances disappear; Home offers the event summary
+- Bookmarks count and photos-posted are deliberately NOT on Home: they don't prompt an action,
+  and bookmarks duplicates the Want-to-Meet tab (US12.1) — each destination lives in one place
+- Home presents data, not a launcher: it never duplicates a bottom-tab destination as a button
+- Every mode works offline from cached data; a mode is never chosen from a failed request
+- Nothing renders as an empty placeholder: no table number, no matches, or no meetings yet each
+  omit the element or show its own prompt ("No meetings yet. Start scanning!")
+Technical Details:
+- GET /event must return startAt/endAt/name (it currently returns only venue lat/lng/radius).
+  These aren't sensitive and are cached client-side per the offline architecture, so mode
+  selection keeps working with no connectivity
+- Stats reuse the existing cached attendee-stats endpoint (US11.1); no new aggregate
 ```
 
 ---
@@ -671,7 +739,9 @@ Acceptance Criteria:
 - Stats: "You met 7 people", "You collected 7 cards", "Your rank: 14th"
 - Top 5 connections list: name, company, phone, table number
 - "View all connections" link opens full list
-- "Download connections" button exports as CSV or vCard (for importing to contacts)
+- "Download connections" button exports as CSV or vCard (for importing to contacts).
+  The CSV carries LinkedIn and website columns (US1.6) — empty for connections who
+  didn't add them
 - Attendee can share summary to WhatsApp
 ```
 
@@ -706,7 +776,9 @@ I want to save any connection's details to my phone's contacts app
 So that I can call or message them after the event without opening Evento
 Acceptance Criteria:
 - "Save to contacts" button on every connection card
-- Tapping generates a vCard (.vcf) with: name, company, phone, email (if available)
+- Tapping generates a vCard (.vcf) with: name, company, phone, email (if available),
+  and LinkedIn/website as `URL` properties when the connection has them (US1.6) —
+  omitted entirely rather than written empty when they don't
 - vCard is passed to native contact picker or auto-imported
 - If contact already exists, show: "Contact exists. Update?" option
 - Confirmation: "Saved to contacts as Deepak Sharma"
@@ -759,28 +831,31 @@ Acceptance Criteria:
 
 ### Cross-Cutting Feature 12: Authenticated Attendee Navigation
 
-**Description:** A consistent, low-friction navigation shell for the attendee PWA. The pilot uses one left slide-over drawer rather than duplicating destinations in a bottom-tab bar.
+**Description:** A consistent, low-friction navigation shell for the attendee PWA: a **persistent bottom tab bar** for the four primary destinations, plus a left slide-over drawer for lower-frequency ones.
+
+> **Revised (UX revision v1.1).** This feature previously specified a drawer *only*, with the explicit criterion "No persistent attendee bottom-tab bar in the pilot", on the rationale that two navigation systems duplicate destinations and consume vertical space. That decision is **reversed**: bottom tabs are the current convention for this app category, and the four primary destinations are used constantly during the event, where a two-tap drawer is friction at the wrong moment. The duplication concern is answered by strict separation — **every destination lives in exactly one of the two systems, never both.** Owning build unit: PF7.1 in `FEATURES.md`.
 
 **US12.1 - Attendee navigates the app after login**
 ```
 As Radha (attendee)
-I want one simple menu containing the important networking destinations
-So that I can move around the event app without learning multiple navigation systems
+I want the destinations I use constantly to be one tap away, and the rest tucked out of the way
+So that I can move around the event app without hunting through a menu mid-conversation
 Acceptance Criteria:
-- Menu renders only after a valid attendee session and completed required onboarding
+- Navigation renders only after a valid attendee session and completed required onboarding
 - It never renders on Login, magic-link verification, expired-link/error or focused onboarding screens, including while session verification is loading
+- Bottom tab bar is persistent and holds exactly four primary destinations, ordered:
+  Home, People, Want to Meet, Profile
+- Each tab has a 44×44px minimum touch target, an icon plus a short label, and respects the device safe-area inset
+- The drawer holds only secondary destinations — Leaderboard, Event Summary, Give Feedback, Event Photos, Show My QR — with Sign Out visually separated at the bottom
+- No destination appears in both the tab bar and the drawer
 - Header shows a 44×44px menu trigger; drawer slides from the left and occupies at most 88% of a phone width / 360px
-- One flat list with no main/submenu hierarchy or section headings, ordered:
-  Home, People to Meet, Attendee Directory, My Connections, Leaderboard, My Profile, Show My QR
-- Sign Out is visually separated at the bottom and clears the secure attendee session
-- Scan QR remains a prominent contextual action on Home/networking screens, not a permanent navigation item
-- Feed, Feedback, Summary, Tutorial, Install, About and Terms are surfaced contextually from Home/Profile rather than added to the primary drawer
-- Current destination is visibly highlighted and programmatically marked
-- Close works through the close button, backdrop, Escape and Android/browser Back without leaving the current screen
+- Scan QR is reachable in one tap from the primary navigation (proposed: a center FAB in the tab bar — OPEN, pending confirmation)
+- Current destination is visibly highlighted and programmatically marked in whichever system owns it
+- Drawer close works through the close button, backdrop, Escape and Android/browser Back without leaving the current screen
 - Drawer traps focus while open, restores focus to its trigger, locks background scrolling and respects reduced motion
-- Drawer uses cached attendee identity offline; missing photos fall back to initials
+- Navigation uses cached attendee identity offline; missing photos fall back to initials
 - Production hides destinations until their feature route works; local development may show them disabled with a clear "Soon" label and no placeholder navigation
-- No persistent attendee bottom-tab bar in the pilot
+- Tabs do not obscure page content: scrollable screens reserve bottom padding equal to the bar height
 ```
 
 ---
@@ -1191,7 +1266,7 @@ Mapping original sticky-note brainstorm to decisions in this PRD, for transparen
 
 ✓ Attendee import & auto-generate QR  
 ✓ Group-link onboarding flow (admin posts sign-up link in WhatsApp group; email magic-link login)  
-✓ Profile setup (structured tags + free text)  
+✓ Profile setup (structured tags + free text + optional LinkedIn/website links)  
 ✓ Rule-based attendee matching  
 ✓ Leaderboard & met counter  
 ✓ QR scan to exchange cards + log meeting  

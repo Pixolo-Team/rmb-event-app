@@ -3,6 +3,7 @@ import { CheckinService } from "./checkin.service";
 import { GeolocationCheckinDto } from "./dto/geolocation-checkin.dto";
 import { QrScanCheckinDto } from "./dto/qr-scan-checkin.dto";
 import { SessionGuard, RequestWithAttendee } from "../session/session.guard";
+import { AdminGuard } from "../admin-auth/admin.guard";
 
 @Controller()
 export class CheckinController {
@@ -26,14 +27,14 @@ export class CheckinController {
     return this.checkin.getMyStatus(req.attendeeId);
   }
 
-  // Not yet behind an admin login gate — see PF3 (Admin Login) in FEATURES.md,
-  // same known gap as /admin/import.
   @Post("admin/checkin/qr-scan")
+  @UseGuards(AdminGuard)
   async qrScan(@Body() dto: QrScanCheckinDto) {
     return this.checkin.checkInByStaffQrScan(dto.qrToken);
   }
 
   @Get("admin/checkin/status")
+  @UseGuards(AdminGuard)
   async status() {
     return this.checkin.getAdminStatus();
   }

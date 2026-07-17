@@ -8,6 +8,10 @@ export interface DirectoryAttendee {
   tableNumber: string | null;
   chapterName: string | null;
   checkedIn: boolean;
+  phone: string;
+  linkedInUrl: string | null;
+  bookmarked: boolean;
+  met: boolean;
 }
 
 export interface DirectoryFacets {

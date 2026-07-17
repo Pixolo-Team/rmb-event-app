@@ -7,6 +7,7 @@ import { DirectoryAvatar } from "../../components/DirectoryAvatar";
 import { ContactRows } from "../../components/ContactRows";
 import { directoryCache, type AttendeeProfile } from "../../lib/directoryCache";
 import { SaveContactButton } from "../../components/SaveContactButton";
+import { BookmarkButton } from "../../components/BookmarkButton";
 
 export default function AttendeeProfilePage({ params }: { params: { id: string } }) {
   const [profile, setProfile] = useState<AttendeeProfile | null>(null);
@@ -68,9 +69,10 @@ function ProfileContent({ profile }: { profile: AttendeeProfile }) {
       </section>
 
       <div className="profile-actions">
-        <a className="profile-action primary" href={`tel:${profile.phone}`}>Call</a>
-        <a className="profile-action" href={`https://wa.me/${whatsappNumber}?text=${whatsappText}`} target="_blank" rel="noreferrer">WhatsApp</a>
-        {canShare && <button className="profile-action" type="button" onClick={() => navigator.share({ title: profile.name, text: `${profile.name} · ${profile.businessName ?? "Evento attendee"}` })}>Share</button>}
+        <BookmarkButton attendeeId={profile.id} initialBookmarked={Boolean(profile.bookmarked)} onChange={(bookmarked) => directoryCache.setProfile(profile.id, { ...profile, bookmarked })} />
+        <a className="profile-action call" href={`tel:${profile.phone}`}><PhoneIcon /><span>Call</span></a>
+        <a className="profile-action whatsapp" href={`https://wa.me/${whatsappNumber}?text=${whatsappText}`} target="_blank" rel="noreferrer"><WhatsAppIcon /><span>WhatsApp</span></a>
+        {canShare && <button className="profile-action share" type="button" onClick={() => navigator.share({ title: profile.name, text: `${profile.name} · ${profile.businessName ?? "Evento attendee"}` })}><ShareIcon /><span>Share</span></button>}
       </div>
 
       {profile.match && (
@@ -98,3 +100,7 @@ function ProfileContent({ profile }: { profile: AttendeeProfile }) {
 
 function ProfileSection({ title, children }: { title: string; children: React.ReactNode }) { return <section className="profile-section"><h2>{title}</h2>{children}</section>; }
 function TagList({ values, empty }: { values: string[]; empty: string }) { return values.length ? <div className="profile-tags">{values.map((value) => <span key={value}>{value}</span>)}</div> : <p className="empty-copy">{empty}</p>; }
+
+function PhoneIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.5h3l1.5 4.5-2 1.4a12 12 0 0 0 5.1 5.1l1.4-2 4.5 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.5 5.7 2 2 0 0 1 6.5 3.5Z" /></svg>; }
+function WhatsAppIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-11.8 7L4 19.5l1.1-4A8 8 0 1 1 20 11.5Z" /><path d="M8.9 8.2c.2-.5.4-.5.6-.5h.5c.2 0 .4 0 .6.5l.7 1.6c.1.2 0 .4 0 .5l-.4.5c-.1.2-.3.3-.1.6a5.6 5.6 0 0 0 2.6 2.3c.3.1.4 0 .6-.1l.5-.6c.2-.2.3-.1.5-.1l1.5.8c.2.1.4.2.4.3v.6c-.1.5-.8 1-1.3 1.1-.4.1-1 .1-3-.8a8.4 8.4 0 0 1-3.4-3.3c-.3-.6-.7-1.4-.7-2.2 0-.5.2-.9.4-1.1Z" fill="currentColor" stroke="none" /></svg>; }
+function ShareIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.2" /><circle cx="17" cy="6" r="2.2" /><circle cx="17" cy="18" r="2.2" /><path d="M8 11l7-4M8 13l7 4" /></svg>; }

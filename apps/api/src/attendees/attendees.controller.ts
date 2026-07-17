@@ -1,22 +1,27 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
   HttpCode,
   HttpStatus,
-  Patch,
   Param,
+  Patch,
   Post,
   Req,
   Res,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
-import type { Response } from "express";
+import { FileInterceptor } from "@nestjs/platform-express";
+import type { Express, Response } from "express";
 import { AttendeesService } from "./attendees.service";
 import { ResolveOnboardingDto } from "./dto/resolve-onboarding.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { SessionService } from "../session/session.service";
 import { SessionGuard, RequestWithAttendee } from "../session/session.guard";
+import { avatarUploadOptions } from "./avatar-upload.config";
 
 @Controller("attendees")
 export class AttendeesController {
@@ -24,6 +29,11 @@ export class AttendeesController {
     private readonly attendees: AttendeesService,
     private readonly session: SessionService,
   ) {}
+
+  @Get("public/:id")
+  async publicProfile(@Param("id") id: string) {
+    return this.attendees.getPublicProfile(id);
+  }
 
   @Get("profile-options")
   profileOptions() {
@@ -65,12 +75,30 @@ export class AttendeesController {
       offering: attendee.offering,
       goals: attendee.goals,
       bio: attendee.bio,
+      linkedInUrl: attendee.linkedInUrl,
       // The caller's OWN signed QR token, for rendering their business-card QR
       // (F4.1, Screen 2.11). Only ever returned for `me` — getDirectoryProfile
       // strips qrToken so it is never exposed for other attendees.
       qrToken: attendee.qrToken,
       profileCompletedAt: attendee.profileCompletedAt,
     };
+  }
+
+  @Post("me/photo")
+  @UseGuards(SessionGuard)
+  @UseInterceptors(FileInterceptor("photo", avatarUploadOptions))
+  async uploadPhoto(@Req() req: RequestWithAttendee, @UploadedFile() file: Express.Multer.File | undefined) {
+    if (!file) throw new BadRequestException("No photo uploaded");
+    const photoUrl = `/uploads/avatars/${file.filename}`;
+    await this.attendees.updatePhoto(req.attendeeId, photoUrl);
+    return { status: "ok", photoUrl };
+  }
+
+  @Patch("me/photo/remove")
+  @UseGuards(SessionGuard)
+  async removePhoto(@Req() req: RequestWithAttendee) {
+    await this.attendees.updatePhoto(req.attendeeId, null);
+    return { status: "ok", photoUrl: null };
   }
 
   @Get("directory")

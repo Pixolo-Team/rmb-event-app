@@ -5,11 +5,31 @@ import { useEffect, useMemo, useState } from "react";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { DirectoryAvatar } from "../components/DirectoryAvatar";
 import { directoryCache, type DirectoryAttendee, type DirectoryResponse } from "../lib/directoryCache";
+import { BookmarkButton } from "../components/BookmarkButton";
 
-type SortOption = "name" | "company";
 type CheckinFilter = "all" | "checked-in" | "not-checked-in";
 
 const EMPTY_FILTERS = { category: "", company: "", chapter: "", city: "", checkin: "all" as CheckinFilter };
+const DIRECTORY_REVALIDATE_MS = 60_000;
+
+let lastDirectoryRevalidatedAt = 0;
+let directoryRequest: Promise<DirectoryResponse> | null = null;
+
+function loadDirectory() {
+  if (!directoryRequest) {
+    lastDirectoryRevalidatedAt = Date.now();
+    directoryRequest = fetch("/api/attendees", { credentials: "include" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("directory unavailable");
+        return (await response.json()) as DirectoryResponse;
+      })
+      .finally(() => {
+        directoryRequest = null;
+      });
+  }
+
+  return directoryRequest;
+}
 
 export default function DirectoryPage() {
   const [data, setData] = useState<DirectoryResponse | null>(null);
@@ -17,11 +37,11 @@ export default function DirectoryPage() {
   const [offlineResult, setOfflineResult] = useState(false);
   const [error, setError] = useState(false);
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<SortOption>("name");
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     const cached = directoryCache.get();
     if (cached) {
       setData(cached);
@@ -29,19 +49,27 @@ export default function DirectoryPage() {
       setLoading(false);
     }
 
-    fetch("/api/attendees", { credentials: "include" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error("directory unavailable");
-        const result = (await response.json()) as DirectoryResponse;
+    const recentlyChecked = cached && Date.now() - lastDirectoryRevalidatedAt < DIRECTORY_REVALIDATE_MS;
+    if (recentlyChecked) return;
+
+    loadDirectory()
+      .then((result) => {
+        if (cancelled) return;
         directoryCache.set(result);
         setData(result);
         setOfflineResult(false);
         setError(false);
       })
       .catch(() => {
-        if (!cached) setError(true);
+        if (!cached && !cancelled) setError(true);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -72,12 +100,8 @@ export default function DirectoryPage() {
           (filters.checkin === "all" || attendee.checkedIn === (filters.checkin === "checked-in"))
         );
       })
-      .sort((a, b) => {
-        const first = sort === "company" ? a.businessName ?? a.name : a.name;
-        const second = sort === "company" ? b.businessName ?? b.name : b.name;
-        return first.localeCompare(second);
-      });
-  }, [data, filters, query, sort]);
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [data, filters, query]);
 
   const activeFilterCount = Object.entries(filters).filter(([key, value]) => key === "checkin" ? value !== "all" : Boolean(value)).length;
 
@@ -92,38 +116,36 @@ export default function DirectoryPage() {
           </div>
         </div>
 
-        {offlineResult && <div className="banner info"><div><b>Showing saved directory</b>You’re offline. Results may be slightly out of date.</div></div>}
+        {offlineResult && <div className="banner info"><div><b>Showing saved directory</b>You are offline. Results may be slightly out of date.</div></div>}
 
         <div className="directory-toolbar">
           <label className="search-control">
             <span className="sr-only">Search attendees</span>
             <SearchIcon />
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name or company" />
-            {query && <button type="button" aria-label="Clear search" onClick={() => setQuery("")}>×</button>}
+            {query && <button type="button" aria-label="Clear search" onClick={() => setQuery("")}>x</button>}
           </label>
           <button className="filter-button" type="button" onClick={() => setFilterOpen(true)}>
             <FilterIcon /> Filters {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
           </button>
-          <label className="sort-control">
-            <span>Sort</span>
-            <select value={sort} onChange={(event) => setSort(event.target.value as SortOption)}>
-              <option value="name">Name</option>
-              <option value="company">Company</option>
-            </select>
-          </label>
         </div>
 
         {loading && <DirectorySkeleton />}
-        {!loading && error && !data && <DirectoryState title="Can’t load directory" body="Check your connection and try again." />}
+        {!loading && error && !data && <DirectoryState title="Can't load directory" body="Check your connection and try again." />}
         {!loading && !error && data?.attendees.length === 0 && <DirectoryState title="No attendees yet" body="Check back after the organizer imports the attendee list." />}
         {!loading && data && data.attendees.length > 0 && (
           <>
             <p className="result-count">{attendees.length} {attendees.length === 1 ? "attendee" : "attendees"}</p>
             {attendees.length === 0 ? (
-              <DirectoryState title="No attendees found" body={query ? `No matches found for “${query}”.` : "Try removing one or more filters."} />
+              <DirectoryState title="No attendees found" body={query ? `No matches found for "${query}".` : "Try removing one or more filters."} />
             ) : (
               <div className="directory-grid">
-                {attendees.map((attendee) => <AttendeeCard key={attendee.id} attendee={attendee} />)}
+                {attendees.map((attendee) => <AttendeeCard key={attendee.id} attendee={attendee} onBookmark={(bookmarked) => {
+                  if (!data) return;
+                  const next = { ...data, attendees: data.attendees.map((item) => item.id === attendee.id ? { ...item, bookmarked } : item) };
+                  setData(next);
+                  directoryCache.set(next);
+                }} />)}
               </div>
             )}
           </>
@@ -134,7 +156,7 @@ export default function DirectoryPage() {
         <div className="filter-layer">
           <button className="menu-backdrop" type="button" aria-label="Close filters" onClick={() => setFilterOpen(false)} />
           <section className="filter-sheet" role="dialog" aria-modal="true" aria-labelledby="filter-title">
-            <div className="filter-sheet-header"><h2 id="filter-title">Filter attendees</h2><button type="button" aria-label="Close filters" onClick={() => setFilterOpen(false)}>×</button></div>
+            <div className="filter-sheet-header"><h2 id="filter-title">Filter attendees</h2><button type="button" aria-label="Close filters" onClick={() => setFilterOpen(false)}>x</button></div>
             <FilterSelect label="Business category" value={filters.category} options={data?.facets.businessCategories ?? []} onChange={(category) => setFilters({ ...filters, category })} />
             <FilterSelect label="Company" value={filters.company} options={data?.facets.companies ?? []} onChange={(company) => setFilters({ ...filters, company })} />
             <FilterSelect label="City" value={filters.city} options={data?.facets.cities ?? []} onChange={(city) => setFilters({ ...filters, city })} />
@@ -148,18 +170,39 @@ export default function DirectoryPage() {
   );
 }
 
-function AttendeeCard({ attendee }: { attendee: DirectoryAttendee }) {
+function AttendeeCard({ attendee, onBookmark }: { attendee: DirectoryAttendee; onBookmark: (value: boolean) => void }) {
+  function shareAttendee() {
+    const url = `${window.location.origin}/p/${attendee.id}`;
+    if (navigator.share) {
+      navigator.share({ title: attendee.name, url }).catch(() => undefined);
+      return;
+    }
+    navigator.clipboard?.writeText(url).catch(() => undefined);
+  }
+
   return (
-    <Link className="directory-card" href={`/attendees/${attendee.id}`}>
-      <DirectoryAvatar name={attendee.name} photoUrl={attendee.photoUrl} />
-      <div className="directory-card-body">
-        <div className="directory-name-row"><h2>{attendee.name}</h2>{attendee.checkedIn && <span className="status-dot" title="Checked in" />}</div>
-        {attendee.businessName && <p className="company-name">{attendee.businessName}</p>}
-        <p className="attendee-meta">{[attendee.businessCategory, attendee.city].filter(Boolean).join(" · ") || "Profile details coming soon"}</p>
-        <div className="card-tags">{attendee.chapterName && <span>{attendee.chapterName}</span>}{attendee.tableNumber && <span>Table {attendee.tableNumber}</span>}</div>
+    <article className="directory-card-wrap">
+      <Link className="directory-card" href={`/attendees/${attendee.id}`}>
+        <DirectoryAvatar name={attendee.name} photoUrl={attendee.photoUrl} />
+        <div className="directory-card-body">
+          <div className="directory-name-row">
+            <h2>{attendee.name}</h2>
+            {attendee.met && <span className="met-badge">Met</span>}
+            {attendee.checkedIn && <span className="status-dot" title="Checked in" />}
+          </div>
+          {attendee.businessName && <p className="company-name">{attendee.businessName}</p>}
+          <p className="attendee-meta">{[attendee.businessCategory, attendee.city].filter(Boolean).join(" · ") || "Profile details coming soon"}</p>
+          <div className="card-tags">{attendee.chapterName && <span>{attendee.chapterName}</span>}{attendee.tableNumber && <span>Table {attendee.tableNumber}</span>}</div>
+        </div>
+        <span className="card-arrow" aria-hidden="true">›</span>
+      </Link>
+      <div className="directory-card-actions" aria-label={`Actions for ${attendee.name}`}>
+        <BookmarkButton attendeeId={attendee.id} initialBookmarked={Boolean(attendee.bookmarked)} compact onChange={onBookmark} />
+        <a className="icon-btn" href={`tel:${attendee.phone}`} aria-label={`Call ${attendee.name}`} title="Call"><PhoneIcon /></a>
+        {attendee.linkedInUrl && <a className="icon-btn" href={attendee.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${attendee.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /></a>}
+        <button className="icon-btn" type="button" onClick={shareAttendee} aria-label={`Share ${attendee.name}`} title="Share"><ShareIcon /></button>
       </div>
-      <span className="card-arrow" aria-hidden="true">›</span>
-    </Link>
+    </article>
   );
 }
 
@@ -171,3 +214,6 @@ function DirectoryState({ title, body }: { title: string; body: string }) { retu
 function DirectorySkeleton() { return <div className="directory-grid" aria-label="Loading directory">{[1, 2, 3, 4].map((item) => <div className="directory-card skeleton-card" key={item}><span /><div><span /><span /></div></div>)}</div>; }
 function SearchIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m16 16 4 4" /></svg>; }
 function FilterIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" /></svg>; }
+function PhoneIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8c1.2 2.4 3.2 4.4 5.6 5.6l1.9-1.9c.3-.3.7-.4 1-.2 1 .4 2.1.6 3.2.6.6 0 1 .4 1 1V19c0 .6-.4 1-1 1C9.6 20 4 14.4 4 7.7c0-.6.4-1 1-1h3.1c.6 0 1 .4 1 1 0 1.1.2 2.2.6 3.2.1.3 0 .7-.2 1L6.6 10.8Z" /></svg>; }
+function LinkedInIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9v10M5 5.5v.1M10 19v-9M10 13.5c.7-2.2 2-3.5 4-3.5 2.6 0 4 1.7 4 5v4" /></svg>; }
+function ShareIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.2" /><circle cx="17" cy="6" r="2.2" /><circle cx="17" cy="18" r="2.2" /><path d="M8 11l7-4M8 13l7 4" /></svg>; }

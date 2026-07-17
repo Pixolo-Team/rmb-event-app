@@ -25,4 +25,17 @@ export class RateLimiterService {
     this.hits.set(key, timestamps);
     return { allowed: true, retryAfterSeconds: 0 };
   }
+
+  /** Checks whether `key` is at/over `limit` in the last hour without recording an attempt. */
+  peek(key: string, limit: number): { limited: boolean; retryAfterSeconds: number } {
+    const now = Date.now();
+    const windowStart = now - HOUR_MS;
+    const timestamps = (this.hits.get(key) ?? []).filter((t) => t > windowStart);
+
+    if (timestamps.length >= limit) {
+      const retryAfterMs = timestamps[0] + HOUR_MS - now;
+      return { limited: true, retryAfterSeconds: Math.ceil(retryAfterMs / 1000) };
+    }
+    return { limited: false, retryAfterSeconds: 0 };
+  }
 }

@@ -8,11 +8,14 @@ export type Connection = {
   bio: string | null;
   tableNumber: string | null;
   photoUrl: string | null;
+  linkedInUrl: string | null;
+  met: boolean;
   metAt: string;
   note: string;
 };
 
-export type ConnectionsResponse = { connections: Connection[] };
+export type BookmarkConnection = Omit<Connection, "metAt" | "note"> & { bookmarkedAt: string; bookmarked: true; chapterName: string | null; city: string | null };
+export type ConnectionsResponse = { connections: Connection[]; bookmarks: BookmarkConnection[] };
 
 const KEY = "evento:connections:v1";
 

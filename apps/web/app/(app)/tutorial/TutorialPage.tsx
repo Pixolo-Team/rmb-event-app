@@ -3,8 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FeedView } from "./FeedView";
+import { AttendeeCard } from "./AttendeeCard";
+import { FullProfileModal } from "./FullProfileModal";
+import { ProfileView } from "./ProfileView";
+import { AddPostIcon, BookmarkTabIcon, HomeIcon, PeopleIcon, ProfileIcon } from "./icons";
 
-type AppView = "home" | "directory" | "connections" | "feed" | "settings";
+type AppView = "posts" | "people" | "wantToMeet" | "profile";
 
 type TutorialCard = {
   eyebrow: string;
@@ -19,13 +23,20 @@ export type AttendeeMe = {
   phone: string;
   businessName: string | null;
   chapterName: string | null;
+  tableNumber?: string | null;
   city: string | null;
   businessCategory: string | null;
   photoUrl?: string | null;
+  lookingFor?: string[];
+  offering?: string[];
+  goals?: string[];
+  bio?: string | null;
+  linkedInUrl?: string | null;
+  qrToken?: string | null;
   profileCompletedAt: string | null;
 };
 
-type DirectoryAttendee = {
+export type DirectoryAttendee = {
   id: string;
   name: string;
   businessName: string | null;
@@ -35,7 +46,9 @@ type DirectoryAttendee = {
   bio: string | null;
   phone: string;
   photoUrl: string | null;
+  linkedInUrl: string | null;
   bookmarked: boolean;
+  met: boolean;
 };
 
 export type FeedCommentData = {
@@ -69,9 +82,16 @@ const DEMO_ATTENDEE: AttendeeMe = {
   phone: "+91 98765 43210",
   businessName: "Sharma Trading Co.",
   chapterName: "RMB Ahmedabad",
+  tableNumber: "A-12",
   city: "Ahmedabad",
   businessCategory: "Trader/Distributor",
   photoUrl: null,
+  lookingFor: ["Distributors", "Suppliers"],
+  offering: ["Wholesale", "Logistics"],
+  goals: ["Grow network", "Find partners"],
+  bio: "Third-generation trading business, expanding across west India.",
+  linkedInUrl: "https://www.linkedin.com/in/radha-sharma",
+  qrToken: "demo-qr-token-radha-sharma",
   profileCompletedAt: new Date().toISOString(),
 };
 
@@ -86,7 +106,9 @@ const DEMO_DIRECTORY: DirectoryAttendee[] = [
     bio: "Looking for distributors across Gujarat and Rajasthan.",
     phone: "+91 90000 00001",
     photoUrl: null,
+    linkedInUrl: "https://www.linkedin.com/in/deepak-patel",
     bookmarked: false,
+    met: true,
   },
   {
     id: "demo-2",
@@ -98,7 +120,9 @@ const DEMO_DIRECTORY: DirectoryAttendee[] = [
     bio: "Interior design studio working with builders and retail brands.",
     phone: "+91 90000 00002",
     photoUrl: null,
+    linkedInUrl: null,
     bookmarked: true,
+    met: false,
   },
   {
     id: "demo-3",
@@ -110,7 +134,9 @@ const DEMO_DIRECTORY: DirectoryAttendee[] = [
     bio: "Interested in new supplier tie-ups and logistics partners.",
     phone: "+91 90000 00003",
     photoUrl: null,
+    linkedInUrl: "https://www.linkedin.com/in/amit-mehta",
     bookmarked: false,
+    met: false,
   },
 ];
 
@@ -173,23 +199,21 @@ const TUTORIAL_CARDS: readonly TutorialCard[] = [
   },
 ];
 
-function getInitials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("") || "EV";
-}
-
 export function TutorialPage() {
   const router = useRouter();
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [attendee, setAttendee] = useState<AttendeeMe | null>(null);
   const [directory, setDirectory] = useState<DirectoryAttendee[]>([]);
-  const [view, setView] = useState<AppView>("home");
+  const [view, setView] = useState<AppView>("posts");
   const [search, setSearch] = useState("");
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [tutorialIndex, setTutorialIndex] = useState(0);
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingBookmarks, setPendingBookmarks] = useState<string[]>([]);
   const [photos, setPhotos] = useState<FeedPhotoData[]>([]);
+  const [openProfileId, setOpenProfileId] = useState<string | null>(null);
+  const [composerRequestKey, setComposerRequestKey] = useState(0);
+  const [profileEditing, setProfileEditing] = useState(false);
 
   useEffect(() => {
     if (TEMP_BYPASS_LOGIN) {
@@ -341,45 +365,25 @@ export function TutorialPage() {
     );
   }
 
+  const openProfile = directory.find((person) => person.id === openProfileId) ?? null;
+
   return (
-    <div className="app-shell-screen">
+    <div className={`app-shell-screen${profileEditing ? " is-editing-profile" : " has-bottom-nav"}`}>
       <div className="app-shell">
-        <header className="app-topbar">
+        {!profileEditing ? <header className="app-topbar">
           <div>
             <div className="wordmark app-wordmark">
               <span className="dot" />
               Evento
             </div>
             <p className="app-kicker">
-              {view === "home" && "Attendee Home"}
-              {view === "directory" && "Directory"}
-              {view === "connections" && "My Connections"}
-              {view === "feed" && "Photo Feed"}
-              {view === "settings" && "Settings"}
+              {view === "posts" && "Posts"}
+              {view === "people" && "People"}
+              {view === "wantToMeet" && "Want to Meet"}
+              {view === "profile" && "Profile"}
             </p>
           </div>
-          <button className="icon-action" type="button" onClick={restartTutorial}>
-            Tutorial
-          </button>
-        </header>
-
-        <nav className="app-nav">
-          <button type="button" className={`nav-pill${view === "home" ? " active" : ""}`} onClick={() => setView("home")}>
-            Home
-          </button>
-          <button type="button" className={`nav-pill${view === "directory" ? " active" : ""}`} onClick={() => setView("directory")}>
-            People
-          </button>
-          <button type="button" className={`nav-pill${view === "connections" ? " active" : ""}`} onClick={() => setView("connections")}>
-            Want to Meet
-          </button>
-          <button type="button" className={`nav-pill${view === "feed" ? " active" : ""}`} onClick={() => setView("feed")}>
-            Photos
-          </button>
-          <button type="button" className={`nav-pill${view === "settings" ? " active" : ""}`} onClick={() => setView("settings")}>
-            Settings
-          </button>
-        </nav>
+        </header> : null}
 
         {actionError ? (
           <div className="banner warn app-banner">
@@ -390,57 +394,20 @@ export function TutorialPage() {
           </div>
         ) : null}
 
-        {view === "home" ? (
-          <main className="app-content">
-            <section className="hero-card">
-              <div className="hero-avatar" aria-hidden="true">
-                {attendee.photoUrl ? <img src={attendee.photoUrl} alt="" /> : getInitials(attendee.name)}
-              </div>
-              <div>
-                <p className="hero-eyebrow">Welcome</p>
-                <h1 className="hero-title">{attendee.name.split(" ")[0]}, you&apos;re ready</h1>
-                <p className="hero-copy">
-                  Browse the directory, bookmark people worth meeting, and track them in Want to Meet.
-                </p>
-              </div>
-            </section>
-
-            <section className="status-grid">
-              <article className="mini-card">
-                <p className="mini-label">Bookmarked</p>
-                <p className="mini-value">{wantToMeet.length}</p>
-              </article>
-              <article className="mini-card">
-                <p className="mini-label">Business</p>
-                <p className="mini-value">{attendee.businessName ?? "Your company"}</p>
-              </article>
-              <article className="mini-card">
-                <p className="mini-label">Category</p>
-                <p className="mini-value">{attendee.businessCategory ?? "Profile pending"}</p>
-              </article>
-              <article className="mini-card">
-                <p className="mini-label">Chapter</p>
-                <p className="mini-value">{attendee.chapterName ?? "Guest attendee"}</p>
-              </article>
-            </section>
-
-            <section className="feature-stack">
-              <article className="feature-card">
-                <p className="feature-title">Try bookmarks</p>
-                <p className="feature-copy">Open People, tap bookmark on any attendee card, then check Want to Meet.</p>
-                <button className="btn-primary" type="button" onClick={() => setView("directory")}>
-                  Browse people
-                </button>
-              </article>
-            </section>
-          </main>
+        {view === "posts" ? (
+          <FeedView
+            attendee={attendee}
+            photos={photos}
+            setPhotos={setPhotos}
+            composerRequestKey={composerRequestKey}
+          />
         ) : null}
 
-        {view === "directory" ? (
+        {view === "people" ? (
           <main className="app-content">
             <section className="settings-card">
-              <h1 className="settings-title">Directory</h1>
-              <p className="settings-copy">Bookmark people from any attendee card.</p>
+              <h1 className="settings-title">People</h1>
+              <p className="settings-copy">Browse attendees, bookmark, and connect.</p>
               <div className="field" style={{ marginTop: 16 }}>
                 <label htmlFor="directory-search">Search attendees</label>
                 <input
@@ -464,13 +431,14 @@ export function TutorialPage() {
                   person={person}
                   busy={pendingBookmarks.includes(person.id)}
                   onToggleBookmark={() => toggleBookmark(person.id)}
+                  onOpen={() => setOpenProfileId(person.id)}
                 />
               ))
             )}
           </main>
         ) : null}
 
-        {view === "connections" ? (
+        {view === "wantToMeet" ? (
           <main className="app-content">
             <section className="settings-card">
               <h1 className="settings-title">Want to Meet</h1>
@@ -480,9 +448,9 @@ export function TutorialPage() {
             {wantToMeet.length === 0 ? (
               <section className="feature-card">
                 <p className="feature-title">No one bookmarked yet</p>
-                <p className="feature-copy">Browse the directory and tap bookmark to add people here.</p>
-                <button className="btn-primary" type="button" onClick={() => setView("directory")}>
-                  Open directory
+                <p className="feature-copy">Browse People and tap bookmark to add people here.</p>
+                <button className="btn-primary" type="button" onClick={() => setView("people")}>
+                  Open People
                 </button>
               </section>
             ) : (
@@ -492,31 +460,65 @@ export function TutorialPage() {
                   person={person}
                   busy={pendingBookmarks.includes(person.id)}
                   onToggleBookmark={() => toggleBookmark(person.id)}
+                  onOpen={() => setOpenProfileId(person.id)}
                 />
               ))
             )}
           </main>
         ) : null}
 
-        {view === "feed" ? <FeedView attendee={attendee} photos={photos} setPhotos={setPhotos} /> : null}
-
-        {view === "settings" ? (
-          <main className="app-content">
-            <section className="settings-card">
-              <h1 className="settings-title">Settings</h1>
-              <p className="settings-copy">Replay the tutorial any time.</p>
-
-              <button className="settings-row" type="button" onClick={restartTutorial}>
-                <span>
-                  <strong>First-time tutorial</strong>
-                  <small>Open the 60-second walkthrough again</small>
-                </span>
-                <span>Open</span>
-              </button>
-            </section>
-          </main>
+        {view === "profile" ? (
+          <ProfileView
+            attendee={attendee}
+            setAttendee={setAttendee}
+            directory={directory}
+            setDirectory={setDirectory}
+            onReplayTutorial={restartTutorial}
+            onEditingChange={setProfileEditing}
+          />
         ) : null}
       </div>
+
+      {!profileEditing ? <nav className="bottom-nav">
+        <button type="button" className={`bottom-nav-item${view === "posts" ? " active" : ""}`} onClick={() => setView("posts")}>
+          <HomeIcon active={view === "posts"} />
+          <span>Home</span>
+        </button>
+        <button type="button" className={`bottom-nav-item${view === "people" ? " active" : ""}`} onClick={() => setView("people")}>
+          <PeopleIcon active={view === "people"} />
+          <span>People</span>
+        </button>
+        <button
+          type="button"
+          className="bottom-nav-item bottom-nav-item-create"
+          onClick={() => {
+            setView("posts");
+            setComposerRequestKey((current) => current + 1);
+          }}
+          aria-label="Create a new post"
+        >
+          <span className="bottom-nav-create-icon" aria-hidden="true">
+            <AddPostIcon />
+          </span>
+        </button>
+        <button type="button" className={`bottom-nav-item${view === "wantToMeet" ? " active" : ""}`} onClick={() => setView("wantToMeet")}>
+          <BookmarkTabIcon active={view === "wantToMeet"} />
+          <span>Want to Meet</span>
+        </button>
+        <button type="button" className={`bottom-nav-item${view === "profile" ? " active" : ""}`} onClick={() => setView("profile")}>
+          <ProfileIcon active={view === "profile"} />
+          <span>Profile</span>
+        </button>
+      </nav> : null}
+
+      {openProfile ? (
+        <FullProfileModal
+          person={openProfile}
+          busy={pendingBookmarks.includes(openProfile.id)}
+          onToggleBookmark={() => toggleBookmark(openProfile.id)}
+          onClose={() => setOpenProfileId(null)}
+        />
+      ) : null}
 
       {tutorialOpen && (
         <div className="tutorial-overlay" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
@@ -560,41 +562,5 @@ export function TutorialPage() {
         </div>
       )}
     </div>
-  );
-}
-
-function AttendeeCard({
-  person,
-  busy,
-  onToggleBookmark,
-}: {
-  person: DirectoryAttendee;
-  busy: boolean;
-  onToggleBookmark: () => void;
-}) {
-  return (
-    <article className="person-card">
-      <div className="person-card-head">
-        <div className="hero-avatar person-avatar" aria-hidden="true">
-          {person.photoUrl ? <img src={person.photoUrl} alt="" /> : getInitials(person.name)}
-        </div>
-        <div className="person-meta">
-          <h2 className="person-name">{person.name}</h2>
-          <p className="person-line">{person.businessName ?? "Business details coming soon"}</p>
-          <p className="person-line muted">
-            {[person.businessCategory, person.city, person.chapterName].filter(Boolean).join(" · ") || "Attendee"}
-          </p>
-        </div>
-      </div>
-      {person.bio ? <p className="person-bio">{person.bio}</p> : null}
-      <div className="person-actions">
-        <button className={`bookmark-btn${person.bookmarked ? " active" : ""}`} type="button" disabled={busy} onClick={onToggleBookmark}>
-          {busy ? "Saving..." : person.bookmarked ? "Bookmarked" : "Bookmark"}
-        </button>
-        <a className="person-link" href={`tel:${person.phone}`}>
-          Call
-        </a>
-      </div>
-    </article>
   );
 }

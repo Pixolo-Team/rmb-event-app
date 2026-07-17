@@ -2,7 +2,7 @@
 
 MSME event networking PWA. See [`docs/`](./docs) for the full PRD, screen specs, feature breakdown, design system, and development plan.
 
-**Current build status:** see `docs/FEATURES.md`'s Feature Index for the authoritative per-feature status. Done so far: PF1 (PWA shell), PF2 (email magic-link auth), PF4 (offline sync engine), PF8 (dropdown reference data), F1.1–F1.5 (import and onboarding through tutorial), F2.1/F2.4/F2.5 (matching engine, directory and profile), F3.1–F3.5 (event and check-in), F4.1–F4.3 (QR exchange and My Connections), F6.1–F6.3 (mobile and venue leaderboard), and F10.1 (offline vCard contact hand-off). See the feature tracker for partial/integration status of bookmarks and the photo feed.
+**Current build status:** see `docs/FEATURES.md`'s Feature Index for the authoritative per-feature status. Smart Matching F2.1–F2.5, bookmarks F5, leaderboard F6, photo feed F7 and contact hand-off F10 are implemented alongside the core onboarding, check-in and exchange flows.
 
 ## Stack
 
@@ -75,7 +75,9 @@ See `apps/api/src/mail/mail.service.ts` and `apps/api/src/whatsapp/whatsapp.serv
 | Smart matching — decoupled engine (`apps/api/src/matching/`) computing looking-for/offering overlap, shared category, same/cross-chapter reasoning; surfaced as the "Why you're a match" reason on a profile | Real (F2.1 engine + F2.5 display). The pre-event "People to meet" list (F2.3) and day-3 pre-compute cache (F2.2) still consume this engine but aren't built |
 | Settings/Profile screen (`/profile`) with the attendee's own business-card QR — offline-rendered from their signed token, tap-to-enlarge with brightness boost | Real (F4.1) |
 | QR scan → card exchange + confirmed meeting (`/scan`) — one scan logs a `Meeting` (canonical unordered pair, duplicate-pair protected), self-scan/unknown-code guards, offline-queued via PF4 | Real (F4.2) |
-| My Connections (`/connections`) — cached Already Met list, sorting, Call/WhatsApp, per-attendee private notes and non-destructive removal | Real (F4.3). Want to Meet/bookmarks are F5 |
+| My Connections (`/connections`) — cached Already Met + Want to Meet lists, sorting, Call/WhatsApp, private notes, bookmarks and non-destructive removal | Real (F4.3 + F5) |
 | Save to phone contacts — local `.vcf` generation from attendee profiles and connection cards, handed to the native Contacts flow | Real (F10.1), works offline |
-| Admin auth (Screen 3.1) | Not built — `/admin/import`, `/admin/event`, `/admin/checkin`, `/admin/badges` have no login gate yet |
-| Everything past connections (bookmarks, leaderboard, feed, analytics) | Not built yet |
+| Admin auth (Screen 3.1) | Real (PF3) — shared organizer login (`ADMIN_USERNAME`/`ADMIN_PASSWORD`), separate `evento_admin_session` cookie with a 30-min sliding idle timeout; every `/admin/*` API route is behind `AdminGuard` and the web admin pages behind `AdminGate` (`/admin/login`) |
+| Bookmarks (F5), leaderboard (F6), event photo feed (F7), feedback (F8), event summary/export (F9) | Real |
+| Attendee personal stats (`/profile` → "Your stats": people met, rank, bookmarks, photos, live time at event) | Real (F11.1) — `GET /attendees/me/stats`, cache-first and offline-tolerant |
+| Admin analytics dashboard + export (F11.2/F11.3) | Not built yet |

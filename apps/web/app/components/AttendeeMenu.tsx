@@ -19,15 +19,19 @@ type MenuItem = {
   activePrefixes?: string[];
 };
 
-const MENU_ITEMS: MenuItem[] = [
-  { href: "/home", label: "Home", icon: HomeIcon, available: true },
-  { href: "/scan", label: "Scan a Code", icon: ScanIcon, available: true },
-  { label: "People to Meet", icon: SparkIcon, available: false },
-  { href: "/directory", label: "Attendee Directory", icon: DirectoryIcon, available: true, activePrefixes: ["/attendees/"] },
-  { href: "/connections", label: "My Connections", icon: ConnectionsIcon, available: true },
+const DRAWER_ITEMS: MenuItem[] = [
   { href: "/leaderboard", label: "Leaderboard", icon: TrophyIcon, available: true },
-  { href: "/profile", label: "My Profile", icon: ProfileIcon, available: true },
+  { href: "/summary", label: "Event Summary", icon: SummaryIcon, available: true },
+  { href: "/feedback", label: "Give Feedback", icon: FeedbackIcon, available: true },
+  { href: "/feed", label: "Event Photos", icon: PhotoIcon, available: true },
   { href: "/profile?qr=1", label: "Show My QR", icon: QrIcon, available: true },
+];
+
+const TAB_ITEMS: MenuItem[] = [
+  { href: "/home", label: "Home", icon: HomeIcon, available: true },
+  { href: "/directory", label: "People", icon: DirectoryIcon, available: true, activePrefixes: ["/attendees/"] },
+  { href: "/matches", label: "Want to Meet", icon: SparkIcon, available: true },
+  { href: "/profile", label: "Profile", icon: ProfileIcon, available: true },
 ];
 
 const SHOW_PLANNED_ITEMS = process.env.NODE_ENV !== "production";
@@ -173,11 +177,15 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
             </div>
 
             <nav className="menu-nav" aria-label="Attendee navigation">
-              {MENU_ITEMS.filter((item) => item.available || SHOW_PLANNED_ITEMS).map((item) => {
+              {DRAWER_ITEMS.filter((item) => item.available || SHOW_PLANNED_ITEMS).map((item) => {
                 if (!item.available) return <DisabledMenuItem key={item.label} item={item} />;
 
                 const Icon = item.icon;
-                const active = pathname === item.href || Boolean(item.activePrefixes?.some((prefix) => pathname.startsWith(prefix)));
+                const active = Boolean(
+                  item.href &&
+                  !item.href.includes("?") &&
+                  (pathname === item.href || item.activePrefixes?.some((prefix) => pathname.startsWith(prefix))),
+                );
                 return (
                   <Link
                     key={item.label}
@@ -206,6 +214,35 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
         </div>
       )}
     </>
+  );
+}
+
+export function AttendeeBottomTabs() {
+  const pathname = usePathname();
+  const scanActive = pathname === "/scan";
+
+  return (
+    <nav className="attendee-tabs" aria-label="Primary attendee navigation">
+      <div className="attendee-tabs-track">
+        {TAB_ITEMS.slice(0, 2).map((item) => <TabLink key={item.label} item={item} pathname={pathname} />)}
+        <Link className={`attendee-scan-fab${scanActive ? " active" : ""}`} href="/scan" aria-label="Scan QR code" aria-current={scanActive ? "page" : undefined}>
+          <ScanIcon />
+        </Link>
+        {TAB_ITEMS.slice(2).map((item) => <TabLink key={item.label} item={item} pathname={pathname} />)}
+      </div>
+    </nav>
+  );
+}
+
+function TabLink({ item, pathname }: { item: MenuItem; pathname: string }) {
+  const Icon = item.icon;
+  const active = pathname === item.href || Boolean(item.activePrefixes?.some((prefix) => pathname.startsWith(prefix)));
+
+  return (
+    <Link className={`attendee-tab${active ? " active" : ""}`} href={item.href!} aria-current={active ? "page" : undefined}>
+      <Icon />
+      <span>{item.label}</span>
+    </Link>
   );
 }
 
@@ -263,3 +300,9 @@ function ConnectionsIcon() {
 function TrophyIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v4c0 3-1.3 5-4 6-2.7-1-4-3-4-6V4ZM8 6H4v2c0 2 1.3 3 4 3M16 6h4v2c0 2-1.3 3-4 3M12 14v4M8 20h8" /></svg>;
 }
+
+function PhotoIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h4l1.5-2h5L16 6h4v14H4V6Z" /><circle cx="12" cy="13" r="4" /></svg>;
+}
+function SummaryIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10h4v10M10 20V4h4v16M15 20v-7h4v7M3 20h18" /></svg>; }
+function FeedbackIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" /></svg>; }

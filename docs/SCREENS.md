@@ -14,7 +14,7 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 **Purpose:** Attendee answers questions about themselves to set up a profile before the event
 
 **States:**
-- **Default:** Form displayed with business-category/looking-for/offering/goals/bio empty; name, email, phone, business/profession name, chapter and photo already filled in (read-only) from registration
+- **Default:** Form displayed with business-category/looking-for/offering/goals/bio/LinkedIn/website empty; name, email, phone, business/profession name, chapter and photo already filled in (read-only) from registration
 - **Loading:** Spinner on "Submit" button; fields disabled while saving
 - **Success:** "Profile saved!" confirmation → auto-redirect to PWA install prompt
 - **Error:** "Something went wrong. Please try again." (with retry button)
@@ -27,6 +27,7 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 - Tap "Offering" dropdown → open multi-select checklist overlay (same business-type taxonomy as Looking for); selected items shown in the closed field
 - Tap "Goals" tags → open tag selector (multi-select)
 - Type in "Bio" text field (optional, 200 char max)
+- Type in "LinkedIn URL" and "Website URL" fields — both optional (F4.7), grouped last under an "Add your links (optional)" heading so they never read as blockers on the under-a-minute path; validated on blur/submit, not per keystroke
 - Tap "Submit" button → validate & submit
 - Tap "Skip for now" → move to PWA install prompt without saving; profile stays incomplete, so the attendee is routed back to this form on their next login
 
@@ -36,6 +37,7 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 
 **Data Needed to Display:**
 - Pre-filled and read-only, from registration: name, email, phone, business/profession name, RMB chapter (if any), photo (initials avatar shown if no photo on file)
+- LinkedIn URL and website URL, pre-filled and **editable** if the import file supplied them (F1.1's optional column mapping); empty otherwise
 - Business category options (dropdown list — the only categorization field; no separate "industry" field, to avoid asking the same thing twice)
 - Active city options from the nationwide database catalogue, displayed as `City, State/UT` with type-ahead/search suggestions
 - "Looking for" dropdown options (multi-select, shared business-type taxonomy with Offering)
@@ -51,6 +53,11 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 - User fills only required fields and submits → save successfully, move forward
 - User fills all fields and submits → save and show success state
 - Registration photo failed to upload / file corrupted → treat as no photo, initials avatar used everywhere; no blocking error shown to attendee
+- LinkedIn/website left blank → valid, submit proceeds; the profile is complete without them and no reminder or nag is shown later
+- Bare host typed ("acme.in", "linkedin.com/in/radha") → accepted, normalized to `https://` on save, no error
+- Malformed URL → inline error on that field only ("Enter a valid link, e.g. https://acme.in"); the rest of the form is retained
+- Non-LinkedIn URL in the LinkedIn field → inline error "That doesn't look like a LinkedIn URL"; the value is not silently moved to the website field
+- Imported LinkedIn/website value is malformed → keep it as the field's starting value and flag on blur, so the attendee can fix the organizer's data rather than being blocked by it
 
 ---
 
@@ -231,6 +238,20 @@ Evento has no passwords and no WhatsApp messaging vendor — the group link is t
 **Module:** Home  
 **Purpose:** Central hub showing attendee's key stats, quick actions, and navigation to main features. Includes check-in status prominently.
 
+> ### Revised (UX revision v1.1 — F3.6). Home is lifecycle-aware: four modes, not one.
+> The screen shipped by F3.2 is a **check-in receipt that never stops being one** — every state below is about check-in, so once the attendee is checked in, Home shows a desk receipt and a Scan button for the remaining ~7 hours. F3.6 keeps the arrival flow exactly as-is and adds the three modes around it.
+>
+> | Mode | Trigger | Home is |
+> |---|---|---|
+> | **Pre-event** | `now < startAt` | Countdown to the event, name/venue, "See who's coming" → Directory (2.2), matches preview (1.4). **No geolocation, no check-in, no warning tone.** |
+> | **Arrival** | event day, not checked in | The full-page band flow below — unchanged |
+> | **Checked in** | checked in, `startAt ≤ now < endAt` | **The dashboard** (see *Checked-In Dashboard* below) |
+> | **Ended** | `now ≥ endAt` | Wrap-up + "View your summary" → Event Summary (2.10). Check-in affordances gone. |
+>
+> **Why pre-event exists:** attendees onboard ~5 days early (US1.2's group link), but today Home runs geolocation on open with no `startAt` guard — so it fails the radius check and shows the orange **"Not checked in · Outside venue area"** warning to every attendee for the five days before the event. That's a live bug, and this mode is its fix.
+>
+> **Dependency:** `GET /event` must return `startAt`/`endAt`/`name` (it currently returns only venue lat/lng/radius). Cached client-side per PF4, so mode selection still works offline.
+
 **Layout:** Full-page (edge-to-edge, no floating card) — a full-width color band at the top (tone
 matches the state: blue while detecting, green once arrived/checked-in, orange when a manual tap
 is needed) with a big status icon and heading, then a borderless content column below it that's
@@ -255,14 +276,34 @@ App opens
          attendee taps "Check in manually" → confirm → "Checked In" screen
 ```
 
+**Checked-In Dashboard (F3.6 — the mode that replaces the permanent desk receipt):**
+
+Vertical order, most-useful-first for an attendee who has just walked in:
+
+| # | Element | Why it's here |
+|---|---|---|
+| 1 | **Check-in strip** — compact: "✓ Checked in 9:15 AM · via location". **Tap to expand** back to the full-page desk view (name, company, "Show this screen at the registration counter") | The desk receipt is a real job — it can shrink, but it must stay reachable |
+| 2 | **Table number**, prominent when assigned | The "where do I physically go" fact; matters most in the first ten minutes |
+| 3 | **Scan to connect** — the dominant CTA | The product's core loop (F4.2). Scan lives here, **not** as a tab-bar FAB (decided v1.1) |
+| 4 | **Three stat tiles** — People met · Rank (`#4 of 62`) · Time at event | The gamification hook that drives the loop; reuses F11.1's cached, offline-tolerant stats |
+| 5 | **People to meet** — 2–3 face preview from the F2.1 engine → Matches (1.4) | The product's differentiator, currently buried behind the drawer |
+
+**Deliberately not on the dashboard:** bookmarks count and photos-posted. Both are vanity numbers that don't drive a next action; photos is dead weight with F7 deprioritized; and a bookmarks count duplicates the **Want to Meet bottom tab** (PF7.1). An earlier F3.6 draft listed both — their removal is intentional.
+
+**Home shows data, not destinations.** With PF7.1's tab bar, People and Want-to-Meet *are* tabs, so Home must not re-launch them — that's the "each destination lives in exactly one place" rule. The obsolete quick-action grid (Directory / Connections / Feed buttons) is struck from the interactions below.
+
 **User Interactions:**
 - Tap menu button → open the shared authenticated navigation drawer
 - Tap "Check In Manually" button → navigate to Manual Check-In Screen (2.1A)
+- Tap the check-in strip → expand to the full-page desk view; tap again / back → collapse
 - Tap stats (met count, rank) → navigate to Leaderboard (2.5)
 - Tap "Scan QR" button → open QR Scanner (2.4)
-- Tap "My Connections" → open My Connections Screen (2.6)
-- Tap "Directory" → open Directory Screen (2.2)
-- Tap "Feed" → open Event Photo Feed (2.8)
+- Tap a face in "People to meet" → that attendee's profile (2.3); tap the section header → Matches (1.4)
+- Tap "See who's coming" (pre-event mode) → Directory (2.2)
+- Tap "View your summary" (ended mode) → Event Summary (2.10)
+- ~~Tap "My Connections" → open My Connections Screen (2.6)~~ — now the Want to Meet / connections **tab** (PF7.1)
+- ~~Tap "Directory" → open Directory Screen (2.2)~~ — now the People **tab** (PF7.1)
+- ~~Tap "Feed" → open Event Photo Feed (2.8)~~ — drawer only; F7 deprioritized
 - Use the drawer → open Settings / Profile (2.11)
 - Tap table number → show table info or simple toast "Table [N]"
 - Pull to refresh → reload stats and check-in status
@@ -275,10 +316,11 @@ App opens
 - Attendee name & company (header)
 - Check-in status: "Checked in at [time]" OR "Not checked in" OR "Checking in..."
 - Check-in method (if displayed): "via location", "manual", "staff scan"
-- Stats: met count, leaderboard rank, people bookmarked
+- Stats: met count, leaderboard rank ~~, people bookmarked~~ *(bookmarks dropped — see the dashboard table above)*
 - Table number assignment
 - Current time at event
-- Event start/end time
+- Event start/end time — **from `GET /event`, which must be extended to return `startAt`/`endAt`/`name` (F3.6)**; drives which of the four modes renders
+- Top 2–3 matches for the People-to-meet preview (`GET /matches`, cached — F2.2/F2.3)
 
 **Edge Cases:**
 - Geolocation permission not granted → show "Location permission needed" + link to enable
@@ -286,7 +328,11 @@ App opens
 - Attendee is outside venue radius but wants to check in → allow manual check-in button (organizer can verify)
 - Attendee checked in but hasn't scanned anyone → show "No meetings yet. Start scanning!" prompt
 - No internet connection → offline banner; check-in button still works (will sync later)
-- Event has ended → show "Event ended" message; hide check-in button; show "View Summary" link
+- Event has ended → show "Event ended" message; hide check-in button; show "View Summary" link — the **Ended mode** above
+- **Attendee opens the app days before the event → Pre-event mode; no geolocation runs and no warning tone is shown.** (Today this incorrectly renders "Not checked in · Outside venue area" — the bug F3.6 fixes)
+- **`startAt`/`endAt` not configured by the organizer yet** → fall back to today's arrival behaviour rather than guessing a mode; never render a countdown to an unknown date
+- **Stats unreachable but check-in cached** → dashboard renders with the check-in strip and table number; stat tiles fall back to their cached values (F11.1 pattern), and the People-to-meet preview is omitted rather than shown empty
+- **No matches computed yet / no table assigned** → omit that element entirely; never render a placeholder tile with a dash
 - Data corrupted or sync failed → show "Something went wrong" with retry option
 - First-time user (session 1) → show tutorial overlay explaining check-in + feature buttons
 - Geolocation enabled but venue not configured by organizer → skip auto check-in, require manual button
@@ -406,6 +452,7 @@ and keeps the whole check-in experience on one URL.
 - Tap "Scan QR" → open QR Scanner (2.4) pre-focused on this person
 - Tap "Call" → native dialer with their phone number
 - Tap "WhatsApp" → open WhatsApp with pre-filled message
+- Tap "LinkedIn" / "Website" → open the attendee's link in a new tab (F4.7); shown only when they added that link — an empty one renders no control at all, never a disabled one
 - Tap "Save to Contacts" → export vCard to native contacts (2.10)
 - Tap "Add Note" → open note editor
 - Tap "View Note" → show existing note in modal
@@ -420,6 +467,7 @@ and keeps the whole check-in experience on one URL.
 - Attendee name, company, business category, RMB chapter (if any), phone, email
 - Table number
 - Photo (from registration; initials avatar if none on file)
+- LinkedIn URL and website URL, when present (F4.7) — both nullable, both rendered as tap actions rather than raw text
 
 - Bio/description
 - Match reason, when arrived from Matches (1.4) — states the chapter relationship explicitly: e.g. "You're both Manufacturers — she's from the Surat chapter" (cross-chapter) or "You're both in the Ahmedabad chapter" (same-chapter); omitted if either party has no chapter
@@ -432,6 +480,7 @@ and keeps the whole check-in experience on one URL.
 
 **Edge Cases:**
 - Phone number missing → disable "Call" button, show message "Phone not available"
+- Attendee has no LinkedIn/website → omit that action entirely (no disabled dead end); if they have neither, the link row itself doesn't render
 - Attendee has no company → show just name
 - Bio is very long → truncate and show "Read more" button
 - User viewing their own profile → hide "Scan QR" button, show "This is you" badge
@@ -744,6 +793,14 @@ and keeps the whole check-in experience on one URL.
 **Module:** Settings  
 **Purpose:** Show the attendee's own QR code (top of screen, always first) and let them view/edit personal profile, notification preferences, tutorial, etc.
 
+> **Revised (UX revision v1.1 — F4.4/F4.5/F4.8).** The screen's vertical order is fixed as:
+> 1. **Own QR code** — pinned at the top, the thing another attendee scans to connect (unchanged intent; already built in F4.1).
+> 2. **Attendee Card** — a *designed identity card* (photo/initials, name, company, business category, city, chapter, tags, LinkedIn, website), **not** the list of label/value detail rows shipped today. The two links appear as icon actions on the card and are omitted when empty.
+> 3. **Edit Profile button** — opens Screen 2.11a as its own page (replaces the "tap a field to edit inline" interaction described below).
+> 4. **Logout** — sign-out lives on this screen, not only in the drawer.
+>
+> Editing moves off this screen entirely: 2.11 is read-only presentation, 2.11a is the form.
+
 **States:**
 - **Default:** Attendee's personal QR code displayed prominently at the TOP of the screen (name directly below it), followed by the settings form with editable fields
 - **QR Enlarged:** Full-screen QR modal with screen brightness boosted, for easy scanning by another attendee
@@ -768,7 +825,7 @@ and keeps the whole check-in experience on one URL.
 
 **Data Needed to Display:**
 - Attendee's own signed QR code (generated/cached locally — must render offline, no network call)
-- User's profile: name, company, business category, bio, phone (some read-only)
+- User's profile: name, company, business category, bio, phone (some read-only), LinkedIn URL and website URL (nullable, F4.7)
 - Notification settings
 - App version
 - Support contact
@@ -779,6 +836,53 @@ and keeps the whole check-in experience on one URL.
 - Changes not saved (user closes without saving) → prompt "Discard changes?"
 - Name field empty → show validation error
 - Notification toggle switches to off → confirm "You won't get reminders"
+
+---
+
+### Screen 2.11a: Edit Profile *(new — UX revision v1.1, F4.5/F4.6/F4.7)*
+
+**Module:** Settings  
+**Purpose:** Let the attendee edit their own card on a dedicated form page, reached from the Edit Profile button on 2.11.
+
+**Editable vs read-only:** editable fields are **exactly the ones onboarding collects** (Screen 1.1) plus photo. Since onboarding now collects LinkedIn and website (US1.6), those two are editable here by the same rule rather than as exceptions to it. Registered details are read-only — changing them is an organizer action, because CSV import dedups on phone+email.
+
+| Field | Editable? |
+|---|---|
+| Photo | ✅ upload / replace / remove (F4.6) |
+| Business category | ✅ dropdown, validated against active reference data (PF8) |
+| City | ✅ searchable, validated against active reference data (PF8) |
+| Looking for / Offering | ✅ multi-select, shared taxonomy |
+| Networking goals | ✅ |
+| Bio | ✅ optional, character-capped |
+| LinkedIn URL | ✅ optional, URL-validated, linkedin.com host enforced, clearable (F4.7) |
+| Website URL | ✅ optional, URL-validated, any host, clearable (F4.7) |
+| Name, company, phone, email, chapter, table number | ❌ read-only → "Contact the event organizer to change this" |
+
+Both link fields are **clearable** — emptying one and saving removes it, which also removes its action from the card and profile. That's a valid save, not a validation error.
+
+**States:** Default (prefilled) · Editing (Save enabled once dirty) · Saving (spinner on Save) · Saved ("Saved!" toast, return to 2.11) · Error ("Can't save changes. Try again.", form retained) · Uploading photo (progress + cancel) · Offline (Save disabled with "You're offline — reconnect to save"; edits are **not** queued, unlike check-in).
+
+**User Interactions:**
+- Tap photo → choose camera or library → crop → replace; tap Remove → fall back to initials
+- Edit any editable field → Save becomes enabled
+- Tap Save → validate → persist → toast → return to 2.11
+- Tap Cancel/back with unsaved edits → "Discard changes?" prompt
+- Tap a read-only field → inline hint "Contact the event organizer to change this"
+
+**Navigation:** **Comes from:** Profile (2.11) Edit Profile button. **Leads to:** Profile (2.11) on save or discard.
+
+**Data Needed to Display:** current profile values; active business-category and city reference lists (PF8); shared looking-for/offering taxonomy; photo URL.
+
+**Edge Cases:**
+- Photo too large / wrong type → client-side resize (reuse F7.1's pipeline); reject non-images with a clear message
+- Upload fails mid-save → keep other field edits, surface a retry on the photo only
+- Category/city no longer active in reference data → keep the existing value as a valid legacy option, per PF8
+- Invalid LinkedIn or website URL → inline validation on that field, block save; other edits on the form are retained
+- Bare host typed → normalized to `https://` on save rather than rejected
+- Non-LinkedIn host in the LinkedIn field → "That doesn't look like a LinkedIn URL"; not auto-moved to the website field
+- Link field emptied → saves as removed; the corresponding card/profile action disappears
+- Session expires while editing → preserve form state, re-auth, resume
+- ⚠️ **Storage dependency:** photo upload requires durable object storage (Supabase Storage). Local-disk `/uploads` does not survive a hosted deploy — see the open question in `FEATURES.md`.
 
 ---
 
@@ -1283,7 +1387,8 @@ Pre-Event Flow:
   [returning attendees with a completed profile go straight to Home (2.1)]
 
 Main App Flow:
-  Authenticated side menu [flat global navigation; no bottom-tab bar]
+  Bottom tab bar [primary: Home · People · Want to Meet · Profile] + side drawer [secondary]
+  (UX revision v1.1 — reverses the earlier "no bottom-tab bar" decision; see PRD US12.1 / FEATURES PF7.1)
     ├→ Home Dashboard (2.1) [central hub, includes check-in orchestration]
     ├→ Pre-Event Matches / People to Meet (1.4)
     ├→ Directory (2.2) → Individual Profile (2.3)

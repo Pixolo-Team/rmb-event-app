@@ -2,6 +2,7 @@
 
 import { ChangeEvent, Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { AttendeeMe, FeedCommentData, FeedPhotoData, TEMP_BYPASS_LOGIN } from "./TutorialPage";
+import { CommentIcon, ThumbUpIcon } from "./icons";
 
 type FeedPageResponse = {
   photos: FeedPhotoData[];
@@ -60,13 +61,18 @@ export function FeedView({
   attendee,
   photos,
   setPhotos,
+  composerRequestKey = 0,
+  demoMode = false,
 }: {
   attendee: AttendeeMe;
   photos: FeedPhotoData[];
   setPhotos: Dispatch<SetStateAction<FeedPhotoData[]>>;
+  composerRequestKey?: number;
+  demoMode?: boolean;
 }) {
+  const localMode = TEMP_BYPASS_LOGIN || demoMode;
   const [feedState, setFeedState] = useState<"loading" | "ready" | "error">(
-    TEMP_BYPASS_LOGIN ? "ready" : "loading",
+    localMode ? "ready" : "loading",
   );
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -80,13 +86,43 @@ export function FeedView({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [composerError, setComposerError] = useState<string | null>(null);
 
+  const [composerOpen, setComposerOpen] = useState(false);
   const [pendingLikes, setPendingLikes] = useState<string[]>([]);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [enlargedPhotoId, setEnlargedPhotoId] = useState<string | null>(null);
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (TEMP_BYPASS_LOGIN) return;
+    if (!openMenuId) return;
+    function handleClickAway(event: MouseEvent) {
+      if (!(event.target instanceof Element) || !event.target.closest(".post-menu")) {
+        setOpenMenuId(null);
+      }
+    }
+    document.addEventListener("click", handleClickAway);
+    return () => document.removeEventListener("click", handleClickAway);
+  }, [openMenuId]);
+
+  useEffect(() => {
+    const modalOpen = composerOpen || Boolean(enlargedPhotoId);
+    if (!modalOpen) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [composerOpen, enlargedPhotoId]);
+
+  useEffect(() => {
+    if (localMode) {
+      setFeedState("ready");
+      return;
+    }
 
     let cancelled = false;
     async function load() {
@@ -111,7 +147,13 @@ export function FeedView({
     return () => {
       cancelled = true;
     };
-  }, [setPhotos]);
+  }, [localMode, setPhotos]);
+
+  useEffect(() => {
+    if (composerRequestKey > 0) {
+      setComposerOpen(true);
+    }
+  }, [composerRequestKey]);
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
@@ -132,6 +174,11 @@ export function FeedView({
     setUploadProgress(0);
   }
 
+  function closeComposer() {
+    resetComposer();
+    setComposerOpen(false);
+  }
+
   async function handlePost() {
     if (!selectedFile) {
       setComposerError("Choose a photo first.");
@@ -139,7 +186,7 @@ export function FeedView({
     }
     setComposerError(null);
 
-    if (TEMP_BYPASS_LOGIN) {
+    if (localMode) {
       const newPhoto: FeedPhotoData = {
         id: `demo-photo-${Date.now()}`,
         url: URL.createObjectURL(selectedFile),
@@ -156,6 +203,7 @@ export function FeedView({
       setPhotos((current) => [newPhoto, ...current]);
       setComposerStatus("success");
       resetComposer();
+      setComposerOpen(false);
       return;
     }
 
@@ -167,6 +215,7 @@ export function FeedView({
       setPhotos((current) => [created, ...current]);
       setComposerStatus("success");
       resetComposer();
+      setComposerOpen(false);
     } catch {
       setComposerStatus("error");
       setComposerError("Couldn't upload photo. Try again.");
@@ -174,7 +223,7 @@ export function FeedView({
   }
 
   async function handleToggleLike(photo: FeedPhotoData) {
-    if (TEMP_BYPASS_LOGIN) {
+    if (localMode) {
       setPhotos((current) =>
         current.map((item) =>
           item.id === photo.id
@@ -217,7 +266,7 @@ export function FeedView({
     const message = (commentDrafts[photoId] ?? "").trim();
     if (!message) return;
 
-    if (TEMP_BYPASS_LOGIN) {
+    if (localMode) {
       const newComment: FeedCommentData = {
         id: `demo-comment-${Date.now()}`,
         name: attendee.name,
@@ -232,6 +281,7 @@ export function FeedView({
         ),
       );
       setCommentDrafts((current) => ({ ...current, [photoId]: "" }));
+      if (enlargedPhotoId === photoId) setEnlargedPhotoId(null);
       return;
     }
 
@@ -256,6 +306,7 @@ export function FeedView({
         ),
       );
       setCommentDrafts((current) => ({ ...current, [photoId]: "" }));
+      if (enlargedPhotoId === photoId) setEnlargedPhotoId(null);
     } catch {
       setActionError("Couldn't post comment. Check your connection and try again.");
     }
@@ -265,7 +316,7 @@ export function FeedView({
     if (typeof window !== "undefined" && !window.confirm("Delete this photo?")) return;
     setOpenMenuId(null);
 
-    if (TEMP_BYPASS_LOGIN) {
+    if (localMode) {
       setPhotos((current) => current.filter((item) => item.id !== photoId));
       if (enlargedPhotoId === photoId) setEnlargedPhotoId(null);
       return;
@@ -320,66 +371,6 @@ export function FeedView({
           </div>
         ) : null}
 
-        <section className="composer-card">
-          <h1 className="settings-title">Share a photo</h1>
-          <p className="settings-copy">Post a photo from tonight and let others see what's happening.</p>
-
-          <div className="field" style={{ marginTop: 16 }}>
-            <label htmlFor="photo-input">Photo</label>
-            <input
-              id="photo-input"
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleFileChange}
-            />
-          </div>
-
-          {previewUrl ? (
-            <div className="photo-card-media" style={{ marginTop: 12 }}>
-              <img src={previewUrl} alt="Selected preview" />
-            </div>
-          ) : null}
-
-          <div className="field" style={{ marginTop: 12 }}>
-            <label htmlFor="photo-caption">Caption</label>
-            <textarea
-              id="photo-caption"
-              maxLength={200}
-              value={caption}
-              onChange={(event) => setCaption(event.target.value)}
-              placeholder="Say something about this moment..."
-            />
-            <small className="person-line muted">{caption.length}/200</small>
-          </div>
-
-          {composerStatus === "uploading" ? (
-            <div className="upload-progress-bar" style={{ marginTop: 12 }}>
-              <div className="upload-progress-fill" style={{ width: `${uploadProgress}%` }} />
-            </div>
-          ) : null}
-
-          {composerError ? (
-            <div className="banner warn app-banner" style={{ marginTop: 12 }}>
-              <div>
-                <b>Couldn't post</b>
-                {composerError}
-              </div>
-            </div>
-          ) : null}
-
-          <button
-            className="btn-primary"
-            type="button"
-            disabled={composerStatus === "uploading"}
-            onClick={handlePost}
-            style={{ marginTop: 16 }}
-          >
-            {composerStatus === "uploading" ? `Uploading... ${uploadProgress}%` : "Post photo"}
-          </button>
-        </section>
-
         {feedState === "loading" ? (
           <section className="feature-card">
             <p className="feature-title">Loading the feed&hellip;</p>
@@ -419,12 +410,99 @@ export function FeedView({
             ))
           : null}
 
-        {!TEMP_BYPASS_LOGIN && nextCursor ? (
+        {!localMode && nextCursor ? (
           <button className="btn-primary" type="button" disabled={loadingMore} onClick={handleLoadMore}>
             {loadingMore ? "Loading..." : "Load more"}
           </button>
         ) : null}
       </main>
+
+      {composerOpen ? (
+        <div className="photo-modal-overlay" role="dialog" aria-modal="true" onClick={closeComposer}>
+          <div className="photo-modal-card" onClick={(event) => event.stopPropagation()}>
+            <div className="photo-modal-handle" aria-hidden="true" />
+
+            <div className="photo-modal-header">
+              <div>
+                <p className="photo-modal-eyebrow">New post</p>
+                <h1 className="settings-title">Share a photo</h1>
+                <p className="settings-copy">Post a photo from tonight and let others see what&apos;s happening.</p>
+              </div>
+              <button className="photo-modal-close" type="button" onClick={closeComposer} aria-label="Close share photo modal">
+                Close
+              </button>
+            </div>
+
+            <div className="field photo-modal-field">
+              <label htmlFor="photo-input" className="photo-modal-label">
+                Photo
+              </label>
+              <label htmlFor="photo-input" className="photo-picker">
+                {previewUrl ? (
+                  <img src={previewUrl} alt="Selected preview" />
+                ) : (
+                  <span className="photo-picker-placeholder">
+                    <span className="photo-picker-icon" aria-hidden="true">
+                      +
+                    </span>
+                    Add a photo
+                  </span>
+                )}
+              </label>
+              <input
+                id="photo-input"
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileChange}
+                className="sr-only"
+              />
+            </div>
+
+            <div className="field photo-modal-field">
+              <div className="photo-modal-label-row">
+                <label htmlFor="photo-caption" className="photo-modal-label">
+                  Caption
+                </label>
+                <small className="photo-modal-counter">{caption.length}/200</small>
+              </div>
+              <textarea
+                id="photo-caption"
+                maxLength={200}
+                value={caption}
+                onChange={(event) => setCaption(event.target.value)}
+                placeholder="Say something about this moment..."
+                className="photo-modal-textarea"
+              />
+            </div>
+
+            {composerStatus === "uploading" ? (
+              <div className="upload-progress-bar photo-modal-progress">
+                <div className="upload-progress-fill" style={{ width: `${uploadProgress}%` }} />
+              </div>
+            ) : null}
+
+            {composerError ? (
+              <div className="banner warn app-banner photo-modal-banner">
+                <div>
+                  <b>Couldn't post</b>
+                  {composerError}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="photo-modal-actions">
+              <button className="photo-modal-secondary" type="button" onClick={closeComposer} disabled={composerStatus === "uploading"}>
+                Cancel
+              </button>
+              <button className="btn-primary photo-modal-submit" type="button" disabled={composerStatus === "uploading"} onClick={handlePost}>
+                {composerStatus === "uploading" ? `Uploading... ${uploadProgress}%` : "Post photo"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {enlargedPhoto ? (
         <div className="photo-modal-overlay" role="dialog" aria-modal="true" onClick={() => setEnlargedPhotoId(null)}>
@@ -548,27 +626,60 @@ function PhotoCard({
 
       {photo.caption ? <p className="person-bio">{photo.caption}</p> : null}
 
-      <div className="person-actions">
-        <button className={`like-btn${photo.likedByMe ? " active" : ""}`} type="button" disabled={busyLike} onClick={onToggleLike}>
-          {photo.likedByMe ? "Liked" : "Like"} ({photo.likeCount})
+      {photo.likeCount > 0 || photo.commentCount > 0 ? (
+        <div className="post-stats">
+          {photo.likeCount > 0 ? (
+            <span className="post-stats-likes">
+              <span className="post-stats-thumb" aria-hidden="true">
+                <ThumbUpIcon filled size={11} />
+              </span>
+              {photo.likeCount}
+            </span>
+          ) : (
+            <span />
+          )}
+          {photo.commentCount > 0 ? (
+            <button type="button" className="post-stats-comments" onClick={onEnlarge}>
+              {photo.commentCount} comment{photo.commentCount === 1 ? "" : "s"}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="post-action-bar">
+        <button
+          className={`post-action${photo.likedByMe ? " active" : ""}`}
+          type="button"
+          disabled={busyLike}
+          onClick={onToggleLike}
+        >
+          <ThumbUpIcon filled={photo.likedByMe} />
+          Like
         </button>
-        <button className="person-link" type="button" onClick={onEnlarge}>
-          {photo.commentCount} comment{photo.commentCount === 1 ? "" : "s"}
+        <button className="post-action" type="button" onClick={onEnlarge}>
+          <CommentIcon />
+          Comment
         </button>
       </div>
 
       {visibleComments.length > 0 ? (
         <div className="comment-list">
-          {visibleComments.map((comment) => (
-            <div key={comment.id} className="comment-item">
-              <strong>{comment.name}</strong> {comment.message}
-            </div>
-          ))}
           {photo.commentCount > visibleComments.length ? (
             <button type="button" className="link-muted" onClick={onEnlarge}>
               View all {photo.commentCount} comments
             </button>
           ) : null}
+          {visibleComments.map((comment) => (
+            <div key={comment.id} className="comment-row">
+              <div className="comment-avatar" aria-hidden="true">
+                {getInitials(comment.name)}
+              </div>
+              <div className="comment-bubble">
+                <strong>{comment.name}</strong>
+                <span>{comment.message}</span>
+              </div>
+            </div>
+          ))}
         </div>
       ) : null}
 
