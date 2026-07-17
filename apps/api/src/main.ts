@@ -13,6 +13,7 @@ async function bootstrap() {
 
   const uploadsRoot = path.join(process.cwd(), "uploads");
   fs.mkdirSync(path.join(uploadsRoot, "photos"), { recursive: true });
+  fs.mkdirSync(path.join(uploadsRoot, "avatars"), { recursive: true });
   app.useStaticAssets(uploadsRoot, { prefix: "/uploads" });
 
   app.use(cookieParser());

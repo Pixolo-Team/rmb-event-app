@@ -8,6 +8,7 @@ import { AdminImportModule } from "./admin-import/admin-import.module";
 import { AttendeesModule } from "./attendees/attendees.module";
 import { BookmarksModule } from "./bookmarks/bookmarks.module";
 import { PhotosModule } from "./photos/photos.module";
+import { ConnectionsModule } from "./connections/connections.module";
 import { AppController } from "./app.controller";
 
 @Module({
@@ -21,6 +22,7 @@ import { AppController } from "./app.controller";
     AttendeesModule,
     BookmarksModule,
     PhotosModule,
+    ConnectionsModule,
   ],
   controllers: [AppController],
 })

@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
-  const [state, setState] = useState<"idle" | "sending" | "sent" | "rate-limited">("idle");
+  const [state, setState] = useState<"idle" | "sending" | "sent" | "rate-limited" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [devLink, setDevLink] = useState<string | null>(null);
 
@@ -22,17 +22,25 @@ export function LoginForm() {
       });
 
       const body = await response.json();
+      const bodyMessage = Array.isArray(body.message) ? body.message.join(" ") : body.message;
+
       if (response.status === 429) {
         setState("rate-limited");
-        setMessage(body.message ?? "Too many attempts. Try again in a few minutes.");
+        setMessage(bodyMessage ?? "Too many attempts. Try again in a few minutes.");
+        return;
+      }
+
+      if (!response.ok) {
+        setState("error");
+        setMessage(bodyMessage ?? "Something went wrong. Please try again.");
         return;
       }
 
       setState("sent");
-      setMessage(body.message ?? "Check your email. If that address is on the guest list, a link is on its way.");
+      setMessage(bodyMessage ?? "Check your email. If that address is on the guest list, a link is on its way.");
       if (body.devLink) setDevLink(body.devLink);
     } catch {
-      setState("idle");
+      setState("error");
       setMessage("Couldn't reach the server. Please try again.");
     }
   }
@@ -72,9 +80,9 @@ export function LoginForm() {
       </form>
 
       {message ? (
-        <div className={`banner ${state === "rate-limited" ? "warn" : "ok"}`} style={{ marginTop: 18, marginBottom: 0 }}>
+        <div className={`banner ${state === "sent" ? "ok" : "warn"}`} style={{ marginTop: 18, marginBottom: 0 }}>
           <div>
-            <b>{state === "rate-limited" ? "Slow down" : "Check your email"}</b>
+            <b>{state === "rate-limited" ? "Slow down" : state === "error" ? "Couldn't send it" : "Check your email"}</b>
             {message}
             {devLink ? (
               <>

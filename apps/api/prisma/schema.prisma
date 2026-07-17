@@ -47,6 +47,7 @@ model Attendee {
   offering           String[] @default([])
   goals              String[] @default([])
   bio                String?
+  linkedInUrl        String?
   profileCompletedAt DateTime?
 
   // Signed, opaque, non-sequential — generated at import time (PRD Security & Privacy).
@@ -59,6 +60,23 @@ model Attendee {
   photos          Photo[]
   likes           Like[]
   comments        Comment[]
+  meetingsA       Meeting[]  @relation("MeetingA")
+  meetingsB       Meeting[]  @relation("MeetingB")
+}
+
+// A confirmed "met" between two attendees, recorded when one scans the other's QR.
+// Canonicalized: attendeeAId always holds the lexicographically smaller id so the
+// pair is stored once regardless of who scanned whom (mutual by nature).
+model Meeting {
+  attendeeA   Attendee @relation("MeetingA", fields: [attendeeAId], references: [id])
+  attendeeAId String
+  attendeeB   Attendee @relation("MeetingB", fields: [attendeeBId], references: [id])
+  attendeeBId String
+  metAt       DateTime @default(now())
+
+  @@id([attendeeAId, attendeeBId])
+  @@index([attendeeAId])
+  @@index([attendeeBId])
 }
 
 model Bookmark {
