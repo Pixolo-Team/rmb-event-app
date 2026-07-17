@@ -1,23 +1,17 @@
 -- AlterTable
 ALTER TABLE "Attendee" ADD COLUMN "linkedInUrl" TEXT;
 
--- CreateTable
-CREATE TABLE "Meeting" (
-    "attendeeAId" TEXT NOT NULL,
-    "attendeeBId" TEXT NOT NULL,
-    "metAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "Meeting_pkey" PRIMARY KEY ("attendeeAId","attendeeBId")
-);
-
--- CreateIndex
-CREATE INDEX "Meeting_attendeeAId_idx" ON "Meeting"("attendeeAId");
-
--- CreateIndex
-CREATE INDEX "Meeting_attendeeBId_idx" ON "Meeting"("attendeeBId");
-
--- AddForeignKey
-ALTER TABLE "Meeting" ADD CONSTRAINT "Meeting_attendeeAId_fkey" FOREIGN KEY ("attendeeAId") REFERENCES "Attendee"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Meeting" ADD CONSTRAINT "Meeting_attendeeBId_fkey" FOREIGN KEY ("attendeeBId") REFERENCES "Attendee"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+-- NOTE (repair, 2026-07-17): this migration originally also carried a
+-- `CREATE TABLE "Meeting"` block. That was a duplicate — Meeting is created by
+-- 20260716150635_add_meeting and extended by 20260716210000_add_connection_notes —
+-- and it declared a *conflicting* shape (composite primary key + metAt, no
+-- scannedById). Against any database that had already run those migrations the
+-- CREATE TABLE failed with "relation Meeting already exists", which is what
+-- happened here: the migration errored, was rolled back, and was then
+-- force-marked applied via `migrate resolve` after the ALTER above had already
+-- landed. That left every fresh clone, CI run and production deploy unable to
+-- migrate this repo at all.
+--
+-- The Meeting DDL is deleted rather than made idempotent: it was never the
+-- correct definition, so `CREATE TABLE IF NOT EXISTS` would have silently baked
+-- the wrong schema into any database that did not already have the table.

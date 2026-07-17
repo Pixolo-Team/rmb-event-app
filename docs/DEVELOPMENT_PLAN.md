@@ -257,6 +257,9 @@ For F2.4/F2.5, both directory endpoints require an attendee session. `GET /atten
 **admin — event settings** — *F3.1, F3.5*
 `PATCH /admin/event` (venue lat/lng/radius, start/end times) · `GET /admin/badges` (PDF generation)
 
+**event (public)** — *PF4, F3.6*
+`GET /event` — today returns `venueLat`/`venueLng`/`checkinRadiusM` only. **F3.6 extends it with `startAt`, `endAt` and `name`**: Home can't distinguish pre-event from live from ended without them, and that gap is why Home currently shows a false "Not checked in" warning for the ~5 days attendees are onboarding. None of the three are sensitive (the venue coordinates already aren't), and the client caches the response per PF4 — so Home picks its mode offline. This is the only API change F3.6 needs; its stats come from the existing `GET /attendees/me/stats`.
+
 ---
 
 ## Build Sequence & Pacing
@@ -307,7 +310,11 @@ Mirrors `FEATURES.md`'s [Suggested Build Sequence](./FEATURES.md#suggested-build
 Added after the pilot UX review; see `FEATURES.md` → [UX Revision (v1.1)](./FEATURES.md#ux-revision-v11--post-review-scope). These were never sequenced onto calendar days, which is why they're a block of their own rather than a day range — slot them against whatever build window remains before the event. Dependency order within the block:
 
 - **F4.7** (LinkedIn + website URL fields, PRD US1.6) — do this **first in the block despite its P2 label**: F2.7's icon row and part of F4.4/F4.5's field list depend on it, and it carries the schema migration the rest of the block builds on. Its blast radius reaches three shipped features (F1.1 import mapping, F9.2 CSV, F10.1 vCard), so budget a regression pass on the exports, not just the new form fields.
-- **PF7.1** (bottom tab bar) · **F3.6** (Home as dashboard) — the two P0s; both reshape the attendee shell, so build them adjacent to avoid touching navigation twice
+- **PF7.1** (bottom tab bar — *Hussain*) · **F3.6** (Home as a lifecycle-aware dashboard — *Jyoti*) — the two P0s, built in parallel against an agreed file boundary:
+  - **Hussain owns the chrome:** `components/AttendeePageShell.tsx`, `components/AttendeeMenu.tsx`, the new tab-bar component, and the authenticated route-group layout.
+  - **Jyoti owns Home's body:** `app/home/page.tsx`, plus `GET /event` gaining `startAt`/`endAt`/`name`.
+  - **Shared surface:** `components/PersonalStats.tsx` — F3.6 reuses it on Home, F4.4 touches it on Profile. Neither refactors it without a word to the other.
+  - **Settled between them:** Scan stays Home's CTA, so **PF7.1 ships with no center FAB** and is no longer blocked on that open question. Home shows *data*, never a button that duplicates a tab — People and Want-to-Meet are tabs now, so Screen 2.1's old quick-action grid is struck.
 - **F4.4** (Attendee Card) → **F4.5** (Edit Profile) → **F4.6** (photo upload — ⚠️ **blocked on durable object storage**; local-disk `/uploads` does not survive a hosted deploy, so Supabase Storage must land first)
 - **F2.6** (Met indicator) · **F2.7** (card icon row — needs F4.7) · **F4.8** (logout on Profile)
 - **F7.4** (feed UI) — deprioritized with F7 overall; cut first

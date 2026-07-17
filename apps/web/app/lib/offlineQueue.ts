@@ -78,15 +78,25 @@ export async function flushQueue(onSynced?: (kind: QueueKind, response: unknown)
   }
 }
 
-export async function cacheVenueConfig(config: { venueLat: number | null; venueLng: number | null; checkinRadiusM: number }): Promise<void> {
+// `name`/`startAt`/`endAt` are optional because a cache written before F3.6 shipped
+// won't have them — an attendee who installed the PWA earlier must not read
+// `undefined` as "event ended".
+export type CachedVenueConfig = {
+  venueLat: number | null;
+  venueLng: number | null;
+  checkinRadiusM: number;
+  name?: string | null;
+  startAt?: string | null;
+  endAt?: string | null;
+};
+
+export async function cacheVenueConfig(config: CachedVenueConfig): Promise<void> {
   await db.kv.put({ key: "venueConfig", value: config });
 }
 
-export async function getCachedVenueConfig(): Promise<
-  { venueLat: number | null; venueLng: number | null; checkinRadiusM: number } | null
-> {
+export async function getCachedVenueConfig(): Promise<CachedVenueConfig | null> {
   const row = await db.kv.get("venueConfig");
-  return (row?.value as { venueLat: number | null; venueLng: number | null; checkinRadiusM: number }) ?? null;
+  return (row?.value as CachedVenueConfig) ?? null;
 }
 
 const FLUSH_INTERVAL_MS = 15000;

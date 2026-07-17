@@ -241,17 +241,19 @@ export class AttendeesService {
   }
 
   async listDirectory(currentAttendeeId: string) {
-    const [attendees, businessCategories, cities, chapters, bookmarks] = await this.prisma.$transaction([
+    const [attendees, businessCategories, cities, chapters, bookmarks, meetings] = await this.prisma.$transaction([
       this.prisma.attendee.findMany({
         where: { id: { not: currentAttendeeId } },
         select: {
           id: true,
           name: true,
+          phone: true,
           businessName: true,
           businessCategory: true,
           city: true,
           photoUrl: true,
           tableNumber: true,
+          linkedInUrl: true,
           chapter: { select: { name: true } },
           checkIn: { select: { createdAt: true } },
         },
@@ -273,21 +275,31 @@ export class AttendeesService {
         select: { name: true },
       }),
       this.prisma.bookmark.findMany({ where: { attendeeId: currentAttendeeId }, select: { targetId: true } }),
+      this.prisma.meeting.findMany({
+        where: { OR: [{ attendeeAId: currentAttendeeId }, { attendeeBId: currentAttendeeId }] },
+        select: { attendeeAId: true, attendeeBId: true },
+      }),
     ]);
 
     const bookmarkedIds = new Set(bookmarks.map((bookmark) => bookmark.targetId));
+    const metIds = new Set(
+      meetings.map((meeting) => (meeting.attendeeAId === currentAttendeeId ? meeting.attendeeBId : meeting.attendeeAId)),
+    );
 
     const directory = attendees.map((attendee) => ({
       id: attendee.id,
       name: attendee.name,
+      phone: attendee.phone,
       businessName: attendee.businessName,
       businessCategory: attendee.businessCategory,
       city: attendee.city,
       photoUrl: attendee.photoUrl,
       tableNumber: attendee.tableNumber,
+      linkedInUrl: attendee.linkedInUrl,
       chapterName: attendee.chapter?.name ?? null,
       checkedIn: Boolean(attendee.checkIn),
       bookmarked: bookmarkedIds.has(attendee.id),
+      met: metIds.has(attendee.id),
     }));
 
     const unique = (values: Array<string | null>) =>

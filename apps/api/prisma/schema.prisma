@@ -76,6 +76,9 @@ model Attendee {
   offering           String[] @default([])
   goals              String[] @default([])
   bio                String?
+  // Column added by 20260717120000_add_meeting_and_linkedin; the field was missing
+  // here, so the generated client had no linkedInUrl and every reader of it failed
+  // to compile. Nullable — the link is optional everywhere (PRD US1.6).
   linkedInUrl        String?
   profileCompletedAt DateTime?
 

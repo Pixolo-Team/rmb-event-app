@@ -214,6 +214,7 @@ export function TutorialPage() {
   const [photos, setPhotos] = useState<FeedPhotoData[]>([]);
   const [openProfileId, setOpenProfileId] = useState<string | null>(null);
   const [composerRequestKey, setComposerRequestKey] = useState(0);
+  const [profileEditing, setProfileEditing] = useState(false);
 
   useEffect(() => {
     if (TEMP_BYPASS_LOGIN) {
@@ -368,9 +369,9 @@ export function TutorialPage() {
   const openProfile = directory.find((person) => person.id === openProfileId) ?? null;
 
   return (
-    <div className="app-shell-screen has-bottom-nav">
+    <div className={`app-shell-screen${profileEditing ? " is-editing-profile" : " has-bottom-nav"}`}>
       <div className="app-shell">
-        <header className="app-topbar">
+        {!profileEditing ? <header className="app-topbar">
           <div>
             <div className="wordmark app-wordmark">
               <span className="dot" />
@@ -383,7 +384,7 @@ export function TutorialPage() {
               {view === "profile" && "Profile"}
             </p>
           </div>
-        </header>
+        </header> : null}
 
         {actionError ? (
           <div className="banner warn app-banner">
@@ -474,11 +475,12 @@ export function TutorialPage() {
             directory={directory}
             setDirectory={setDirectory}
             onReplayTutorial={restartTutorial}
+            onEditingChange={setProfileEditing}
           />
         ) : null}
       </div>
 
-      <nav className="bottom-nav">
+      {!profileEditing ? <nav className="bottom-nav">
         <button type="button" className={`bottom-nav-item${view === "posts" ? " active" : ""}`} onClick={() => setView("posts")}>
           <HomeIcon active={view === "posts"} />
           <span>Home</span>
@@ -508,7 +510,7 @@ export function TutorialPage() {
           <ProfileIcon active={view === "profile"} />
           <span>Profile</span>
         </button>
-      </nav>
+      </nav> : null}
 
       {openProfile ? (
         <FullProfileModal

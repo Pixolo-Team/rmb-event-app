@@ -438,6 +438,40 @@ Acceptance Criteria:
 - Check-in timeline chart: graph of check-ins over time (optional)
 ```
 
+**US3.5 - Home is the hub for the whole event, not just for checking in** *(added UX revision v1.1 — builds as F3.6)*
+```
+As Radha (attendee)
+I want Home to show me what matters right now — where my table is, who I should meet,
+how I'm doing — and not just the check-in receipt I already used hours ago
+So that the app stays useful for the seven hours after I walk in, not the first ninety seconds
+Acceptance Criteria:
+- Home renders one of four modes, chosen from event start/end time and check-in state:
+  pre-event · arrival · checked-in dashboard · event ended
+- BEFORE THE EVENT (now < startAt): Home shows a countdown, the event name/venue, and links
+  to browse who's coming and see match suggestions. It does NOT request geolocation, does NOT
+  attempt check-in, and shows no warning tone. (Today Home has no start-time guard, so every
+  attendee who opens the group link ~5 days early sees a false "Not checked in — Outside
+  venue area" warning. This criterion is the fix.)
+- ON EVENT DAY, NOT CHECKED IN: unchanged from US3.1/US3.1A — the full-page arrival flow
+- ONCE CHECKED IN: Home becomes a dashboard carrying, in order — a compact check-in strip,
+  table number (when assigned), a prominent "Scan to connect" action, three stats
+  (people met, leaderboard rank, time at event), and a 2-3 person "people to meet" preview
+- The check-in strip expands back to the full-page "show this at the registration counter"
+  view on tap — shrinking the receipt must not cost the attendee the thing they show staff
+- AFTER THE EVENT (now >= endAt): check-in affordances disappear; Home offers the event summary
+- Bookmarks count and photos-posted are deliberately NOT on Home: they don't prompt an action,
+  and bookmarks duplicates the Want-to-Meet tab (US12.1) — each destination lives in one place
+- Home presents data, not a launcher: it never duplicates a bottom-tab destination as a button
+- Every mode works offline from cached data; a mode is never chosen from a failed request
+- Nothing renders as an empty placeholder: no table number, no matches, or no meetings yet each
+  omit the element or show its own prompt ("No meetings yet. Start scanning!")
+Technical Details:
+- GET /event must return startAt/endAt/name (it currently returns only venue lat/lng/radius).
+  These aren't sensitive and are cached client-side per the offline architecture, so mode
+  selection keeps working with no connectivity
+- Stats reuse the existing cached attendee-stats endpoint (US11.1); no new aggregate
+```
+
 ---
 
 ### Feature 4: Digital Business Card Exchange & "Met" Detection (Unified QR)

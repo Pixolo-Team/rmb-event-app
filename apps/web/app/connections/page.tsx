@@ -12,10 +12,10 @@ import { withCsrfHeaders } from "../lib/csrf";
 type SortOption = "recent" | "name";
 
 const PREVIEW_DATA: ConnectionsResponse = { connections: [
-  { id: "preview-1", name: "Aarav Mehta", phone: "+919810012345", email: "aarav@example.com", businessName: "Mehta Packaging Solutions", businessCategory: "Manufacturing", bio: "Helping growing brands switch to sustainable packaging without increasing production costs.", tableNumber: "12", photoUrl: null, metAt: "2026-07-16T09:42:00.000Z", note: "Interested in eco-friendly packaging. Follow up next week." },
-  { id: "preview-2", name: "Neha Kapoor", phone: "+919820067890", email: "neha@example.com", businessName: "Kapoor Digital", businessCategory: "Marketing & Advertising", bio: "Performance marketing and brand strategy for founder-led businesses.", tableNumber: "7", photoUrl: null, metAt: "2026-07-16T08:25:00.000Z", note: "" },
-  { id: "preview-3", name: "Vikram Shah", phone: "+919930054321", email: "vikram@example.com", businessName: "Shah Industrial Systems", businessCategory: "Engineering", bio: null, tableNumber: "18", photoUrl: null, metAt: "2026-07-16T07:50:00.000Z", note: "Met near registration desk." },
-], bookmarks: [{ id: "preview-4", name: "Priya Nair", phone: "+919840011223", email: "priya@example.com", businessName: "Nair Advisory", businessCategory: "Consulting", bio: "Growth and operations advisor for family businesses.", tableNumber: "5", photoUrl: null, bookmarkedAt: "2026-07-16T09:55:00.000Z", bookmarked: true, chapterName: "Mumbai Central", city: "Mumbai" }] };
+  { id: "preview-1", name: "Aarav Mehta", phone: "+919810012345", email: "aarav@example.com", businessName: "Mehta Packaging Solutions", businessCategory: "Manufacturing", bio: "Helping growing brands switch to sustainable packaging without increasing production costs.", tableNumber: "12", photoUrl: null, linkedInUrl: "https://www.linkedin.com/in/aarav-mehta", met: true, metAt: "2026-07-16T09:42:00.000Z", note: "Interested in eco-friendly packaging. Follow up next week." },
+  { id: "preview-2", name: "Neha Kapoor", phone: "+919820067890", email: "neha@example.com", businessName: "Kapoor Digital", businessCategory: "Marketing & Advertising", bio: "Performance marketing and brand strategy for founder-led businesses.", tableNumber: "7", photoUrl: null, linkedInUrl: null, met: true, metAt: "2026-07-16T08:25:00.000Z", note: "" },
+  { id: "preview-3", name: "Vikram Shah", phone: "+919930054321", email: "vikram@example.com", businessName: "Shah Industrial Systems", businessCategory: "Engineering", bio: null, tableNumber: "18", photoUrl: null, linkedInUrl: null, met: true, metAt: "2026-07-16T07:50:00.000Z", note: "Met near registration desk." },
+], bookmarks: [{ id: "preview-4", name: "Priya Nair", phone: "+919840011223", email: "priya@example.com", businessName: "Nair Advisory", businessCategory: "Consulting", bio: "Growth and operations advisor for family businesses.", tableNumber: "5", photoUrl: null, linkedInUrl: "https://www.linkedin.com/in/priya-nair", met: false, bookmarkedAt: "2026-07-16T09:55:00.000Z", bookmarked: true, chapterName: "Mumbai Central", city: "Mumbai" }] };
 
 export default function ConnectionsPage() {
   const [data, setData] = useState<ConnectionsResponse | null>(null);
@@ -99,12 +99,24 @@ export default function ConnectionsPage() {
 }
 
 function BookmarkCard({ person, onRemove }: { person: BookmarkConnection; onRemove: () => void }) {
-  const whatsappNumber = person.phone.replace(/[^\d]/g, "");
+  function sharePerson() {
+    const url = `${window.location.origin}/p/${person.id}`;
+    if (navigator.share) {
+      navigator.share({ title: person.name, url }).catch(() => undefined);
+      return;
+    }
+    navigator.clipboard?.writeText(url).catch(() => undefined);
+  }
+
   return <article className="connection-card bookmark-card">
-    <BookmarkButton attendeeId={person.id} initialBookmarked onChange={(value) => { if (!value) onRemove(); }} />
-    <Link className="connection-person" href={`/attendees/${person.id}`}><DirectoryAvatar name={person.name} photoUrl={person.photoUrl} /><div><h2>{person.name}</h2>{person.businessName && <p>{person.businessName}</p>}<div className="connection-meta-line"><span>Saved {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(person.bookmarkedAt))}</span>{person.tableNumber && <span className="connection-table"><TableIcon /> Table {person.tableNumber}</span>}</div></div></Link>
+    <Link className="connection-person" href={`/attendees/${person.id}`}><DirectoryAvatar name={person.name} photoUrl={person.photoUrl} /><div><h2>{person.name}{person.met && <span className="met-badge">Met</span>}</h2>{person.businessName && <p>{person.businessName}</p>}<div className="connection-meta-line"><span>Saved {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(person.bookmarkedAt))}</span>{person.tableNumber && <span className="connection-table"><TableIcon /> Table {person.tableNumber}</span>}</div></div></Link>
     <div className="connection-details">{person.businessCategory && <span>{person.businessCategory}</span>}{person.bio && <p>{person.bio}</p>}</div>
-    <div className="connection-actions"><a href={`tel:${person.phone}`}><CallIcon /> Call</a><a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noreferrer"><WhatsAppIcon /> WhatsApp</a></div>
+    <div className="card-icon-actions" aria-label={`Actions for ${person.name}`}>
+      <BookmarkButton attendeeId={person.id} initialBookmarked onChange={(value) => { if (!value) onRemove(); }} compact />
+      <a className="icon-btn" href={`tel:${person.phone}`} aria-label={`Call ${person.name}`} title="Call"><CallIcon /></a>
+      {person.linkedInUrl && <a className="icon-btn" href={person.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${person.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /></a>}
+      <button className="icon-btn" type="button" onClick={sharePerson} aria-label={`Share ${person.name}`} title="Share"><ShareIcon /></button>
+    </div>
   </article>;
 }
 
@@ -144,7 +156,7 @@ function ConnectionCard({ connection, offline, onNote, onRemove }: { connection:
     <Link className="connection-person" href={`/attendees/${connection.id}`}>
       <DirectoryAvatar name={connection.name} photoUrl={connection.photoUrl} />
       <div>
-        <h2>{connection.name}</h2>
+        <h2>{connection.name}<span className="met-badge">Met</span></h2>
         {connection.businessName && <p>{connection.businessName}</p>}
         <div className="connection-meta-line">
           <span>Met {new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(connection.metAt))}</span>
@@ -182,4 +194,10 @@ function CallIcon() {
 
 function WhatsAppIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.7a8 8 0 0 1-11.8 7L4 20l1.3-4.1A8 8 0 1 1 20 11.7Z" /><path d="M8.6 7.8c.5 3.5 3 6 6.5 6.6l1.3-1.5-2.2-1.1-.8.8a6 6 0 0 1-2.2-2.2l.8-.8-1.1-2.2-1.5 1.3" /></svg>;
+}
+function LinkedInIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9v10M5 5.5v.1M10 19v-9M10 13.5c.7-2.2 2-3.5 4-3.5 2.6 0 4 1.7 4 5v4" /></svg>;
+}
+function ShareIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.2" /><circle cx="17" cy="6" r="2.2" /><circle cx="17" cy="18" r="2.2" /><path d="M8 11l7-4M8 13l7 4" /></svg>;
 }
