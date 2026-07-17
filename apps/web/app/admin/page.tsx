@@ -47,6 +47,7 @@ export default function AdminHome() {
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
+  const [exporting, setExporting] = useState<"csv" | "pdf" | null>(null);
   const [online, setOnline] = useState(true);
 
   useEffect(() => {
@@ -107,6 +108,34 @@ export default function AdminHome() {
     }
   }
 
+  async function exportReport(format: "csv" | "pdf") {
+    setExporting(format);
+    try {
+      const response = await fetch(getApiExportUrl(format), {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const message = await response.text().catch(() => "");
+        throw new Error(message || "Failed to export analytics");
+      }
+
+      const blob = await response.blob();
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const contentDisposition = response.headers.get("content-disposition");
+      const fileName = getFilenameFromDisposition(contentDisposition) ?? `evento-admin-analytics.${format}`;
+
+      link.href = objectUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(objectUrl);
+    } finally {
+      setExporting(null);
+    }
+  }
+
   const chartMax = useMemo(
     () => Math.max(1, ...(data?.timeseries.points.flatMap((point) => [point.checkIns, point.meetings]) ?? [1])),
     [data],
@@ -130,6 +159,22 @@ export default function AdminHome() {
         <div className="admin-overview-actions">
           {stale && <span className="admin-status-pill">Offline cache</span>}
           {formattedUpdatedAt && <span className="admin-updated-at">Updated {formattedUpdatedAt}</span>}
+          <button
+            className="btn-secondary"
+            type="button"
+            onClick={() => exportReport("csv")}
+            disabled={exporting !== null}
+          >
+            {exporting === "csv" ? "Exporting CSV…" : "Export CSV"}
+          </button>
+          <button
+            className="btn-secondary"
+            type="button"
+            onClick={() => exportReport("pdf")}
+            disabled={exporting !== null}
+          >
+            {exporting === "pdf" ? "Exporting PDF…" : "Export PDF"}
+          </button>
           <button className="btn-secondary" type="button" onClick={signOut} disabled={signingOut}>
             {signingOut ? "Signing out…" : "Sign out"}
           </button>
@@ -338,4 +383,20 @@ function SmallStat({ label, value }: { label: string; value: string | number }) 
 
 function formatPercent(value: number) {
   return `${Math.round(value)}%`;
+}
+
+function getApiExportUrl(format: "csv" | "pdf") {
+  const base =
+    typeof window === "undefined"
+      ? "http://localhost:4000"
+      : `${window.location.protocol}//${window.location.hostname}:4000`;
+  return `${base}/admin/analytics/export?format=${format}`;
+}
+
+function getFilenameFromDisposition(header: string | null) {
+  if (!header) return null;
+  const utf8Match = header.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match) return decodeURIComponent(utf8Match[1]);
+  const plainMatch = header.match(/filename="?([^"]+)"?/i);
+  return plainMatch?.[1] ?? null;
 }
