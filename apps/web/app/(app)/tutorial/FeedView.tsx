@@ -507,9 +507,11 @@ export function FeedView({
       {enlargedPhoto ? (
         <div className="photo-modal-overlay" role="dialog" aria-modal="true" onClick={() => setEnlargedPhotoId(null)}>
           <div className="photo-modal-card" onClick={(event) => event.stopPropagation()}>
-            <button className="icon-action" type="button" onClick={() => setEnlargedPhotoId(null)} style={{ marginBottom: 12 }}>
-              Close
-            </button>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+              <button className="icon-action" type="button" onClick={() => setEnlargedPhotoId(null)}>
+                Close
+              </button>
+            </div>
 
             <div className="photo-card-media">
               {enlargedPhoto.url ? (
