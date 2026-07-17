@@ -23,6 +23,7 @@ export type AttendeeMe = {
   phone: string;
   businessName: string | null;
   chapterName: string | null;
+  tableNumber?: string | null;
   city: string | null;
   businessCategory: string | null;
   photoUrl?: string | null;
@@ -81,6 +82,7 @@ const DEMO_ATTENDEE: AttendeeMe = {
   phone: "+91 98765 43210",
   businessName: "Sharma Trading Co.",
   chapterName: "RMB Ahmedabad",
+  tableNumber: "A-12",
   city: "Ahmedabad",
   businessCategory: "Trader/Distributor",
   photoUrl: null,

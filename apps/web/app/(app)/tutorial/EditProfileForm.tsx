@@ -1,11 +1,18 @@
 "use client";
 
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { AttendeeMe } from "./TutorialPage";
 import { TEMP_BYPASS_LOGIN } from "./TutorialPage";
 
+type CityOption = {
+  name: string;
+  stateOrUt: string;
+  value: string;
+};
+
 type ProfileOptions = {
   businessCategories: string[];
+  cities: CityOption[];
   lookingFor: string[];
   offering: string[];
   goals: string[];
@@ -13,6 +20,12 @@ type ProfileOptions = {
 
 const DEMO_OPTIONS: ProfileOptions = {
   businessCategories: ["Manufacturer", "Trader/Distributor", "Service Provider", "Retailer", "Consultant"],
+  cities: [
+    { name: "Ahmedabad", stateOrUt: "Gujarat", value: "Ahmedabad, Gujarat" },
+    { name: "Surat", stateOrUt: "Gujarat", value: "Surat, Gujarat" },
+    { name: "Vadodara", stateOrUt: "Gujarat", value: "Vadodara, Gujarat" },
+    { name: "Rajkot", stateOrUt: "Gujarat", value: "Rajkot, Gujarat" },
+  ],
   lookingFor: ["Distributors", "Suppliers", "Clients", "Investors", "Partners", "Mentors"],
   offering: ["Wholesale", "Logistics", "Consulting", "Manufacturing", "Retail space", "Financing"],
   goals: ["Grow network", "Find partners", "Generate leads", "Learn", "Hire"],
@@ -20,6 +33,19 @@ const DEMO_OPTIONS: ProfileOptions = {
 
 function toggle(list: string[], value: string): string[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+}
+
+function isValidLinkedInUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.hostname.includes("linkedin.");
+  } catch {
+    return false;
+  }
+}
+
+function readOnlyValue(value: string | null | undefined, fallback = "Not available") {
+  return value && value.trim() ? value : fallback;
 }
 
 export function EditProfileForm({
@@ -33,6 +59,7 @@ export function EditProfileForm({
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [options, setOptions] = useState<ProfileOptions>(DEMO_OPTIONS);
+  const [isOffline, setIsOffline] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(attendee.photoUrl ?? null);
   const [businessCategory, setBusinessCategory] = useState(attendee.businessCategory ?? "");
@@ -44,32 +71,130 @@ export function EditProfileForm({
   const [linkedInUrl, setLinkedInUrl] = useState(attendee.linkedInUrl ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [readOnlyHint, setReadOnlyHint] = useState<string | null>(null);
+
+  useEffect(() => {
+    setIsOffline(typeof navigator !== "undefined" ? !navigator.onLine : false);
+    function handleOnline() {
+      setIsOffline(false);
+    }
+    function handleOffline() {
+      setIsOffline(true);
+    }
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     if (TEMP_BYPASS_LOGIN) return;
-    fetch("/api/attendees/profile-options")
+    fetch("/api/attendees/profile-options", { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data) setOptions(data);
+        if (data) {
+          setOptions({
+            businessCategories: data.businessCategories ?? [],
+            cities: data.cities ?? [],
+            lookingFor: data.lookingFor ?? [],
+            offering: data.offering ?? [],
+            goals: data.goals ?? [],
+          });
+        }
       })
       .catch(() => undefined);
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (photoPreview && photoPreview.startsWith("blob:")) {
+        URL.revokeObjectURL(photoPreview);
+      }
+    };
+  }, [photoPreview]);
+
+  const knownCities = useMemo(() => {
+    const values = new Set(options.cities.map((option) => option.value));
+    if (attendee.city) values.add(attendee.city);
+    return [...values];
+  }, [attendee.city, options.cities]);
+
+  const initialSnapshot = useMemo(
+    () =>
+      JSON.stringify({
+        businessCategory: attendee.businessCategory ?? "",
+        city: attendee.city ?? "",
+        lookingFor: attendee.lookingFor ?? [],
+        offering: attendee.offering ?? [],
+        goals: attendee.goals ?? [],
+        bio: attendee.bio ?? "",
+        linkedInUrl: attendee.linkedInUrl ?? "",
+        photoUrl: attendee.photoUrl ?? null,
+      }),
+    [attendee],
+  );
+
+  const currentSnapshot = JSON.stringify({
+    businessCategory,
+    city,
+    lookingFor,
+    offering,
+    goals,
+    bio,
+    linkedInUrl,
+    photoUrl: photoPreview,
+  });
+  const isDirty = initialSnapshot !== currentSnapshot;
+
   function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
-    if (photoPreview && photoFile) URL.revokeObjectURL(photoPreview);
+    if (photoPreview && photoPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(photoPreview);
+    }
     setPhotoFile(file);
     setPhotoPreview(file ? URL.createObjectURL(file) : attendee.photoUrl ?? null);
   }
 
+  function handleRemovePhoto() {
+    if (photoPreview && photoPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(photoPreview);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setPhotoFile(null);
+    setPhotoPreview(null);
+  }
+
+  function handleAttemptClose() {
+    if (isDirty && typeof window !== "undefined" && !window.confirm("Discard your profile changes?")) {
+      return;
+    }
+    onClose();
+  }
+
   async function handleSave() {
     setError(null);
+    setReadOnlyHint(null);
+
+    if (isOffline) {
+      setError("You're offline — reconnect to save.");
+      return;
+    }
     if (!businessCategory) {
       setError("Choose your business category.");
       return;
     }
     if (!city.trim()) {
-      setError("Enter your city.");
+      setError("Choose your city.");
+      return;
+    }
+    if (options.cities.length > 0 && !knownCities.includes(city.trim())) {
+      setError("Choose a city from the active list.");
+      return;
+    }
+    if (linkedInUrl.trim() && !isValidLinkedInUrl(linkedInUrl.trim())) {
+      setError("Enter a valid LinkedIn profile URL.");
       return;
     }
 
@@ -118,10 +243,40 @@ export function EditProfileForm({
           credentials: "include",
           body: formData,
         });
-        if (photoRes.ok) {
-          const body = await photoRes.json();
-          photoUrl = body.photoUrl ?? photoUrl;
+        if (!photoRes.ok) {
+          setError("Your profile saved, but the photo upload failed. Try the photo again.");
+          onSaved({
+            businessCategory,
+            city: city.trim(),
+            lookingFor,
+            offering,
+            goals,
+            bio: bio.trim() || null,
+            linkedInUrl: linkedInUrl.trim() || null,
+          });
+          return;
         }
+        const body = await photoRes.json();
+        photoUrl = body.photoUrl ?? photoUrl;
+      } else if (!photoPreview && attendee.photoUrl) {
+        const removeRes = await fetch("/api/attendees/me/photo/remove", {
+          method: "PATCH",
+          credentials: "include",
+        });
+        if (!removeRes.ok) {
+          setError("Your profile saved, but the photo could not be removed. Try again.");
+          onSaved({
+            businessCategory,
+            city: city.trim(),
+            lookingFor,
+            offering,
+            goals,
+            bio: bio.trim() || null,
+            linkedInUrl: linkedInUrl.trim() || null,
+          });
+          return;
+        }
+        photoUrl = null;
       }
 
       onSaved({
@@ -143,18 +298,31 @@ export function EditProfileForm({
   }
 
   return (
-    <div className="photo-modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
-      <div className="photo-modal-card" onClick={(event) => event.stopPropagation()}>
-        <button className="icon-action" type="button" onClick={onClose} style={{ marginBottom: 12 }}>
-          Close
-        </button>
+    <main className="app-content">
+      <section className="settings-card profile-edit-shell">
+        <div className="profile-edit-header">
+          <div>
+            <p className="photo-modal-eyebrow">Edit profile</p>
+            <h1 className="settings-title">Update your attendee card</h1>
+            <p className="settings-copy">Change the fields you set during onboarding. Registered details stay organizer-controlled.</p>
+          </div>
+          <button className="btn-secondary profile-edit-close" type="button" onClick={handleAttemptClose}>
+            Cancel
+          </button>
+        </div>
 
-        <h1 className="settings-title">Edit profile</h1>
-        <p className="settings-copy">Update your card and photo.</p>
+        {isOffline ? (
+          <div className="banner warn app-banner">
+            <div>
+              <b>Offline</b>
+              You&apos;re offline — reconnect to save changes.
+            </div>
+          </div>
+        ) : null}
 
-        <div className="field" style={{ marginTop: 16 }}>
+        <div className="field profile-edit-photo-field">
           <label htmlFor="edit-photo">Photo</label>
-          <label htmlFor="edit-photo" className="photo-picker photo-picker-round">
+          <label htmlFor="edit-photo" className="photo-picker photo-picker-round profile-edit-photo-picker">
             {photoPreview ? (
               <img src={photoPreview} alt="Profile preview" />
             ) : (
@@ -174,48 +342,88 @@ export function EditProfileForm({
             onChange={handlePhotoChange}
             className="visually-hidden"
           />
+          <div className="profile-edit-photo-actions">
+            <button className="btn-secondary" type="button" onClick={() => fileInputRef.current?.click()}>
+              {photoPreview ? "Replace photo" : "Choose photo"}
+            </button>
+            {photoPreview ? (
+              <button className="btn-secondary" type="button" onClick={handleRemovePhoto}>
+                Remove photo
+              </button>
+            ) : null}
+          </div>
         </div>
 
-        <div className="field" style={{ marginTop: 12 }}>
-          <label htmlFor="edit-category">Business category</label>
-          <select id="edit-category" value={businessCategory} onChange={(e) => setBusinessCategory(e.target.value)}>
-            <option value="">Select your category</option>
-            {options.businessCategories.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
+        <section className="profile-edit-readonly">
+          <h2 className="profile-edit-section-title">Registered details</h2>
+          <p className="settings-copy">These are controlled by the event organizer.</p>
+          <div className="profile-readonly-grid">
+            <ReadOnlyField label="Name" value={readOnlyValue(attendee.name)} onTap={() => setReadOnlyHint("Contact the event organizer to change your registered details.")} />
+            <ReadOnlyField label="Company" value={readOnlyValue(attendee.businessName)} onTap={() => setReadOnlyHint("Contact the event organizer to change your registered details.")} />
+            <ReadOnlyField label="Phone" value={readOnlyValue(attendee.phone)} onTap={() => setReadOnlyHint("Contact the event organizer to change your registered details.")} />
+            <ReadOnlyField label="Email" value={readOnlyValue(attendee.email)} onTap={() => setReadOnlyHint("Contact the event organizer to change your registered details.")} />
+            <ReadOnlyField label="Chapter" value={readOnlyValue(attendee.chapterName)} onTap={() => setReadOnlyHint("Contact the event organizer to change your registered details.")} />
+            <ReadOnlyField label="Table number" value={readOnlyValue(attendee.tableNumber)} onTap={() => setReadOnlyHint("Contact the event organizer to change your registered details.")} />
+          </div>
+          {readOnlyHint ? <p className="profile-readonly-hint">{readOnlyHint}</p> : null}
+        </section>
 
-        <div className="field">
-          <label htmlFor="edit-city">City</label>
-          <input id="edit-city" maxLength={100} value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g. Ahmedabad" />
-        </div>
+        <section className="profile-edit-section">
+          <h2 className="profile-edit-section-title">Card details</h2>
 
-        <ChipField label="Looking for" options={options.lookingFor} selected={lookingFor} onToggle={(v) => setLookingFor((s) => toggle(s, v))} />
-        <ChipField label="Offering" options={options.offering} selected={offering} onToggle={(v) => setOffering((s) => toggle(s, v))} />
-        <ChipField label="Goals" options={options.goals} selected={goals} onToggle={(v) => setGoals((s) => toggle(s, v))} />
+          <div className="field">
+            <label htmlFor="edit-category">Business category</label>
+            <select id="edit-category" value={businessCategory} onChange={(e) => setBusinessCategory(e.target.value)}>
+              <option value="">Select your category</option>
+              {options.businessCategories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div className="field">
-          <label htmlFor="edit-linkedin">LinkedIn URL</label>
-          <input
-            id="edit-linkedin"
-            type="url"
-            value={linkedInUrl}
-            onChange={(e) => setLinkedInUrl(e.target.value)}
-            placeholder="https://www.linkedin.com/in/you"
-          />
-        </div>
+          <div className="field">
+            <label htmlFor="edit-city">City</label>
+            <input
+              id="edit-city"
+              list="city-options"
+              maxLength={100}
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="Search your city"
+            />
+            <datalist id="city-options">
+              {knownCities.map((option) => (
+                <option key={option} value={option} />
+              ))}
+            </datalist>
+          </div>
 
-        <div className="field">
-          <label htmlFor="edit-bio">Bio</label>
-          <textarea id="edit-bio" maxLength={200} rows={3} value={bio} onChange={(e) => setBio(e.target.value)} />
-          <small className="person-line muted">{bio.length}/200</small>
-        </div>
+          <ChipField label="Looking for" options={options.lookingFor} selected={lookingFor} onToggle={(v) => setLookingFor((s) => toggle(s, v))} />
+          <ChipField label="Offering" options={options.offering} selected={offering} onToggle={(v) => setOffering((s) => toggle(s, v))} />
+          <ChipField label="Goals" options={options.goals} selected={goals} onToggle={(v) => setGoals((s) => toggle(s, v))} />
+
+          <div className="field">
+            <label htmlFor="edit-linkedin">LinkedIn URL</label>
+            <input
+              id="edit-linkedin"
+              type="url"
+              value={linkedInUrl}
+              onChange={(e) => setLinkedInUrl(e.target.value)}
+              placeholder="https://www.linkedin.com/in/you"
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="edit-bio">Bio</label>
+            <textarea id="edit-bio" maxLength={200} rows={4} value={bio} onChange={(e) => setBio(e.target.value)} />
+            <small className="person-line muted">{bio.length}/200</small>
+          </div>
+        </section>
 
         {error ? (
-          <div className="banner warn app-banner" style={{ marginTop: 4 }}>
+          <div className="banner warn app-banner">
             <div>
               <b>Check the form</b>
               {error}
@@ -223,11 +431,26 @@ export function EditProfileForm({
           </div>
         ) : null}
 
-        <button className="btn-primary" type="button" disabled={saving} onClick={handleSave} style={{ marginTop: 8 }}>
-          {saving ? "Saving…" : "Save changes"}
-        </button>
-      </div>
-    </div>
+        <div className="profile-edit-actions">
+          <button className="btn-secondary" type="button" onClick={handleAttemptClose}>
+            Back
+          </button>
+          <button className="btn-primary" type="button" disabled={saving || isOffline || !isDirty} onClick={handleSave}>
+            {saving ? "Saving..." : "Save changes"}
+          </button>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function ReadOnlyField({ label, value, onTap }: { label: string; value: string; onTap: () => void }) {
+  return (
+    <button type="button" className="profile-readonly-card" onClick={onTap}>
+      <span className="profile-readonly-label">{label}</span>
+      <strong>{value}</strong>
+      <small>Contact the event organizer to change this</small>
+    </button>
   );
 }
 

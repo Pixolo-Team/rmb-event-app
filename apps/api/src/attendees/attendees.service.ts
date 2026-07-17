@@ -201,7 +201,7 @@ export class AttendeesService {
     });
   }
 
-  async updatePhoto(attendeeId: string, photoUrl: string) {
+  async updatePhoto(attendeeId: string, photoUrl: string | null) {
     return this.prisma.attendee.update({
       where: { id: attendeeId },
       data: { photoUrl },

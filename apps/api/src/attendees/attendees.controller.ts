@@ -94,6 +94,13 @@ export class AttendeesController {
     return { status: "ok", photoUrl };
   }
 
+  @Patch("me/photo/remove")
+  @UseGuards(SessionGuard)
+  async removePhoto(@Req() req: RequestWithAttendee) {
+    await this.attendees.updatePhoto(req.attendeeId, null);
+    return { status: "ok", photoUrl: null };
+  }
+
   @Get("directory")
   @UseGuards(SessionGuard)
   async legacyDirectory(@Req() req: RequestWithAttendee) {
