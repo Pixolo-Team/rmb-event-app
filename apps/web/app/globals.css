@@ -1961,6 +1961,198 @@ a.contact-row:active { background: var(--brand-100); }
   }
 }
 
+/* F3.6 — Home's dashboard mode. Unlike the arrival flow above there's no colour
+   band: once check-in is done the screen is a hub, and a full-bleed status band
+   would keep shouting a status the attendee already acted on. */
+.home-dash {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.home-dash-body {
+  flex: 1;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.home-greeting {
+  margin: 0;
+  font: 800 1.4rem var(--font-display);
+}
+.home-event-when {
+  margin: -6px 0 0;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+}
+
+/* The shrunk desk receipt. A button, not a div — it opens the full-page view
+   staff ask for, so it must be reachable by keyboard and announce as actionable. */
+.checkin-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--success-700);
+  border-radius: var(--radius-md);
+  background: var(--success-100);
+  color: var(--success-700);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.checkin-strip-tick {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--success-700);
+  color: var(--success-100);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+.checkin-strip-text {
+  display: block;
+  min-width: 0;
+}
+.checkin-strip-text b {
+  display: block;
+  font-size: 0.95rem;
+}
+.checkin-strip-text em {
+  display: block;
+  margin-top: 2px;
+  font-style: normal;
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+/* Table number: the "where do I physically go" fact, and the thing an attendee
+   hunts for in the first ten minutes — so it gets size, not colour. Deliberately
+   brand-toned, not marigold: DESIGN_SYSTEM.md spends that accent only on the scan
+   button and gamification, never as a generic highlight. */
+.table-callout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--brand-400);
+  border-radius: var(--radius-md);
+  background: var(--brand-100);
+}
+.table-callout span {
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.table-callout strong {
+  font: 800 1.6rem var(--font-display);
+  color: var(--ink);
+}
+
+.home-scan-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+.home-stats-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+/* Three tiles across a 360px phone leaves ~85px each, and "24h 52m" wraps at a
+   fixed 1.25rem — which unbalances the row. Scale with the viewport instead. */
+.home-stats-grid .stat-tile {
+  padding: 14px 8px;
+}
+.home-stats-grid .stat-tile strong {
+  font-size: clamp(1rem, 4.4vw, 1.25rem);
+  white-space: nowrap;
+}
+.home-nudge {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 0.85rem;
+}
+.home-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.home-section-head h2 {
+  margin: 0;
+  font: 700 1rem var(--font-display);
+}
+.home-match-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.home-match {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: inherit;
+}
+.home-match:hover {
+  background: var(--surface-2);
+}
+.home-match-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--brand-100);
+  color: var(--brand-700);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.home-match-text {
+  min-width: 0;
+  flex: 1;
+}
+.home-match-text b {
+  display: block;
+  font-size: 0.92rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-match-text em {
+  display: block;
+  margin-top: 1px;
+  color: var(--ink-muted);
+  font-style: normal;
+  font-size: 0.76rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (min-width: 700px) {
+  .home-dash-body {
+    max-width: 560px;
+    padding-top: 28px;
+  }
+}
+
 /* Admin surfaces: full-width by default, but still usable on a tablet (Staff
    Console) or a phone in a pinch — not just desktop. */
 .admin-page {
