@@ -204,9 +204,37 @@ p.copy {
   font-size: 0.95rem;
   color: var(--ink);
 }
+.field select,
+.filter-field select,
+.connections-sort select,
+.photo-editor select,
+.feedback-admin-toolbar select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--surface);
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 12px) 50%;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  color: var(--ink);
+}
+.field select::-ms-expand,
+.filter-field select::-ms-expand,
+.connections-sort select::-ms-expand,
+.photo-editor select::-ms-expand,
+.feedback-admin-toolbar select::-ms-expand {
+  display: none;
+}
 .field input,
 .field select {
   height: 46px;
+}
+.field select {
+  padding-right: 42px;
 }
 .field textarea {
   padding: 11px 13px;
@@ -352,7 +380,6 @@ p.copy {
 
 .btn-primary {
   width: 100%;
-  margin-top: 14px;
   height: 50px;
   border: none;
   border-radius: var(--radius-sm);
@@ -731,6 +758,9 @@ p.copy {
   display: flex;
   flex-direction: column;
 }
+.full-page.attendee-tabbed-page {
+  padding-bottom: calc(86px + env(safe-area-inset-bottom));
+}
 .full-page-header {
   min-height: 68px;
   padding: 12px 16px;
@@ -927,6 +957,91 @@ p.copy {
   color: var(--ink-faint);
   cursor: wait;
 }
+.attendee-tabs {
+  position: fixed;
+  z-index: 80;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 8px max(12px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-right));
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -10px 28px rgba(20, 40, 80, 0.12);
+  backdrop-filter: blur(14px);
+}
+.attendee-tabs-track {
+  position: relative;
+  max-width: 680px;
+  min-height: 60px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: end;
+  gap: 4px;
+}
+.attendee-tab,
+.attendee-scan-fab {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+.attendee-tab {
+  flex-direction: column;
+  gap: 3px;
+  padding: 7px 4px 5px;
+  border-radius: 14px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.attendee-tab svg,
+.attendee-scan-fab svg {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.attendee-tab span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attendee-tab:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.attendee-tab.active {
+  background: var(--brand-50);
+  color: var(--brand-700);
+}
+.attendee-scan-fab {
+  align-self: start;
+  width: 58px;
+  height: 58px;
+  margin: -24px auto 0;
+  border: 4px solid var(--surface);
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--brand-500), var(--brand-700));
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(31, 91, 160, 0.35);
+}
+.attendee-scan-fab:hover,
+.attendee-scan-fab.active {
+  background: linear-gradient(180deg, var(--accent-500), var(--brand-700));
+  color: #fff;
+}
+.attendee-scan-fab svg {
+  width: 27px;
+  height: 27px;
+}
 
 /* Authenticated attendee directory and profile (F2.4/F2.5). */
 .attendee-shell {
@@ -936,7 +1051,7 @@ p.copy {
   width: 100%;
   max-width: 1040px;
   margin: 0 auto;
-  padding: 28px 16px 56px;
+  padding: 28px 16px calc(112px + env(safe-area-inset-bottom));
 }
 .page-heading-row h1,
 .profile-hero h1 {
@@ -1685,26 +1800,96 @@ a.contact-row:active { background: var(--brand-100); }
 .qr-sub { margin: 4px 0 0; color: var(--ink-muted); font-weight: 600; }
 .qr-hint { margin: 10px 0 0; color: var(--ink-faint); font-size: 0.8rem; }
 .profile-readonly-note { margin: 22px 0 0; color: var(--ink-faint); font-size: 0.8rem; }
+.business-card {
+  border: 1px solid color-mix(in srgb, var(--border) 76%, var(--brand-500));
+  border-radius: 24px;
+  padding: 22px;
+  background:
+    radial-gradient(circle at 15% 0%, color-mix(in srgb, var(--brand-500) 10%, transparent), transparent 36%),
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 96%, var(--brand-50)), var(--surface));
+  box-shadow: 0 14px 38px rgba(20, 40, 80, 0.12);
+}
+.business-card-top {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+}
+.business-card-avatar {
+  width: 86px;
+  height: 86px;
+  font-size: 1.55rem;
+  box-shadow: inset 0 0 0 4px var(--surface);
+}
+.business-card .person-name {
+  font-size: 1.18rem;
+}
+.business-card .person-line {
+  font-size: 0.94rem;
+}
+.business-card .person-line.muted {
+  color: color-mix(in srgb, var(--ink-muted) 88%, var(--brand-600));
+}
 .profile-card {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 .profile-card-bio {
-  margin-top: 0;
+  margin-top: 2px;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--border);
+  color: var(--ink);
+  font-size: 0.95rem;
+  line-height: 1.55;
 }
 .profile-tag-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
+.profile-tag-group .chip-row {
+  gap: 9px;
+}
+.profile-tag-group .chip.static {
+  cursor: default;
+  background: var(--brand-50);
+  border-color: color-mix(in srgb, var(--brand-500) 42%, var(--border));
+  color: var(--brand-800);
+  font-weight: 750;
+}
 .profile-tag-label {
   margin: 0;
-  color: var(--ink-faint);
+  color: var(--brand-600);
   font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+.business-card-contact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.business-card-contact > div {
+  min-width: 0;
+}
+.business-card-contact .person-line {
+  overflow-wrap: anywhere;
+}
+.business-card-contact .icon-btn {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+}
+.profile-edit-button {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 2px;
+  border-radius: 14px;
 }
 .profile-edit-shell {
   display: flex;
@@ -1739,20 +1924,55 @@ a.contact-row:active { background: var(--brand-100); }
   margin-bottom: 0;
 }
 .profile-edit-photo-picker {
+  position: relative;
   width: 116px;
-  min-height: 116px;
+  height: 116px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--brand-300);
+  border-radius: 50%;
+  background: var(--brand-100);
+  color: var(--brand-700);
+  font: 800 2rem var(--font-display);
+  cursor: pointer;
+  box-shadow: inset 0 0 0 4px var(--surface);
 }
-.profile-edit-photo-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 12px;
+.profile-edit-photo-initials {
+  position: relative;
+  z-index: 1;
 }
-.profile-edit-photo-actions .btn-secondary {
-  width: auto;
-  min-width: 140px;
-  margin-top: 0;
-  padding: 0 16px;
+.profile-edit-photo-picker:hover {
+  border-color: var(--brand-500);
+}
+.profile-edit-photo-picker img {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.profile-edit-photo-badge {
+  position: absolute;
+  z-index: 2;
+  right: 2px;
+  bottom: 2px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 3px solid var(--surface);
+  border-radius: 50%;
+  background: var(--brand-500);
+  color: var(--ink-on-brand);
+  font: 800 1.3rem/1 var(--font-display);
+  box-shadow: 0 6px 14px rgba(20, 40, 80, 0.22);
+}
+.profile-edit-photo-picker:focus-within {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 3px;
 }
 .profile-readonly-grid {
   display: grid;
@@ -1793,15 +2013,14 @@ a.contact-row:active { background: var(--brand-100); }
   font-size: 0.83rem;
 }
 .profile-edit-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 .profile-edit-actions .btn-secondary,
 .profile-edit-actions .btn-primary {
+  width: 100%;
   margin-top: 0;
-}
-.profile-edit-actions .btn-primary {
-  flex: 1;
 }
 
 /* Full-screen enlarge — a solid white field maximizes perceived brightness for
@@ -1920,13 +2139,26 @@ a.contact-row:active { background: var(--brand-100); }
   .profile-hero { align-items: flex-start; padding: 18px; }
   .directory-avatar.large { width: 72px; height: 72px; flex-basis: 72px; }
   .profile-details-grid { grid-template-columns: 1fr; }
-  .profile-edit-header,
-  .profile-edit-actions {
+  .business-card {
+    padding: 18px;
+    border-radius: 20px;
+  }
+  .business-card-top {
+    grid-template-columns: 70px minmax(0, 1fr);
+    align-items: start;
+  }
+  .business-card-avatar {
+    width: 70px;
+    height: 70px;
+    font-size: 1.2rem;
+  }
+  .business-card-contact {
+    align-items: flex-start;
+  }
+  .profile-edit-header {
     flex-direction: column;
   }
-  .profile-edit-close,
-  .profile-edit-actions .btn-secondary,
-  .profile-edit-actions .btn-primary {
+  .profile-edit-close {
     width: 100%;
   }
   .profile-readonly-grid {
@@ -2386,6 +2618,16 @@ a.contact-row:active { background: var(--brand-100); }
 .app-shell-screen.has-bottom-nav {
   padding-bottom: 88px;
 }
+.app-shell-screen.is-editing-profile {
+  padding-bottom: 0;
+}
+.app-shell-screen.is-editing-profile .app-shell {
+  padding-top: 18px;
+}
+.app-shell-screen.is-editing-profile .app-content {
+  max-width: 620px;
+  margin: 0 auto;
+}
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -2554,6 +2796,10 @@ a.contact-row:active { background: var(--brand-100); }
 .photo-picker {
   width: 100%;
   min-height: 204px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
   border-radius: 22px;
   border: 1.5px dashed rgba(107, 154, 238, 0.32);
   background:
@@ -2566,6 +2812,9 @@ a.contact-row:active { background: var(--brand-100); }
   transform: translateY(-1px);
 }
 .photo-picker-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
   width: 100%;
   min-height: 204px;
@@ -2573,10 +2822,14 @@ a.contact-row:active { background: var(--brand-100); }
   padding: 18px;
   font-size: 0.92rem;
   font-weight: 700;
+  text-align: center;
 }
 .photo-picker-icon {
   width: 52px;
   height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
   background: rgba(107, 154, 238, 0.14);
   color: var(--brand-500);
   font-size: 1.6rem;

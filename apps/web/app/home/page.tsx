@@ -1,8 +1,14 @@
 "use client";
 
+// REACT //
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+
+// COMPONENTS //
 import Link from "next/link";
+import { AttendeeBottomTabs, AttendeeMenu, type MenuAttendee } from "../components/AttendeeMenu";
+
+// OTHERS //
 import { distanceMeters } from "../lib/geo";
 import {
   cacheVenueConfig,
@@ -15,7 +21,6 @@ import {
 import { resolveHomeMode, type HomeMode } from "../lib/homeMode";
 import { statsCache, type PersonalStats } from "../lib/statsCache";
 import { matchesCache, type MatchSuggestion } from "../lib/matchesCache";
-import { AttendeeMenu, type MenuAttendee } from "../components/AttendeeMenu";
 
 // F3.6 — Home is lifecycle-aware (PRD US3.5, SCREENS 2.1): pre-event · arrival ·
 // dashboard · ended. Only the arrival mode is the full-page check-in flow that
@@ -331,7 +336,7 @@ export default function HomePage() {
 
   if (step === "loading" || mode === null) {
     return (
-      <div className="full-page">
+      <div className="full-page attendee-tabbed-page">
         <PageHeader attendee={attendee} />
         <div className="full-page-band tone-info">
           <span className="ring info lg">📍</span>
@@ -387,13 +392,14 @@ export default function HomePage() {
         <div className="full-page-body">
           <p className="copy" style={{ textAlign: "center" }}>Hold on while we check your location.</p>
         </div>
+        {attendee && <AttendeeBottomTabs />}
       </div>
     );
   }
 
   if (step === "arrived" || step === "confirming_arrival") {
     return (
-      <div className="full-page">
+      <div className="full-page attendee-tabbed-page">
         <PageHeader attendee={attendee} />
         <div className="full-page-band tone-success">
           <span className="ring ok lg">📍</span>
@@ -422,13 +428,14 @@ export default function HomePage() {
             Not at the venue yet?
           </button>
         </div>
+        {attendee && <AttendeeBottomTabs />}
       </div>
     );
   }
 
   if (step === "need_manual" || step === "confirming_manual") {
     return (
-      <div className="full-page">
+      <div className="full-page attendee-tabbed-page">
         <PageHeader attendee={attendee} />
         <div className="full-page-band tone-warning">
           <span className="ring warn lg">!</span>
@@ -451,6 +458,7 @@ export default function HomePage() {
             )}
           </button>
         </div>
+        {attendee && <AttendeeBottomTabs />}
       </div>
     );
   }
@@ -459,7 +467,7 @@ export default function HomePage() {
   // reached by tapping the dashboard's check-in strip, and directly after a
   // successful check-in.
   return (
-    <div className="full-page">
+    <div className="full-page attendee-tabbed-page">
       <PageHeader attendee={attendee} />
       <div className="full-page-band tone-success">
         <span className="ring ok lg">✓</span>
@@ -499,6 +507,7 @@ export default function HomePage() {
           Done — go to Home
         </button>
       </div>
+      {attendee && <AttendeeBottomTabs />}
     </div>
   );
 }

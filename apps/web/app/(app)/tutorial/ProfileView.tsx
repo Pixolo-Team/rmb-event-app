@@ -32,12 +32,14 @@ export function ProfileView({
   directory,
   setDirectory,
   onReplayTutorial,
+  onEditingChange,
 }: {
   attendee: AttendeeMe;
   setAttendee: Dispatch<SetStateAction<AttendeeMe | null>>;
   directory: DirectoryAttendee[];
   setDirectory: Dispatch<SetStateAction<DirectoryAttendee[]>>;
   onReplayTutorial: () => void;
+  onEditingChange?: (editing: boolean) => void;
 }) {
   const router = useRouter();
   const [showEditPage, setShowEditPage] = useState(false);
@@ -86,12 +88,22 @@ export function ProfileView({
     router.push("/login");
   }
 
+  function openEditProfile() {
+    onEditingChange?.(true);
+    setShowEditPage(true);
+  }
+
+  function closeEditProfile() {
+    setShowEditPage(false);
+    onEditingChange?.(false);
+  }
+
   if (showEditPage) {
     return (
       <EditProfileForm
         attendee={attendee}
         onSaved={(patch) => setAttendee((current) => (current ? { ...current, ...patch } : current))}
-        onClose={() => setShowEditPage(false)}
+        onClose={closeEditProfile}
       />
     );
   }
@@ -140,7 +152,7 @@ export function ProfileView({
             </a>
           ) : null}
         </div>
-        <button type="button" className="btn-secondary" onClick={() => setShowEditPage(true)} style={{ marginTop: 16 }}>
+        <button type="button" className="btn-secondary profile-edit-button" onClick={openEditProfile}>
           Edit profile
         </button>
       </section>

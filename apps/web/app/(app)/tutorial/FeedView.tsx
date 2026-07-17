@@ -456,7 +456,7 @@ export function FeedView({
                 accept="image/*"
                 capture="environment"
                 onChange={handleFileChange}
-                className="visually-hidden"
+                className="sr-only"
               />
             </div>
 
