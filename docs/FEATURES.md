@@ -309,8 +309,8 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
-| PF7.1 | Bottom tab bar (Home · People · Want to Meet · Profile) + drawer demoted to secondary destinations; Scan as center FAB (pending confirmation) | All attendee screens | P0 | Yes (shell) | PF7 | ✅ Done |
-| F3.6 | Home as an **appealing dashboard** — check-in status plus at-a-glance data (people met, rank, bookmarks, table number, time at event) and quick actions. Restores `SCREENS.md` 2.1's original "central hub" intent, which the F3.2 full-page revision stripped to check-in only. Surfaces F11.1's stats here, not just on Profile | Screen 2.1 | P0 | Yes (cached) | F3.2, F11.1 | ⬜ Not started |
+| PF7.1 | Bottom tab bar (Home · People · Want to Meet · Profile) + drawer demoted to secondary destinations. **No center FAB** — Scan stays Home's CTA (decided 2026-07-17, see F3.6 notes) | All attendee screens | P0 | Yes (shell) | PF7 | ⬜ Not started |
+| F3.6 | Home as a **lifecycle-aware dashboard** — four modes (pre-event · arrival · checked-in dashboard · event ended) rather than the check-in-only screen shipped today. Checked-in mode carries a compact check-in strip (expandable to the desk view), table number, Scan CTA, three stats (people met / rank / time at event) and a People-to-meet preview. Restores `SCREENS.md` 2.1's "central hub" intent, which the F3.2 full-page revision stripped to check-in only. Surfaces F11.1's stats here, not just on Profile. Also fixes the false pre-event "Not checked in" warning | Screen 2.1 | P0 | Yes (cached) | F3.2, F11.1, F2.3 | ✅ Done |
 | F4.4 | **Attendee Card** on Profile — a designed identity card (photo/initials, name, company, category, city, chapter, tags, LinkedIn, website), *not* a list of `dt`/`dd` detail rows. QR stays pinned above it | Screen 2.11 | P1 | Yes | F4.1 | ⬜ Not started |
 | F4.5 | **Edit Profile** — dedicated form page reached from a Profile button. Editable = exactly the fields onboarding collects (business category, city, looking-for, offering, goals, bio, LinkedIn, website) **plus** photo (F4.6). Registered details (name, phone, email) stay read-only per the PRD's "Contact organizer to change this" rule — import dedup keys on phone+email | Screen 2.11a (new) | P1 | No | F1.2, F4.4 | ⬜ Not started |
 | F4.6 | **Profile photo upload** — capture/choose, crop, replace; feeds the Attendee Card and every avatar. Reuses F7.1's client-side crop/resize pipeline | Screen 2.11a | P1 | No | F4.5 | ⬜ Not started |
@@ -319,6 +319,37 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 | F2.6 | **"Met" indicator on cards** — attendee/match/directory cards show when you've already met the person. Data already exists (`Meeting`, F4.2); this is the missing card affordance | Screens 2.2, 2.3, 1.4 | P1 | Yes | F4.2, F2.4 | ⬜ Not started |
 | F2.7 | **Icon action row on People / Want-to-Meet cards** — bookmark, call, LinkedIn/website and share as icon buttons, consistent with the polished F2.5 profile action row; link icons are omitted (never disabled) when the attendee has no link; cards open the full profile | Screens 2.2, 2.6 | P1 | Partial | F2.4, F4.7 | ⬜ Not started |
 | F7.4 | **LinkedIn-grade feed UI** — rebuild like/comment/post affordances to the social-network standard already named as the reference in `DESIGN_SYSTEM.md` ("LinkedIn / Facebook-familiar patterns"). Deprioritized with F7 overall | Screens 2.7, 2.8 | P2 | Read: yes | F7.2 | ⬜ Not started |
+
+**F3.6 scope notes (decided 2026-07-17 — owner: Jyoti):**
+- **The diagnosis isn't "Home lacks stats", it's that Home is a check-in receipt forever.** All four of today's states are about check-in; once checked in, the screen shows the desk receipt and a Scan button for the remaining ~7 hours of the event. Check-in owns 100% of the screen for a job that's done 90 seconds after arrival. F3.6 makes Home **lifecycle-aware** instead of bolting tiles onto the receipt.
+- **Four modes**, driven by event time + check-in state:
+
+  | Mode | Trigger | Home is | Check-in |
+  |---|---|---|---|
+  | **Pre-event** | `now < startAt` | Countdown, event name/venue, "browse who's coming" → Directory, matches preview | Not attempted |
+  | **Arrival** | event day, not checked in | Today's full-page band flow, unchanged (locating / arrived / need-manual) | The whole screen |
+  | **Checked in** | checked in, `startAt ≤ now < endAt` | **The dashboard** (below) | Compact strip, tap to expand |
+  | **Ended** | `now ≥ endAt` | Wrap-up + "View your summary" → F9.1 | Gone |
+
+- **Fixes a live bug:** Home has no `startAt` guard, so it runs geolocation immediately and renders the orange **"Not checked in · Outside venue area"** warning. Attendees onboard ~5 days early (US1.2's group link), so today *every attendee sees an alarming warning for the 5 days before the event*. The pre-event mode is the fix, not a nice-to-have.
+- **Checked-in dashboard contents (decided):** compact check-in strip · **table number** (the "where do I physically go" fact, prominent while it matters) · **Scan to connect** as the dominant CTA · three stat tiles — **people met · rank · time at event** · **People-to-meet preview** (2–3 faces from F2.1's engine → `/matches`) · the "No meetings yet. Start scanning!" empty state Screen 2.1 already specifies.
+- **Deliberately dropped from the earlier F3.6 wording: bookmarks count and photos-posted.** Both are vanity numbers that don't drive a next action; photos is dead weight with F7 deprioritized; and **bookmarks duplicates the Want-to-Meet bottom tab** (PF7.1), violating "each destination lives in exactly one place". This row previously listed bookmarks — that is now an intentional removal, not an oversight.
+- **The desk receipt must survive.** "Show this screen at the registration counter" is a real job — shrinking it to a strip is only safe because **tapping the strip expands it back** to the full-page desk view.
+- **Home becomes a dashboard of *data*, not a launcher of *destinations*.** Screen 2.1's original quick-action grid (Directory / Connections / Feed) is obsolete once PF7.1's tab bar ships — People and Want-to-Meet *become tabs*. Home's only nav affordances are Scan (its CTA) and contextual links (matches preview, summary), never a duplicate of a tab.
+- **Scan placement (closes a v1.1 open question):** **Home keeps its dominant "Scan to connect" CTA; PF7.1 ships without the center FAB for now.** Revisit once both are on a real phone. This unblocks Hussain — PF7.1 no longer waits on the FAB decision.
+- **API gap this needs:** `GET /event` returns only `venueLat`/`venueLng`/`checkinRadiusM` — **no `startAt`, `endAt` or `name`**, so Home can't currently tell pre-event from during from ended. F3.6 adds them to that public endpoint (non-sensitive; already cached client-side by PF4).
+- **Stretch, not committed:** *"2 people on your Want-to-Meet list just checked in"* — the same bookmark data turned into an action instead of a count. Needs a new aggregate joining `Bookmark` with `CheckIn`. Best UX idea on the table; deferred to keep a P0 from growing a backend.
+- **Conflict boundary with PF7.1 (Hussain):** Hussain owns the chrome — `AttendeePageShell.tsx`, `AttendeeMenu.tsx`, the new tab bar, and the route-group layout. Jyoti owns Home's body — `home/page.tsx`. Shared surface is `PersonalStats.tsx` (F3.6 reuses it on Home; F4.4 touches it on Profile) — coordinate before either refactors it.
+
+**F3.6 build notes:**
+- Mode selection lives in [`homeMode.ts`](../apps/web/app/lib/homeMode.ts) — pure, no React or fetch — because every branch is a decision about *time*, which is the awkward thing to reproduce by hand in a browser. `resolveHomeMode(event, checkedIn, now)`. Ended beats pre-event beats dashboard/arrival; **when `startAt`/`endAt` are unset it deliberately falls through to the arrival flow** rather than guess (they are `null` in the pilot DB today, so this is the live path until the organizer sets event times in Screen 3.2A).
+- `GET /event` now returns `name`/`startAt`/`endAt`; `cacheVenueConfig` carries them so the mode resolves offline. The new fields are optional in the cached type — a PWA installed before F3.6 has a cache without them, and `undefined` must not read as "event ended".
+- Home renders its three stat tiles inline rather than importing `PersonalStats`: that component renders all five tiles plus its own heading, and it is the **shared surface with Hussain's F4.4** — leaving it untouched keeps the agreed boundary.
+- **Verified in-browser across all four modes** (event times temporarily set, then restored to `null`): pre-event countdown, arrival→manual check-in→desk view, dashboard, ended. Also dark mode and 360px. The check-in strip ⇄ desk-view round trip works both ways.
+- **Two bugs found and fixed while building, both beyond the original scope:**
+  - Home redirected to `/login` on *any* fetch failure — so a 5xx or a timeout silently signed the attendee out. Now only 401/403 signs out; server errors get a retryable error state.
+  - Home could hang on "Loading…" forever when the API stalled. It now has a 12s deadline and a "Can't load Home / Try again" state. **`/profile` still has this exact bug** ([profile/page.tsx:60](../apps/web/app/profile/page.tsx:60)) — no cache plus a failed fetch leaves it spinning indefinitely. Not fixed here; it belongs to F4.4/F4.5's owner.
+- **Deferred, still worth doing:** the "2 people on your Want-to-Meet list just checked in" signal (needs a `Bookmark`×`CheckIn` aggregate), and pull-to-refresh from Screen 2.1.
 
 **F4.7 scope notes (decided 2026-07-17):**
 - **Two fields, one build unit.** LinkedIn and website are the same shape — nullable column, optional import mapping, optional form input, URL validation, tap action — so they ship together rather than as two rows. PRD **US1.6** is the traceability anchor; before this, F4.7 had no PRD story at all.
@@ -333,7 +364,7 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 - **F4.7 now blocks F2.7 and half of F4.4/F4.5's field list**, despite being P2 to their P1 — worth sequencing it before them rather than after, or accepting that those two ship without link affordances and get a follow-up.
 
 **Open questions to close before building:**
-- **Scan placement** — center FAB vs contextual button vs its own tab. Left unresolved in review; PF7.1 assumes the FAB.
+- ~~**Scan placement** — center FAB vs contextual button vs its own tab.~~ **Closed 2026-07-17:** Scan remains Home's primary CTA; PF7.1 ships without a center FAB. Revisit after both are seen on a real device. See F3.6 scope notes.
 - **Photo storage** — F4.6 (and F7.1 today) write uploads to local disk `/uploads`, which does **not** survive a hosted/containerized deploy. Supabase Storage (or equivalent) is needed before either ships for real. This is a deployment blocker, not a UI detail.
 - **Drawer overlap** — with F7 deprioritized, the drawer holds Leaderboard, Summary, Feedback, Show My QR and Sign Out. If that thins out further, consider folding it into Profile and dropping the drawer entirely.
 
