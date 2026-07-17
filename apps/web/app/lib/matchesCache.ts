@@ -1,4 +1,4 @@
-export type MatchSuggestion = { id: string; name: string; businessName: string | null; businessCategory: string | null; city: string | null; chapterName: string | null; tableNumber: string | null; photoUrl: string | null; checkedIn: boolean; bookmarked: boolean; score: number; reasons: string[]; headline: string; chapterRelation: "same" | "cross" | "none"; computedAt: string };
+export type MatchSuggestion = { id: string; name: string; businessName: string | null; businessCategory: string | null; city: string | null; chapterName: string | null; tableNumber: string | null; photoUrl: string | null; checkedIn: boolean; phone: string; linkedInUrl: string | null; bookmarked: boolean; met: boolean; score: number; reasons: string[]; headline: string; chapterRelation: "same" | "cross" | "none"; computedAt: string };
 export type MatchesResponse = { profileComplete: boolean; totalAttendees: number; computedAt: string | null; matches: MatchSuggestion[] };
 const KEY = "evento:matches:v1";
 export const matchesCache = {

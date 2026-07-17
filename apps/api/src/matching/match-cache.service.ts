@@ -38,15 +38,22 @@ export class MatchCacheService {
     const newest = await this.prisma.matchCache.findFirst({ where: { viewerId }, orderBy: { computedAt: "desc" }, select: { computedAt: true } });
     if (force || !newest || Date.now() - newest.computedAt.getTime() > CACHE_MAX_AGE_MS) await this.recomputeFor(viewerId);
 
-    const [viewer, matches, totalAttendees] = await Promise.all([
+    const [viewer, matches, totalAttendees, meetings] = await Promise.all([
       this.prisma.attendee.findUnique({ where: { id: viewerId }, select: { profileCompletedAt: true } }),
       this.prisma.matchCache.findMany({
         where: { viewerId }, orderBy: [{ score: "desc" }, { candidate: { name: "asc" } }], take: 10,
         include: { candidate: { include: { chapter: { select: { name: true } }, checkIn: { select: { createdAt: true } }, bookmarksOnMe: { where: { attendeeId: viewerId }, select: { targetId: true } } } } },
       }),
       this.prisma.attendee.count({ where: { id: { not: viewerId }, profileCompletedAt: { not: null } } }),
+      this.prisma.meeting.findMany({
+        where: { OR: [{ attendeeAId: viewerId }, { attendeeBId: viewerId }] },
+        select: { attendeeAId: true, attendeeBId: true },
+      }),
     ]);
     if (!viewer) throw new NotFoundException("Attendee not found");
+    const metIds = new Set(
+      meetings.map((meeting) => (meeting.attendeeAId === viewerId ? meeting.attendeeBId : meeting.attendeeAId)),
+    );
 
     return {
       profileComplete: Boolean(viewer.profileCompletedAt), totalAttendees,
@@ -56,7 +63,9 @@ export class MatchCacheService {
         businessCategory: candidate.businessCategory, city: candidate.city,
         chapterName: candidate.chapter?.name ?? null, tableNumber: candidate.tableNumber,
         photoUrl: candidate.photoUrl, checkedIn: Boolean(candidate.checkIn),
+        phone: candidate.phone, linkedInUrl: candidate.linkedInUrl,
         bookmarked: candidate.bookmarksOnMe.length > 0,
+        met: metIds.has(candidate.id),
         score: match.score, reasons: match.reasons, headline: match.headline,
         chapterRelation: match.chapterRelation, computedAt: match.computedAt,
       })),
