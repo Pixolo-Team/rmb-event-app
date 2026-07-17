@@ -1,4 +1,4 @@
-import { ArrayMaxSize, IsArray, IsIn, IsNotEmpty, IsOptional, IsString, MaxLength } from "class-validator";
+import { ArrayMaxSize, IsArray, IsIn, IsNotEmpty, IsOptional, IsString, IsUrl, MaxLength } from "class-validator";
 import { LOOKING_FOR_TAGS, OFFERING_TAGS, GOALS_TAGS } from "../profile-options";
 
 export class UpdateProfileDto {
@@ -31,4 +31,9 @@ export class UpdateProfileDto {
   @IsString()
   @MaxLength(200)
   bio?: string;
+
+  @IsOptional()
+  @IsUrl({ require_protocol: true })
+  @MaxLength(300)
+  linkedInUrl?: string;
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { ChangeEvent, Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
-import { FeedAttendee, FeedCommentData, FeedPhotoData } from "../../lib/feedTypes";
+import { AttendeeMe, FeedCommentData, FeedPhotoData, TEMP_BYPASS_LOGIN } from "./TutorialPage";
+import { CommentIcon, ThumbUpIcon } from "./icons";
 
 type FeedPageResponse = {
   photos: FeedPhotoData[];
@@ -20,38 +21,6 @@ function formatTimestamp(iso: string) {
     hour: "numeric",
     minute: "2-digit",
   });
-}
-
-function previewFilter(brightness: number, filter: "none" | "warm" | "mono") {
-  const tone = filter === "warm" ? "sepia(.25) saturate(1.2)" : filter === "mono" ? "grayscale(1)" : "";
-  return `brightness(${brightness}%) ${tone}`.trim();
-}
-
-async function processPhoto(file: File, cropSquare: boolean, brightness: number, filter: "none" | "warm" | "mono"): Promise<File> {
-  const sourceUrl = URL.createObjectURL(file);
-  try {
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const element = new Image();
-      element.onload = () => resolve(element);
-      element.onerror = reject;
-      element.src = sourceUrl;
-    });
-    let sourceX = 0, sourceY = 0, sourceWidth = image.naturalWidth, sourceHeight = image.naturalHeight;
-    if (cropSquare) {
-      const side = Math.min(sourceWidth, sourceHeight);
-      sourceX = (sourceWidth - side) / 2; sourceY = (sourceHeight - side) / 2;
-      sourceWidth = side; sourceHeight = side;
-    }
-    const scale = Math.min(1, 1600 / Math.max(sourceWidth, sourceHeight));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(sourceWidth * scale); canvas.height = Math.round(sourceHeight * scale);
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("Image editing unavailable");
-    context.filter = previewFilter(brightness, filter);
-    context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error("Image conversion failed")), "image/jpeg", .88));
-    return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
-  } finally { URL.revokeObjectURL(sourceUrl); }
 }
 
 function uploadPhotoWithProgress(
@@ -92,38 +61,62 @@ export function FeedView({
   attendee,
   photos,
   setPhotos,
-  demoMode = false,
+  composerRequestKey = 0,
 }: {
-  attendee: FeedAttendee;
+  attendee: AttendeeMe;
   photos: FeedPhotoData[];
   setPhotos: Dispatch<SetStateAction<FeedPhotoData[]>>;
-  demoMode?: boolean;
+  composerRequestKey?: number;
 }) {
   const [feedState, setFeedState] = useState<"loading" | "ready" | "error">(
-    demoMode ? "ready" : "loading",
+    TEMP_BYPASS_LOGIN ? "ready" : "loading",
   );
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
-  const [cropSquare, setCropSquare] = useState(false);
-  const [brightness, setBrightness] = useState(100);
-  const [filter, setFilter] = useState<"none" | "warm" | "mono">("none");
   const [composerStatus, setComposerStatus] = useState<"idle" | "uploading" | "error" | "success">("idle");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [composerError, setComposerError] = useState<string | null>(null);
 
+  const [composerOpen, setComposerOpen] = useState(false);
   const [pendingLikes, setPendingLikes] = useState<string[]>([]);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [enlargedPhotoId, setEnlargedPhotoId] = useState<string | null>(null);
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (demoMode) return;
+    if (!openMenuId) return;
+    function handleClickAway(event: MouseEvent) {
+      if (!(event.target instanceof Element) || !event.target.closest(".post-menu")) {
+        setOpenMenuId(null);
+      }
+    }
+    document.addEventListener("click", handleClickAway);
+    return () => document.removeEventListener("click", handleClickAway);
+  }, [openMenuId]);
+
+  useEffect(() => {
+    const modalOpen = composerOpen || Boolean(enlargedPhotoId);
+    if (!modalOpen) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [composerOpen, enlargedPhotoId]);
+
+  useEffect(() => {
+    if (TEMP_BYPASS_LOGIN) return;
 
     let cancelled = false;
     async function load() {
@@ -148,45 +141,49 @@ export function FeedView({
     return () => {
       cancelled = true;
     };
-  }, [demoMode, setPhotos]);
+  }, [setPhotos]);
+
+  useEffect(() => {
+    if (composerRequestKey > 0) {
+      setComposerOpen(true);
+    }
+  }, [composerRequestKey]);
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []).slice(0, 5);
-    previewUrls.forEach((url) => URL.revokeObjectURL(url));
-    setSelectedFiles(files);
-    setPreviewUrls(files.map((file) => URL.createObjectURL(file)));
-    setComposerError((event.target.files?.length ?? 0) > 5 ? "You can post up to 5 photos at a time." : null);
+    const file = event.target.files?.[0] ?? null;
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setSelectedFile(file);
+    setPreviewUrl(file ? URL.createObjectURL(file) : null);
+    setComposerError(null);
     setComposerStatus("idle");
   }
 
   function resetComposer() {
-    previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
     if (fileInputRef.current) fileInputRef.current.value = "";
-    setSelectedFiles([]);
-    setPreviewUrls([]);
+    setSelectedFile(null);
+    setPreviewUrl(null);
     setCaption("");
-    setCropSquare(false);
-    setBrightness(100);
-    setFilter("none");
     setComposerStatus("idle");
     setUploadProgress(0);
   }
 
+  function closeComposer() {
+    resetComposer();
+    setComposerOpen(false);
+  }
+
   async function handlePost() {
-    if (selectedFiles.length === 0) {
-      setComposerError("Choose at least one photo first.");
+    if (!selectedFile) {
+      setComposerError("Choose a photo first.");
       return;
     }
     setComposerError(null);
 
-    const uploadFiles = await Promise.all(selectedFiles.map(async (file) => {
-      try { return await processPhoto(file, cropSquare, brightness, filter); } catch { return file; }
-    }));
-
-    if (demoMode) {
-      const newPhotos: FeedPhotoData[] = uploadFiles.map((uploadFile, index) => ({
-        id: `demo-photo-${Date.now()}-${index}`,
-        url: URL.createObjectURL(uploadFile),
+    if (TEMP_BYPASS_LOGIN) {
+      const newPhoto: FeedPhotoData = {
+        id: `demo-photo-${Date.now()}`,
+        url: URL.createObjectURL(selectedFile),
         caption: caption.trim() || null,
         createdAt: new Date().toISOString(),
         attendeeId: attendee.id,
@@ -196,10 +193,11 @@ export function FeedView({
         commentCount: 0,
         likedByMe: false,
         comments: [],
-      }));
-      setPhotos((current) => [...newPhotos, ...current]);
+      };
+      setPhotos((current) => [newPhoto, ...current]);
       setComposerStatus("success");
       resetComposer();
+      setComposerOpen(false);
       return;
     }
 
@@ -207,14 +205,11 @@ export function FeedView({
     setUploadProgress(0);
 
     try {
-      const created: FeedPhotoData[] = [];
-      for (let index = 0; index < uploadFiles.length; index += 1) {
-        const photo = await uploadPhotoWithProgress(uploadFiles[index], caption, (percent) => setUploadProgress(Math.round(((index + percent / 100) / uploadFiles.length) * 100)));
-        created.push(photo);
-      }
-      setPhotos((current) => [...created, ...current]);
+      const created = await uploadPhotoWithProgress(selectedFile, caption, setUploadProgress);
+      setPhotos((current) => [created, ...current]);
       setComposerStatus("success");
       resetComposer();
+      setComposerOpen(false);
     } catch {
       setComposerStatus("error");
       setComposerError("Couldn't upload photo. Try again.");
@@ -222,7 +217,7 @@ export function FeedView({
   }
 
   async function handleToggleLike(photo: FeedPhotoData) {
-    if (demoMode) {
+    if (TEMP_BYPASS_LOGIN) {
       setPhotos((current) =>
         current.map((item) =>
           item.id === photo.id
@@ -265,7 +260,7 @@ export function FeedView({
     const message = (commentDrafts[photoId] ?? "").trim();
     if (!message) return;
 
-    if (demoMode) {
+    if (TEMP_BYPASS_LOGIN) {
       const newComment: FeedCommentData = {
         id: `demo-comment-${Date.now()}`,
         name: attendee.name,
@@ -280,6 +275,7 @@ export function FeedView({
         ),
       );
       setCommentDrafts((current) => ({ ...current, [photoId]: "" }));
+      if (enlargedPhotoId === photoId) setEnlargedPhotoId(null);
       return;
     }
 
@@ -304,6 +300,7 @@ export function FeedView({
         ),
       );
       setCommentDrafts((current) => ({ ...current, [photoId]: "" }));
+      if (enlargedPhotoId === photoId) setEnlargedPhotoId(null);
     } catch {
       setActionError("Couldn't post comment. Check your connection and try again.");
     }
@@ -313,7 +310,7 @@ export function FeedView({
     if (typeof window !== "undefined" && !window.confirm("Delete this photo?")) return;
     setOpenMenuId(null);
 
-    if (demoMode) {
+    if (TEMP_BYPASS_LOGIN) {
       setPhotos((current) => current.filter((item) => item.id !== photoId));
       if (enlargedPhotoId === photoId) setEnlargedPhotoId(null);
       return;
@@ -368,66 +365,6 @@ export function FeedView({
           </div>
         ) : null}
 
-        <div className="feed-heading"><div><p className="eyebrow">Event community</p><h1>Event Photos</h1></div></div>
-
-        <section className="composer-card feed-composer">
-          <div className="composer-person">
-            <div className="hero-avatar composer-avatar" aria-hidden="true">{getInitials(attendee.name)}</div>
-            <div><strong>{attendee.name}</strong><span>Share a moment with attendees</span></div>
-          </div>
-
-          <div className="field composer-caption">
-            <label className="sr-only" htmlFor="photo-caption">Caption</label>
-            <textarea id="photo-caption" maxLength={200} value={caption} onChange={(event) => setCaption(event.target.value)} placeholder="What would you like to share?" />
-            <small>{caption.length}/200</small>
-          </div>
-
-          <div className="composer-actions">
-            <button className="composer-photo-button" type="button" onClick={() => fileInputRef.current?.click()}><PhotoAddIcon />{selectedFiles.length ? `${selectedFiles.length} selected` : "Add photos"}</button>
-            <input
-              className="sr-only"
-              id="photo-input"
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              capture="environment"
-              onChange={handleFileChange}
-            />
-            <button className="btn-primary composer-post-button" type="button" disabled={composerStatus === "uploading" || selectedFiles.length === 0} onClick={handlePost}>
-              {composerStatus === "uploading" ? `${uploadProgress}%` : "Post"}
-            </button>
-          </div>
-
-          {previewUrls.length ? (
-            <div className={`composer-preview-grid count-${Math.min(previewUrls.length, 4)}`}>
-              {previewUrls.map((url, index) => <div className="composer-preview" key={url}><img src={url} alt={`Selected preview ${index + 1}`} style={{ filter: previewFilter(brightness, filter) }} /></div>)}
-            </div>
-          ) : null}
-
-          {previewUrls.length ? <div className="photo-editor" aria-label="Photo adjustments">
-            <label><input type="checkbox" checked={cropSquare} onChange={(event) => setCropSquare(event.target.checked)} /> Square crop</label>
-            <label><span>Brightness</span><input type="range" min="60" max="140" value={brightness} onChange={(event) => setBrightness(Number(event.target.value))} /><output>{brightness}%</output></label>
-            <label><span>Filter</span><select value={filter} onChange={(event) => setFilter(event.target.value as "none" | "warm" | "mono")}><option value="none">Original</option><option value="warm">Warm</option><option value="mono">Black & white</option></select></label>
-          </div> : null}
-
-          {composerStatus === "uploading" ? (
-            <div className="upload-progress-bar" style={{ marginTop: 12 }}>
-              <div className="upload-progress-fill" style={{ width: `${uploadProgress}%` }} />
-            </div>
-          ) : null}
-
-          {composerError ? (
-            <div className="banner warn app-banner" style={{ marginTop: 12 }}>
-              <div>
-                <b>Couldn't post</b>
-                {composerError}
-              </div>
-            </div>
-          ) : null}
-
-        </section>
-
         {feedState === "loading" ? (
           <section className="feature-card">
             <p className="feature-title">Loading the feed&hellip;</p>
@@ -467,12 +404,99 @@ export function FeedView({
             ))
           : null}
 
-        {!demoMode && nextCursor ? (
+        {!TEMP_BYPASS_LOGIN && nextCursor ? (
           <button className="btn-primary" type="button" disabled={loadingMore} onClick={handleLoadMore}>
             {loadingMore ? "Loading..." : "Load more"}
           </button>
         ) : null}
       </main>
+
+      {composerOpen ? (
+        <div className="photo-modal-overlay" role="dialog" aria-modal="true" onClick={closeComposer}>
+          <div className="photo-modal-card" onClick={(event) => event.stopPropagation()}>
+            <div className="photo-modal-handle" aria-hidden="true" />
+
+            <div className="photo-modal-header">
+              <div>
+                <p className="photo-modal-eyebrow">New post</p>
+                <h1 className="settings-title">Share a photo</h1>
+                <p className="settings-copy">Post a photo from tonight and let others see what&apos;s happening.</p>
+              </div>
+              <button className="photo-modal-close" type="button" onClick={closeComposer} aria-label="Close share photo modal">
+                Close
+              </button>
+            </div>
+
+            <div className="field photo-modal-field">
+              <label htmlFor="photo-input" className="photo-modal-label">
+                Photo
+              </label>
+              <label htmlFor="photo-input" className="photo-picker">
+                {previewUrl ? (
+                  <img src={previewUrl} alt="Selected preview" />
+                ) : (
+                  <span className="photo-picker-placeholder">
+                    <span className="photo-picker-icon" aria-hidden="true">
+                      +
+                    </span>
+                    Add a photo
+                  </span>
+                )}
+              </label>
+              <input
+                id="photo-input"
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileChange}
+                className="visually-hidden"
+              />
+            </div>
+
+            <div className="field photo-modal-field">
+              <div className="photo-modal-label-row">
+                <label htmlFor="photo-caption" className="photo-modal-label">
+                  Caption
+                </label>
+                <small className="photo-modal-counter">{caption.length}/200</small>
+              </div>
+              <textarea
+                id="photo-caption"
+                maxLength={200}
+                value={caption}
+                onChange={(event) => setCaption(event.target.value)}
+                placeholder="Say something about this moment..."
+                className="photo-modal-textarea"
+              />
+            </div>
+
+            {composerStatus === "uploading" ? (
+              <div className="upload-progress-bar photo-modal-progress">
+                <div className="upload-progress-fill" style={{ width: `${uploadProgress}%` }} />
+              </div>
+            ) : null}
+
+            {composerError ? (
+              <div className="banner warn app-banner photo-modal-banner">
+                <div>
+                  <b>Couldn't post</b>
+                  {composerError}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="photo-modal-actions">
+              <button className="photo-modal-secondary" type="button" onClick={closeComposer} disabled={composerStatus === "uploading"}>
+                Cancel
+              </button>
+              <button className="btn-primary photo-modal-submit" type="button" disabled={composerStatus === "uploading"} onClick={handlePost}>
+                {composerStatus === "uploading" ? `Uploading... ${uploadProgress}%` : "Post photo"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {enlargedPhoto ? (
         <div className="photo-modal-overlay" role="dialog" aria-modal="true" onClick={() => setEnlargedPhotoId(null)}>
@@ -516,8 +540,8 @@ export function FeedView({
                   if (event.key === "Enter") handleAddComment(enlargedPhoto.id);
                 }}
               />
-              <button className="comment-send" type="button" onClick={() => handleAddComment(enlargedPhoto.id)} aria-label="Send comment">
-                <SendIcon />
+              <button className="btn-primary" type="button" onClick={() => handleAddComment(enlargedPhoto.id)}>
+                Send
               </button>
             </div>
           </div>
@@ -596,27 +620,60 @@ function PhotoCard({
 
       {photo.caption ? <p className="person-bio">{photo.caption}</p> : null}
 
-      <div className="person-actions">
-        <button className={`like-btn${photo.likedByMe ? " active" : ""}`} type="button" disabled={busyLike} onClick={onToggleLike}>
-          <LikeIcon /><span>{photo.likeCount}</span><span className="sr-only">{photo.likedByMe ? "Unlike" : "Like"}</span>
+      {photo.likeCount > 0 || photo.commentCount > 0 ? (
+        <div className="post-stats">
+          {photo.likeCount > 0 ? (
+            <span className="post-stats-likes">
+              <span className="post-stats-thumb" aria-hidden="true">
+                <ThumbUpIcon filled size={11} />
+              </span>
+              {photo.likeCount}
+            </span>
+          ) : (
+            <span />
+          )}
+          {photo.commentCount > 0 ? (
+            <button type="button" className="post-stats-comments" onClick={onEnlarge}>
+              {photo.commentCount} comment{photo.commentCount === 1 ? "" : "s"}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="post-action-bar">
+        <button
+          className={`post-action${photo.likedByMe ? " active" : ""}`}
+          type="button"
+          disabled={busyLike}
+          onClick={onToggleLike}
+        >
+          <ThumbUpIcon filled={photo.likedByMe} />
+          Like
         </button>
-        <button className="person-link" type="button" onClick={onEnlarge} aria-label={`${photo.commentCount} comments`}>
-          <CommentIcon /><span>{photo.commentCount}</span>
+        <button className="post-action" type="button" onClick={onEnlarge}>
+          <CommentIcon />
+          Comment
         </button>
       </div>
 
       {visibleComments.length > 0 ? (
         <div className="comment-list">
-          {visibleComments.map((comment) => (
-            <div key={comment.id} className="comment-item">
-              <strong>{comment.name}</strong> {comment.message}
-            </div>
-          ))}
           {photo.commentCount > visibleComments.length ? (
             <button type="button" className="link-muted" onClick={onEnlarge}>
               View all {photo.commentCount} comments
             </button>
           ) : null}
+          {visibleComments.map((comment) => (
+            <div key={comment.id} className="comment-row">
+              <div className="comment-avatar" aria-hidden="true">
+                {getInitials(comment.name)}
+              </div>
+              <div className="comment-bubble">
+                <strong>{comment.name}</strong>
+                <span>{comment.message}</span>
+              </div>
+            </div>
+          ))}
         </div>
       ) : null}
 
@@ -629,15 +686,10 @@ function PhotoCard({
             if (event.key === "Enter") onSubmitComment();
           }}
         />
-        <button className="comment-send" type="button" onClick={onSubmitComment} aria-label="Send comment" disabled={!commentDraft.trim()}>
-          <SendIcon />
+        <button className="btn-primary" type="button" onClick={onSubmitComment}>
+          Send
         </button>
       </div>
     </article>
   );
 }
-
-function PhotoAddIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h4l1.5-2h5L16 6h4v14H4V6Z" /><circle cx="12" cy="13" r="4" /></svg>; }
-function LikeIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.7A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" /></svg>; }
-function CommentIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v11H9l-4 3V5Z" /></svg>; }
-function SendIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 5 16 7-16 7 3-7-3-7Zm3 7h13" /></svg>; }

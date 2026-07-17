@@ -36,7 +36,22 @@ export type DirectoryAttendee = {
   bio: string | null;
   phone: string;
   photoUrl: string | null;
+  linkedInUrl: string | null;
   bookmarked: boolean;
+  met: boolean;
+};
+
+export type PublicProfileData = {
+  id: string;
+  name: string;
+  businessName: string | null;
+  chapterName: string | null;
+  city: string | null;
+  businessCategory: string | null;
+  bio: string | null;
+  phone: string;
+  photoUrl: string | null;
+  linkedInUrl: string | null;
 };
 
 @Injectable()
@@ -86,8 +101,36 @@ export class AttendeesService {
     return attendee;
   }
 
+  /**
+   * Public business card for a shareable profile link. Keyed on the attendee's
+   * random UUID (unguessable capability URL) rather than qrToken, so a shared
+   * link can't be used to auto-record a meeting. No auth — the card is meant to
+   * be shared outside the app.
+   */
+  async getPublicProfile(id: string): Promise<PublicProfileData> {
+    const attendee = await this.prisma.attendee.findUnique({
+      where: { id },
+      include: { chapter: true },
+    });
+    if (!attendee || !attendee.profileCompletedAt) {
+      throw new NotFoundException("Profile not found");
+    }
+    return {
+      id: attendee.id,
+      name: attendee.name,
+      businessName: attendee.businessName,
+      chapterName: attendee.chapter?.name ?? null,
+      city: attendee.city,
+      businessCategory: attendee.businessCategory,
+      bio: attendee.bio,
+      phone: attendee.phone,
+      photoUrl: attendee.photoUrl,
+      linkedInUrl: attendee.linkedInUrl,
+    };
+  }
+
   async getDirectoryForAttendee(attendeeId: string): Promise<DirectoryAttendee[]> {
-    const [attendees, bookmarks] = await Promise.all([
+    const [attendees, bookmarks, meetings] = await Promise.all([
       this.prisma.attendee.findMany({
         where: {
           NOT: { id: attendeeId },
@@ -100,9 +143,16 @@ export class AttendeesService {
         where: { attendeeId },
         select: { targetId: true },
       }),
+      this.prisma.meeting.findMany({
+        where: { OR: [{ attendeeAId: attendeeId }, { attendeeBId: attendeeId }] },
+        select: { attendeeAId: true, attendeeBId: true },
+      }),
     ]);
 
     const bookmarkedIds = new Set(bookmarks.map((bookmark) => bookmark.targetId));
+    const metIds = new Set(
+      meetings.map((meeting) => (meeting.attendeeAId === attendeeId ? meeting.attendeeBId : meeting.attendeeAId)),
+    );
 
     return attendees.map((attendee) => ({
       id: attendee.id,
@@ -114,7 +164,9 @@ export class AttendeesService {
       bio: attendee.bio,
       phone: attendee.phone,
       photoUrl: attendee.photoUrl,
+      linkedInUrl: attendee.linkedInUrl,
       bookmarked: bookmarkedIds.has(attendee.id),
+      met: metIds.has(attendee.id),
     }));
   }
 
@@ -143,11 +195,18 @@ export class AttendeesService {
         offering: dto.offering,
         goals: dto.goals,
         bio: dto.bio,
+        linkedInUrl: dto.linkedInUrl,
         profileCompletedAt: new Date(),
       },
     });
   }
 
+  async updatePhoto(attendeeId: string, photoUrl: string | null) {
+    return this.prisma.attendee.update({
+      where: { id: attendeeId },
+      data: { photoUrl },
+    });
+  }
   private cityValue(city: { name: string; stateOrUt: string }) {
     return city.stateOrUt === "Legacy / Imported" ? city.name : `${city.name}, ${city.stateOrUt}`;
   }

@@ -9,6 +9,7 @@ import { AdminImportModule } from "./admin-import/admin-import.module";
 import { AttendeesModule } from "./attendees/attendees.module";
 import { BookmarksModule } from "./bookmarks/bookmarks.module";
 import { PhotosModule } from "./photos/photos.module";
+import { ConnectionsModule } from "./connections/connections.module";
 import { EventModule } from "./event/event.module";
 import { CheckinModule } from "./checkin/checkin.module";
 import { MatchingModule } from "./matching/matching.module";
@@ -31,6 +32,7 @@ import { FeedbackModule } from "./feedback/feedback.module";
     AttendeesModule,
     BookmarksModule,
     PhotosModule,
+    ConnectionsModule,
     EventModule,
     CheckinModule,
     MatchingModule,
