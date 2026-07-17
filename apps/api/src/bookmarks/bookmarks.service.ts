@@ -6,15 +6,25 @@ export class BookmarksService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listForAttendee(attendeeId: string) {
-    const bookmarks = await this.prisma.bookmark.findMany({
-      where: { attendeeId },
-      orderBy: { createdAt: "desc" },
-      include: {
-        target: {
-          include: { chapter: true },
+    const [bookmarks, meetings] = await Promise.all([
+      this.prisma.bookmark.findMany({
+        where: { attendeeId },
+        orderBy: { createdAt: "desc" },
+        include: {
+          target: {
+            include: { chapter: true },
+          },
         },
-      },
-    });
+      }),
+      this.prisma.meeting.findMany({
+        where: { OR: [{ attendeeAId: attendeeId }, { attendeeBId: attendeeId }] },
+        select: { attendeeAId: true, attendeeBId: true },
+      }),
+    ]);
+
+    const metIds = new Set(
+      meetings.map((meeting) => (meeting.attendeeAId === attendeeId ? meeting.attendeeBId : meeting.attendeeAId)),
+    );
 
     return bookmarks.map(({ createdAt, target }) => ({
       id: target.id,
@@ -28,6 +38,8 @@ export class BookmarksService {
       email: target.email,
       tableNumber: target.tableNumber,
       photoUrl: target.photoUrl,
+      linkedInUrl: target.linkedInUrl,
+      met: metIds.has(target.id),
       bookmarkedAt: createdAt,
       bookmarked: true,
     }));
