@@ -9,6 +9,7 @@ import { getInitials } from "./AttendeeCard";
 import { EditProfileForm } from "./EditProfileForm";
 import { LinkedInIcon, ScanIcon } from "./icons";
 import { ScanConnect } from "./ScanConnect";
+import { withCsrfHeaders } from "../../lib/csrf";
 
 function TagGroup({ label, values }: { label: string; values: string[] | undefined }) {
   if (!values?.length) return null;
