@@ -1,5 +1,6 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { QRSigningService } from "../qr/qr-signing.service";
 
 export type ConnectionAttendeeData = {
   id: string;
@@ -17,16 +18,38 @@ export type ConnectionAttendeeData = {
 
 @Injectable()
 export class ConnectionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(ConnectionsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly qrSigning: QRSigningService,
+  ) {}
 
   /** Records a mutual meeting between the scanner and the owner of the scanned QR token. */
   async scan(attendeeId: string, qrToken: string): Promise<{ met: true; attendee: ConnectionAttendeeData }> {
+    // First, try to verify as a signed JWT token (PF5)
+    const payload = this.qrSigning.verify(qrToken);
+    let targetId: string;
+
+    if (payload) {
+      // Valid signed JWT — use the attendeeId from payload
+      targetId = payload.attendeeId;
+    } else {
+      // Fall back to DB lookup for legacy tokens (backward compatibility)
+      const target = await this.prisma.attendee.findUnique({
+        where: { qrToken },
+      });
+      if (!target) throw new NotFoundException("That QR code isn't recognised");
+      targetId = target.id;
+    }
+
+    if (targetId === attendeeId) throw new BadRequestException("That's your own QR code");
+
     const target = await this.prisma.attendee.findUnique({
-      where: { qrToken },
+      where: { id: targetId },
       include: { chapter: true },
     });
     if (!target) throw new NotFoundException("That QR code isn't recognised");
-    if (target.id === attendeeId) throw new BadRequestException("That's your own QR code");
 
     // Canonicalize the pair so it's stored once regardless of who scanned whom.
     const [attendeeAId, attendeeBId] = [attendeeId, target.id].sort();

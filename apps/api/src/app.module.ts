@@ -20,6 +20,7 @@ import { HealthModule } from "./health/health.module";
 import { SummaryModule } from "./summary/summary.module";
 import { StatsModule } from "./stats/stats.module";
 import { FeedbackModule } from "./feedback/feedback.module";
+import { QRModule } from "./qr/qr.module";
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { FeedbackModule } from "./feedback/feedback.module";
     SessionModule,
     AuthModule,
     AdminAuthModule,
+    QRModule,
     AdminImportModule,
     AttendeesModule,
     BookmarksModule,

@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { parse } from "csv-parse/sync";
 import { PrismaService } from "../prisma/prisma.service";
 import { WhatsAppService } from "../whatsapp/whatsapp.service";
+import { QRSigningService } from "../qr/qr-signing.service";
 import { generateOpaqueToken, hashToken } from "../common/tokens";
 import { mapColumns, ColumnMappingError } from "./column-mapper";
 import { ImportRowStatus } from "@prisma/client";
@@ -34,6 +35,7 @@ export class AdminImportService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly whatsapp: WhatsAppService,
+    private readonly qrSigning: QRSigningService,
   ) {}
 
   async importCsv(fileBuffer: Buffer, fileName: string): Promise<ImportSummary> {
@@ -133,9 +135,11 @@ export class AdminImportService {
       chapterId = chapter.id;
     }
 
-    const qrToken = generateOpaqueToken();
+    // Generate a temporary ID for the QR payload (will be replaced with actual DB ID after insert)
+    const tempId = `temp-${generateOpaqueToken()}`;
     const rawOnboardingToken = generateOpaqueToken();
 
+    // Create attendee first to get the real ID
     const attendee = await this.prisma.attendee.create({
       data: {
         name,
@@ -145,7 +149,7 @@ export class AdminImportService {
         chapterId,
         city: city || undefined,
         businessCategory: businessCategory || undefined,
-        qrToken,
+        qrToken: "temp", // Will be updated below
         onboardingTokens: {
           create: {
             tokenHash: hashToken(rawOnboardingToken),
@@ -153,6 +157,21 @@ export class AdminImportService {
           },
         },
       },
+    });
+
+    // Now sign the QR payload with the real attendee ID
+    const qrToken = this.qrSigning.sign({
+      attendeeId: attendee.id,
+      name,
+      email,
+      phone,
+      businessName: businessName || undefined,
+    });
+
+    // Update with the signed token
+    await this.prisma.attendee.update({
+      where: { id: attendee.id },
+      data: { qrToken },
     });
 
     const appOrigin = process.env.WEB_ORIGIN ?? "http://localhost:3000";

@@ -8,6 +8,7 @@ apps/web/out/
 # NestJS
 apps/api/dist/
 apps/api/uploads/
+.keys/
 
 # env
 .env
