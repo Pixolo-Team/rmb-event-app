@@ -744,6 +744,14 @@ and keeps the whole check-in experience on one URL.
 **Module:** Settings  
 **Purpose:** Show the attendee's own QR code (top of screen, always first) and let them view/edit personal profile, notification preferences, tutorial, etc.
 
+> **Revised (UX revision v1.1 — F4.4/F4.5/F4.8).** The screen's vertical order is fixed as:
+> 1. **Own QR code** — pinned at the top, the thing another attendee scans to connect (unchanged intent; already built in F4.1).
+> 2. **Attendee Card** — a *designed identity card* (photo/initials, name, company, business category, city, chapter, tags, LinkedIn), **not** the list of label/value detail rows shipped today.
+> 3. **Edit Profile button** — opens Screen 2.11a as its own page (replaces the "tap a field to edit inline" interaction described below).
+> 4. **Logout** — sign-out lives on this screen, not only in the drawer.
+>
+> Editing moves off this screen entirely: 2.11 is read-only presentation, 2.11a is the form.
+
 **States:**
 - **Default:** Attendee's personal QR code displayed prominently at the TOP of the screen (name directly below it), followed by the settings form with editable fields
 - **QR Enlarged:** Full-screen QR modal with screen brightness boosted, for easy scanning by another attendee
@@ -779,6 +787,47 @@ and keeps the whole check-in experience on one URL.
 - Changes not saved (user closes without saving) → prompt "Discard changes?"
 - Name field empty → show validation error
 - Notification toggle switches to off → confirm "You won't get reminders"
+
+---
+
+### Screen 2.11a: Edit Profile *(new — UX revision v1.1, F4.5/F4.6/F4.7)*
+
+**Module:** Settings  
+**Purpose:** Let the attendee edit their own card on a dedicated form page, reached from the Edit Profile button on 2.11.
+
+**Editable vs read-only:** editable fields are **exactly the ones onboarding collects** (Screen 1.1) plus photo and LinkedIn. Registered details are read-only — changing them is an organizer action, because CSV import dedups on phone+email.
+
+| Field | Editable? |
+|---|---|
+| Photo | ✅ upload / replace / remove (F4.6) |
+| Business category | ✅ dropdown, validated against active reference data (PF8) |
+| City | ✅ searchable, validated against active reference data (PF8) |
+| Looking for / Offering | ✅ multi-select, shared taxonomy |
+| Networking goals | ✅ |
+| Bio | ✅ optional, character-capped |
+| LinkedIn URL | ✅ optional, URL-validated (F4.7) |
+| Name, company, phone, email, chapter, table number | ❌ read-only → "Contact the event organizer to change this" |
+
+**States:** Default (prefilled) · Editing (Save enabled once dirty) · Saving (spinner on Save) · Saved ("Saved!" toast, return to 2.11) · Error ("Can't save changes. Try again.", form retained) · Uploading photo (progress + cancel) · Offline (Save disabled with "You're offline — reconnect to save"; edits are **not** queued, unlike check-in).
+
+**User Interactions:**
+- Tap photo → choose camera or library → crop → replace; tap Remove → fall back to initials
+- Edit any editable field → Save becomes enabled
+- Tap Save → validate → persist → toast → return to 2.11
+- Tap Cancel/back with unsaved edits → "Discard changes?" prompt
+- Tap a read-only field → inline hint "Contact the event organizer to change this"
+
+**Navigation:** **Comes from:** Profile (2.11) Edit Profile button. **Leads to:** Profile (2.11) on save or discard.
+
+**Data Needed to Display:** current profile values; active business-category and city reference lists (PF8); shared looking-for/offering taxonomy; photo URL.
+
+**Edge Cases:**
+- Photo too large / wrong type → client-side resize (reuse F7.1's pipeline); reject non-images with a clear message
+- Upload fails mid-save → keep other field edits, surface a retry on the photo only
+- Category/city no longer active in reference data → keep the existing value as a valid legacy option, per PF8
+- Invalid LinkedIn URL → inline validation, block save
+- Session expires while editing → preserve form state, re-auth, resume
+- ⚠️ **Storage dependency:** photo upload requires durable object storage (Supabase Storage). Local-disk `/uploads` does not survive a hosted deploy — see the open question in `FEATURES.md`.
 
 ---
 
@@ -1283,7 +1332,8 @@ Pre-Event Flow:
   [returning attendees with a completed profile go straight to Home (2.1)]
 
 Main App Flow:
-  Authenticated side menu [flat global navigation; no bottom-tab bar]
+  Bottom tab bar [primary: Home · People · Want to Meet · Profile] + side drawer [secondary]
+  (UX revision v1.1 — reverses the earlier "no bottom-tab bar" decision; see PRD US12.1 / FEATURES PF7.1)
     ├→ Home Dashboard (2.1) [central hub, includes check-in orchestration]
     ├→ Pre-Event Matches / People to Meet (1.4)
     ├→ Directory (2.2) → Individual Profile (2.3)

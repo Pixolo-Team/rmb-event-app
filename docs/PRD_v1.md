@@ -759,28 +759,31 @@ Acceptance Criteria:
 
 ### Cross-Cutting Feature 12: Authenticated Attendee Navigation
 
-**Description:** A consistent, low-friction navigation shell for the attendee PWA. The pilot uses one left slide-over drawer rather than duplicating destinations in a bottom-tab bar.
+**Description:** A consistent, low-friction navigation shell for the attendee PWA: a **persistent bottom tab bar** for the four primary destinations, plus a left slide-over drawer for lower-frequency ones.
+
+> **Revised (UX revision v1.1).** This feature previously specified a drawer *only*, with the explicit criterion "No persistent attendee bottom-tab bar in the pilot", on the rationale that two navigation systems duplicate destinations and consume vertical space. That decision is **reversed**: bottom tabs are the current convention for this app category, and the four primary destinations are used constantly during the event, where a two-tap drawer is friction at the wrong moment. The duplication concern is answered by strict separation — **every destination lives in exactly one of the two systems, never both.** Owning build unit: PF7.1 in `FEATURES.md`.
 
 **US12.1 - Attendee navigates the app after login**
 ```
 As Radha (attendee)
-I want one simple menu containing the important networking destinations
-So that I can move around the event app without learning multiple navigation systems
+I want the destinations I use constantly to be one tap away, and the rest tucked out of the way
+So that I can move around the event app without hunting through a menu mid-conversation
 Acceptance Criteria:
-- Menu renders only after a valid attendee session and completed required onboarding
+- Navigation renders only after a valid attendee session and completed required onboarding
 - It never renders on Login, magic-link verification, expired-link/error or focused onboarding screens, including while session verification is loading
+- Bottom tab bar is persistent and holds exactly four primary destinations, ordered:
+  Home, People, Want to Meet, Profile
+- Each tab has a 44×44px minimum touch target, an icon plus a short label, and respects the device safe-area inset
+- The drawer holds only secondary destinations — Leaderboard, Event Summary, Give Feedback, Event Photos, Show My QR — with Sign Out visually separated at the bottom
+- No destination appears in both the tab bar and the drawer
 - Header shows a 44×44px menu trigger; drawer slides from the left and occupies at most 88% of a phone width / 360px
-- One flat list with no main/submenu hierarchy or section headings, ordered:
-  Home, People to Meet, Attendee Directory, My Connections, Leaderboard, My Profile, Show My QR
-- Sign Out is visually separated at the bottom and clears the secure attendee session
-- Scan QR remains a prominent contextual action on Home/networking screens, not a permanent navigation item
-- Feed, Feedback, Summary, Tutorial, Install, About and Terms are surfaced contextually from Home/Profile rather than added to the primary drawer
-- Current destination is visibly highlighted and programmatically marked
-- Close works through the close button, backdrop, Escape and Android/browser Back without leaving the current screen
+- Scan QR is reachable in one tap from the primary navigation (proposed: a center FAB in the tab bar — OPEN, pending confirmation)
+- Current destination is visibly highlighted and programmatically marked in whichever system owns it
+- Drawer close works through the close button, backdrop, Escape and Android/browser Back without leaving the current screen
 - Drawer traps focus while open, restores focus to its trigger, locks background scrolling and respects reduced motion
-- Drawer uses cached attendee identity offline; missing photos fall back to initials
+- Navigation uses cached attendee identity offline; missing photos fall back to initials
 - Production hides destinations until their feature route works; local development may show them disabled with a clear "Soon" label and no placeholder navigation
-- No persistent attendee bottom-tab bar in the pilot
+- Tabs do not obscure page content: scrollable screens reserve bottom padding equal to the bar height
 ```
 
 ---

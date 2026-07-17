@@ -40,7 +40,7 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 | PF4 | Offline sync engine — IndexedDB write queue + background sync | — | P0 | Yes | PF1 | ✅ Done |
 | PF5 | QR signing & verification (shared utility — signed opaque JWT payload, server-side verify) | — | P0 | — | — | ⬜ Not started |
 | PF6 | API hardening — rate limiting, CORS, input validation, CSRF (currently only on auth endpoints) | — | P0 | — | — | 🟡 Partial |
-| PF7 | Authenticated attendee navigation shell — flat side-menu drawer, identity header, active state, auth/onboarding visibility gate, accessible close/back behavior, shared route inventory | All attendee screens | P0 | Yes (shell) | PF1, PF2 | 🟡 Partial |
+| PF7 | Authenticated attendee navigation shell — **bottom tab bar (primary) + side-menu drawer (secondary)**, identity header, active state, auth/onboarding visibility gate, accessible close/back behavior, shared route inventory | All attendee screens | P0 | Yes (shell) | PF1, PF2 | 🟡 Partial |
 | PF8 | Database-backed dropdown reference data — business categories, nationwide Indian cities with state/UT labels, active/sort controls, and existing Chapter options | Screen 1.1, Directory filters | P0 | Cacheable | F1.2 | ✅ Done |
 
 **PF3 build notes:**
@@ -54,7 +54,18 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 - Implemented on Home: authenticated-only drawer, attendee identity with initials fallback, flat finalized inventory, active Home state, focus trap, Escape/backdrop/browser-Back close, scroll lock and working Sign Out.
 - Public login/magic-link pages and focused onboarding do not render the menu. Planned destinations appear disabled with a **Soon** label only in local development; production hides them until their owning feature ships.
 - Attendee Directory is now a working production destination; `/attendees/[id]` preserves its active navigation state.
-- Remaining before ✅: move the header/drawer into a shared authenticated route-group layout, register real routes as F2/F4/F6 ship, and complete 360/428/768px device verification. The pilot uses no persistent bottom-tab bar.
+- Remaining before ✅: move the header/drawer into a shared authenticated route-group layout, register real routes as F2/F4/F6 ship, and complete 360/428/768px device verification.
+
+> ### ⚠️ Navigation model reversed (UX revision — supersedes the drawer-only decision)
+> **The pilot now uses a persistent bottom tab bar for primary destinations, plus the drawer for secondary ones.** This **reverses** the previously-recorded decision ("no persistent attendee bottom-tab bar in the pilot") documented in `PRD_v1.md` US12.1, `DEVELOPMENT_PLAN.md` → Attendee Navigation, `SCREENS.md` and the PF7 note above. Those documents are updated to match.
+>
+> **Why the reversal:** the original rationale was that two navigation systems duplicate destinations and cost vertical space. The revision accepts that cost: bottom tabs are the current convention for this app category, and the four primary destinations are used constantly during the event, where a two-tap drawer is friction at exactly the wrong moment. The drawer survives for lower-frequency destinations, so nothing is duplicated across both systems — **each destination lives in exactly one place.**
+>
+> - **Bottom tabs (primary, always visible when authenticated):** Home · People · Want to Meet · Profile
+> - **Drawer (secondary):** Leaderboard, Event Summary, Give Feedback, Event Photos, Show My QR, Sign Out
+> - **Scan QR:** proposed as a **center FAB in the tab bar** — it is the product's core loop (F4.2) and deserves to be one tap away. *This one is my recommendation, not yet confirmed — it was left open in review.*
+> - Tabs never render on login/magic-link/onboarding, mirroring the drawer's existing visibility gate.
+> - **Home is not being replaced by Posts.** Home remains a dashboard of important, at-a-glance data (see F3.6) — the Event Photo feed (F7) is deprioritized and may not ship.
 
 **PF8 build notes:**
 - Added normalized, active/sortable database reference tables for business categories and cities; Chapter received the same active/sort controls.
@@ -279,6 +290,30 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 - Rather than freezing a duration server-side, the endpoint returns `checkedInAt`, `checkInMethod` and `eventEndAt`; the client computes *time at event* as `min(now, eventEndAt) − checkedInAt` and ticks it live once a minute, so a cached response keeps counting correctly while offline. Not-yet-checked-in attendees get a `null` `checkedInAt` and the tile reads "Not checked in yet"; rank for a not-checked-in attendee falls through to `totalRanked + 1` via the leaderboard service.
 - Surfaced on the Settings surface (Screen 2.11, `/profile`) as a "Your stats" section — the profile page already owns the authenticated cache-first/offline-tolerant pattern, so stats reuse it. A new `apps/web/app/lib/statsCache.ts` caches the last successful response in `localStorage`; the section renders from cache instantly, refreshes from the network when reachable, and stays visible (with the live timer running) when the API is unreachable. `LeaderboardService` is now exported from `LeaderboardModule` for this reuse.
 - Not built here: F11.2/F11.3 (organizer-facing analytics) — attendee-facing stats only.
+
+---
+
+### UX Revision (v1.1) — post-review scope
+
+*Added after a pilot UX review. These reshape screens that already shipped, so each row is a change to an existing feature rather than a greenfield one. Nothing here is built yet.*
+
+| ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
+|---|---|---|---|---|---|---|
+| PF7.1 | Bottom tab bar (Home · People · Want to Meet · Profile) + drawer demoted to secondary destinations; Scan as center FAB (pending confirmation) | All attendee screens | P0 | Yes (shell) | PF7 | ⬜ Not started |
+| F3.6 | Home as an **appealing dashboard** — check-in status plus at-a-glance data (people met, rank, bookmarks, table number, time at event) and quick actions. Restores `SCREENS.md` 2.1's original "central hub" intent, which the F3.2 full-page revision stripped to check-in only. Surfaces F11.1's stats here, not just on Profile | Screen 2.1 | P0 | Yes (cached) | F3.2, F11.1 | ⬜ Not started |
+| F4.4 | **Attendee Card** on Profile — a designed identity card (photo/initials, name, company, category, city, chapter, tags, LinkedIn), *not* a list of `dt`/`dd` detail rows. QR stays pinned above it | Screen 2.11 | P1 | Yes | F4.1 | ⬜ Not started |
+| F4.5 | **Edit Profile** — dedicated form page reached from a Profile button. Editable = exactly the fields onboarding collects (business category, city, looking-for, offering, goals, bio) **plus** photo (F4.6) and LinkedIn (F4.7). Registered details (name, phone, email) stay read-only per the PRD's "Contact organizer to change this" rule — import dedup keys on phone+email | Screen 2.11a (new) | P1 | No | F1.2, F4.4 | ⬜ Not started |
+| F4.6 | **Profile photo upload** — capture/choose, crop, replace; feeds the Attendee Card and every avatar. Reuses F7.1's client-side crop/resize pipeline | Screen 2.11a | P1 | No | F4.5 | ⬜ Not started |
+| F4.7 | **LinkedIn profile field** — new `Attendee.linkedinUrl` column + migration, optional import-column mapping (F1.1), onboarding/edit input, URL validation; surfaced as an action on cards and profiles | Screen 1.1, 2.3, 2.11a | P2 | Yes | F1.2 | ⬜ Not started |
+| F4.8 | **Logout on Profile** — sign-out action on the Profile screen itself (today it lives only in the drawer). Already anticipated by `SCREENS.md` 2.11 ("Tap Sign out") | Screen 2.11 | P2 | No | PF2 | ⬜ Not started |
+| F2.6 | **"Met" indicator on cards** — attendee/match/directory cards show when you've already met the person. Data already exists (`Meeting`, F4.2); this is the missing card affordance | Screens 2.2, 2.3, 1.4 | P1 | Yes | F4.2, F2.4 | ⬜ Not started |
+| F2.7 | **Icon action row on People / Want-to-Meet cards** — bookmark, call, LinkedIn and share as icon buttons, consistent with the polished F2.5 profile action row; cards open the full profile | Screens 2.2, 2.6 | P1 | Partial | F2.4, F4.7 | ⬜ Not started |
+| F7.4 | **LinkedIn-grade feed UI** — rebuild like/comment/post affordances to the social-network standard already named as the reference in `DESIGN_SYSTEM.md` ("LinkedIn / Facebook-familiar patterns"). Deprioritized with F7 overall | Screens 2.7, 2.8 | P2 | Read: yes | F7.2 | ⬜ Not started |
+
+**Open questions to close before building:**
+- **Scan placement** — center FAB vs contextual button vs its own tab. Left unresolved in review; PF7.1 assumes the FAB.
+- **Photo storage** — F4.6 (and F7.1 today) write uploads to local disk `/uploads`, which does **not** survive a hosted/containerized deploy. Supabase Storage (or equivalent) is needed before either ships for real. This is a deployment blocker, not a UI detail.
+- **Drawer overlap** — with F7 deprioritized, the drawer holds Leaderboard, Summary, Feedback, Show My QR and Sign Out. If that thins out further, consider folding it into Profile and dropping the drawer entirely.
 
 ---
 

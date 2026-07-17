@@ -217,11 +217,15 @@ Full rendered specimens live in `DESIGN_SYSTEM.html` §Components. Inventory:
 
 `DESIGN_SYSTEM.html` §Applied renders these directly:
 
-**Attendee app (mobile, authenticated side-menu drawer; no persistent bottom-tab bar):**
+**Attendee app (mobile, persistent bottom tab bar + secondary side-menu drawer):**
+
+> **Revised (UX revision v1.1).** This section previously read "authenticated side-menu drawer; no persistent bottom-tab bar" and listed every destination in one flat drawer. The pilot now leads with a bottom tab bar; the drawer keeps only secondary destinations. See PRD US12.1 / FEATURES PF7.1.
+
+- **Bottom tab bar** is persistent when authenticated: Home · People · Want to Meet · Profile. Each tab is an icon plus a short label, ≥44×44px, honouring the device safe-area inset. Active tab uses `brand-700` on `brand-100`; inactive uses `ink-muted`. Scrollable screens reserve bottom padding equal to the bar height so content is never obscured.
+- **Drawer** holds only secondary destinations: Leaderboard · Event Summary · Give Feedback · Event Photos · Show My QR. No destination appears in both systems. Sign Out is separated at the bottom and uses `danger-500`; Sign Out also appears on Profile (F4.8).
 - Header uses a 44×44px menu trigger. The left drawer is `min(88vw, 360px)`, uses `surface`, a brand-tinted identity block and a scrim over page content.
-- Navigation is one flat list with no section headings: Home · People to Meet · Attendee Directory · My Connections · Leaderboard · My Profile · Show My QR. Sign Out is separated at the bottom and uses `danger-500`.
 - Active item uses `brand-100` with `brand-700`; every row is at least 48px tall. Planned items may show a caption-sized **Soon** pill in local development only and are omitted in production.
-- Scan QR remains the principal `accent-500` contextual action on Home/networking screens. The accent color is still reserved for scanning and gamification; the menu trigger and ordinary menu rows do not use it.
+- Scan QR keeps `accent-500` as the principal scanning action — proposed as a center FAB in the tab bar (OPEN, pending confirmation); until settled it stays a contextual action on Home. The accent color remains reserved for scanning and gamification; tabs, the menu trigger and ordinary menu rows do not use it.
 1. Home — check-in badge, table number, "People to meet" matches
 2. Scan confirmation — full-screen success state ("You met Deepak Sharma!")
 3. My Connections — Already met / Want to meet tabs

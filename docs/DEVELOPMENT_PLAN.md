@@ -80,7 +80,9 @@ The PRD names the frontend/backend stack (Next.js + NestJS) but leaves several v
 
 ## Attendee Navigation & Side Menu
 
-The attendee PWA uses one **authenticated side-menu drawer** as its global navigation. There is no persistent bottom-tab bar in the pilot: duplicating the same destinations in two navigation systems adds choice and consumes valuable vertical space on small phones. High-frequency contextual actions such as Scan QR remain prominent buttons on Home and relevant feature screens rather than permanent navigation items.
+The attendee PWA uses a **persistent bottom tab bar** for its four primary destinations (Home, People, Want to Meet, Profile), plus an **authenticated side-menu drawer** for lower-frequency destinations (Leaderboard, Event Summary, Give Feedback, Event Photos, Show My QR, Sign Out).
+
+> **Revised (UX revision v1.1).** This section previously read: *"There is no persistent bottom-tab bar in the pilot: duplicating the same destinations in two navigation systems adds choice and consumes valuable vertical space on small phones."* That call is **reversed**. The vertical-space cost is accepted — bottom tabs are the current convention for this app category, and the primary destinations are used constantly during the event, where a two-tap drawer is friction at the wrong moment. The duplication objection still stands and is answered structurally: **each destination lives in exactly one navigation system, never both.** Scan QR is proposed as a center FAB in the tab bar (OPEN — pending confirmation); until that is settled it remains a prominent contextual action on Home. See PF7.1 in `FEATURES.md` and US12.1 in `PRD_v1.md`.
 
 ### Side-menu information architecture
 
