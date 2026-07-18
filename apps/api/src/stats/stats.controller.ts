@@ -2,6 +2,7 @@ import { Controller, Get, InternalServerErrorException, Query, Req, Res, UseGuar
 import type { Response } from "express";
 import { AdminGuard } from "../admin-auth/admin.guard";
 import { SessionGuard, RequestWithAttendee } from "../session/session.guard";
+import { ExportAnalyticsQueryDto } from "./dto/export-analytics-query.dto";
 import { StatsService } from "./stats.service";
 
 @Controller("attendees/me")
@@ -17,9 +18,9 @@ export class AdminStatsController {
   constructor(private readonly stats: StatsService) {}
   @Get() get() { return this.stats.getAdminOverview(); }
   @Get("export")
-  async export(@Query("format") requested: string | undefined, @Res() res: Response) {
+  async export(@Query() query: ExportAnalyticsQueryDto, @Res() res: Response) {
     try {
-      const format = requested === "pdf" ? "pdf" : "csv";
+      const format = query.format === "pdf" ? "pdf" : "csv";
       res.setHeader("Content-Type", format === "pdf" ? "application/pdf" : "text/csv; charset=utf-8");
       res.setHeader("Content-Disposition", `attachment; filename="evento-admin-analytics.${format}"`);
       const payload = await this.stats.exportAdminOverview(format);

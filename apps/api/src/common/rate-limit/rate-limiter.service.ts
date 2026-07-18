@@ -1,11 +1,7 @@
 import { Injectable } from "@nestjs/common";
 
 const HOUR_MS = 60 * 60 * 1000;
-
-/**
- * In-memory sliding-window limiter — fine at pilot scale (single process,
- * see DEVELOPMENT_PLAN.md's "no Redis for the pilot" call). Resets on restart.
- */
+/** In-memory sliding-window limiter */
 @Injectable()
 export class RateLimiterService {
   private hits = new Map<string, number[]>();
@@ -15,12 +11,10 @@ export class RateLimiterService {
     const now = Date.now();
     const windowStart = now - HOUR_MS;
     const timestamps = (this.hits.get(key) ?? []).filter((t) => t > windowStart);
-
     if (timestamps.length >= limit) {
       const retryAfterMs = timestamps[0] + HOUR_MS - now;
       return { allowed: false, retryAfterSeconds: Math.ceil(retryAfterMs / 1000) };
     }
-
     timestamps.push(now);
     this.hits.set(key, timestamps);
     return { allowed: true, retryAfterSeconds: 0 };
@@ -31,7 +25,6 @@ export class RateLimiterService {
     const now = Date.now();
     const windowStart = now - HOUR_MS;
     const timestamps = (this.hits.get(key) ?? []).filter((t) => t > windowStart);
-
     if (timestamps.length >= limit) {
       const retryAfterMs = timestamps[0] + HOUR_MS - now;
       return { limited: true, retryAfterSeconds: Math.ceil(retryAfterMs / 1000) };

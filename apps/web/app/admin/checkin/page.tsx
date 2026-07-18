@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Html5Qrcode } from "html5-qrcode";
 import { enqueueWrite, useOfflineSync } from "../../lib/offlineQueue";
+import { withCsrfHeaders } from "../../lib/csrf";
 
 type Method = "GEOLOCATION" | "MANUAL" | "STAFF_QR";
 
@@ -70,11 +71,11 @@ export default function AdminCheckinPage() {
               setScanResult({ tone: "ok", message: "Scanned — saved offline, will confirm once back online" });
             } else {
               try {
-                const res = await fetch("/api/admin/checkin/qr-scan", {
+                const res = await fetch("/api/admin/checkin/qr-scan", withCsrfHeaders({
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ qrToken: decodedText }),
-                });
+                }));
                 const outcome = await res.json();
                 if (outcome.status === "not_found") {
                   setScanResult({ tone: "warn", message: "Invalid QR code — not found in attendee list" });

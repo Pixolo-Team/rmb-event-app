@@ -7,6 +7,7 @@ import { AttendeeCard } from "./AttendeeCard";
 import { FullProfileModal } from "./FullProfileModal";
 import { ProfileView } from "./ProfileView";
 import { AddPostIcon, BookmarkTabIcon, HomeIcon, PeopleIcon, ProfileIcon } from "./icons";
+import { withCsrfHeaders } from "../../lib/csrf";
 
 type AppView = "posts" | "people" | "wantToMeet" | "profile";
 
@@ -312,12 +313,12 @@ export function TutorialPage() {
     setDirectory(nextDirectory);
 
     try {
-      const response = await fetch("/api/bookmarks", {
+      const response = await fetch("/api/bookmarks", withCsrfHeaders({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ attendeeId: personId }),
-      });
+      }));
       if (!response.ok) {
         setDirectory(previousDirectory);
         setActionError("Bookmark update failed. Try again.");

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { usePwaInstall } from "./usePwaInstall";
+import { withCsrfHeaders } from "../../lib/csrf";
 
 type Step = "loading" | "form" | "install" | "thanks";
 
@@ -82,7 +83,7 @@ export function OnboardingFlow() {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const res = await fetch("/api/attendees/me/profile", {
+      const res = await fetch("/api/attendees/me/profile", withCsrfHeaders({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -94,7 +95,7 @@ export function OnboardingFlow() {
           goals,
           bio: bio || undefined,
         }),
-      });
+      }));
       if (!res.ok) {
         setSubmitError("Couldn't save your profile. Please try again.");
         return;

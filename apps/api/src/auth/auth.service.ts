@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { MailService } from "../mail/mail.service";
 import { SessionService } from "../session/session.service";
-import { RateLimiterService } from "./rate-limiter.service";
+import { RateLimiterService } from "../common/rate-limit/rate-limiter.service";
 import { generateOpaqueToken, hashToken } from "../common/tokens";
 
 const TOKEN_TTL_MS = 30 * 60 * 1000; // 30 minutes, per SCREENS.md Screen 2.0

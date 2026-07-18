@@ -2,6 +2,7 @@
 
 import { FormEvent, KeyboardEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { withCsrfHeaders } from "../../lib/csrf";
 
 type State = "checking" | "idle" | "submitting";
 
@@ -33,12 +34,12 @@ export function AdminLoginForm() {
     setState("submitting");
     setError(null);
     try {
-      const res = await fetch("/api/admin/auth/login", {
+      const res = await fetch("/api/admin/auth/login", withCsrfHeaders({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ username, password }),
-      });
+      }));
       if (res.ok) {
         router.replace("/admin");
         return;

@@ -9,6 +9,7 @@ import { getInitials } from "./AttendeeCard";
 import { EditProfileForm } from "./EditProfileForm";
 import { LinkedInIcon, ScanIcon } from "./icons";
 import { ScanConnect } from "./ScanConnect";
+import { withCsrfHeaders } from "../../lib/csrf";
 
 function TagGroup({ label, values }: { label: string; values: string[] | undefined }) {
   if (!values?.length) return null;
@@ -58,12 +59,12 @@ export function ProfileView({
     }
 
     try {
-      const res = await fetch("/api/connections/scan", {
+      const res = await fetch("/api/connections/scan", withCsrfHeaders({
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ qrToken: decoded }),
-      });
+      }));
       if (!res.ok) return null;
       const body = await res.json();
       const name = body.attendee?.name as string | undefined;
@@ -80,7 +81,7 @@ export function ProfileView({
   async function handleLogout() {
     if (!TEMP_BYPASS_LOGIN) {
       try {
-        await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+        await fetch("/api/auth/logout", withCsrfHeaders({ method: "POST", credentials: "include" }));
       } catch {
         // Even if the network call fails, still send the user to the login screen.
       }

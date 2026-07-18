@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { createHash, timingSafeEqual } from "crypto";
-import { RateLimiterService } from "../auth/rate-limiter.service";
+import { RateLimiterService } from "../common/rate-limit/rate-limiter.service";
 
 // Lock an IP out after this many failed attempts within the limiter's window.
 const MAX_FAILED_ATTEMPTS = 10;

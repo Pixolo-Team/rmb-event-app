@@ -3,7 +3,7 @@
 import { ChangeEvent, Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { AttendeeMe, FeedCommentData, FeedPhotoData, TEMP_BYPASS_LOGIN } from "./TutorialPage";
 import { CommentIcon, ThumbUpIcon } from "./icons";
-
+import { withCsrfHeaders } from "../../lib/csrf";
 type FeedPageResponse = {
   photos: FeedPhotoData[];
   nextCursor: string | null;
@@ -246,10 +246,10 @@ export function FeedView({
     );
 
     try {
-      const response = await fetch(`/api/photos/${photo.id}/like`, {
+      const response = await fetch(`/api/photos/${photo.id}/like`, withCsrfHeaders({
         method: "POST",
         credentials: "include",
-      });
+      }));
       if (!response.ok) {
         setPhotos(previousPhotos);
         setActionError("Couldn't update like. Try again.");
@@ -287,12 +287,12 @@ export function FeedView({
 
     setActionError(null);
     try {
-      const response = await fetch(`/api/photos/${photoId}/comments`, {
+      const response = await fetch(`/api/photos/${photoId}/comments`, withCsrfHeaders({
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message }),
-      });
+      }));
       if (!response.ok) {
         setActionError("Couldn't post comment. Try again.");
         return;
@@ -324,7 +324,7 @@ export function FeedView({
 
     setActionError(null);
     try {
-      const response = await fetch(`/api/photos/${photoId}`, { method: "DELETE", credentials: "include" });
+      const response = await fetch(`/api/photos/${photoId}`, withCsrfHeaders({ method: "DELETE", credentials: "include" }));
       if (!response.ok) {
         setActionError("Couldn't delete photo. Try again.");
         return;

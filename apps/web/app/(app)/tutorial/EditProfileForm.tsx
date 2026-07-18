@@ -1,5 +1,5 @@
 "use client";
-
+import { withCsrfHeaders } from "../../lib/csrf";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { AttendeeMe } from "./TutorialPage";
 import { TEMP_BYPASS_LOGIN } from "./TutorialPage";
@@ -215,7 +215,7 @@ export function EditProfileForm({
 
     setSaving(true);
     try {
-      const res = await fetch("/api/attendees/me/profile", {
+      const res = await fetch("/api/attendees/me/profile", withCsrfHeaders({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -228,7 +228,7 @@ export function EditProfileForm({
           bio: bio.trim() || undefined,
           linkedInUrl: linkedInUrl.trim() || undefined,
         }),
-      });
+      }));
       if (!res.ok) {
         setError("Couldn't save your profile. Please try again.");
         return;
@@ -238,11 +238,11 @@ export function EditProfileForm({
       if (photoFile) {
         const formData = new FormData();
         formData.append("photo", photoFile);
-        const photoRes = await fetch("/api/attendees/me/photo", {
+        const photoRes = await fetch("/api/attendees/me/photo", withCsrfHeaders({
           method: "POST",
           credentials: "include",
           body: formData,
-        });
+        }));
         if (!photoRes.ok) {
           setError("Your profile saved, but the photo upload failed. Try the photo again.");
           onSaved({
@@ -259,10 +259,10 @@ export function EditProfileForm({
         const body = await photoRes.json();
         photoUrl = body.photoUrl ?? photoUrl;
       } else if (!photoPreview && attendee.photoUrl) {
-        const removeRes = await fetch("/api/attendees/me/photo/remove", {
-          method: "PATCH",
+        const removeRes = await fetch("/api/attendees/me/photo/remove", withCsrfHeaders({
+          method: "POST",
           credentials: "include",
-        });
+        }));
         if (!removeRes.ok) {
           setError("Your profile saved, but the photo could not be removed. Try again.");
           onSaved({

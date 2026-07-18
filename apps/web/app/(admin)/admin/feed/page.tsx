@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { withCsrfHeaders } from "../../../lib/csrf";
 
 type Tab = "all" | "deleted";
 
@@ -67,7 +68,7 @@ export default function AdminFeedPage() {
     setDeletingId(photoId);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/photos/${photoId}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/photos/${photoId}`, withCsrfHeaders({ method: "DELETE" }));
       if (!res.ok) {
         setError("Couldn't delete photo. Please try again.");
         return;

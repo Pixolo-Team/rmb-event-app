@@ -1,6 +1,6 @@
 import { Global, Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
-import { RateLimiterService } from "../auth/rate-limiter.service";
+import { RateLimiterService } from "../common/rate-limit/rate-limiter.service";
 import { AdminAuthController } from "./admin-auth.controller";
 import { AdminAuthService } from "./admin-auth.service";
 import { AdminSessionService } from "./admin-session.service";

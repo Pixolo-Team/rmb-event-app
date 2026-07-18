@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { distanceMeters } from "../../lib/geo";
+import { withCsrfHeaders } from "../../lib/csrf";
 
 const RADIUS_OPTIONS = [100, 250, 500, 1000, 5000];
 
@@ -41,11 +42,11 @@ export default function AdminEventSettingsPage() {
     setSaveState("saving");
     setFieldError(null);
     try {
-      const res = await fetch("/api/admin/event", {
+      const res = await fetch("/api/admin/event", withCsrfHeaders({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
-      });
+      }));
       if (!res.ok) {
         setSaveState("error");
         return;

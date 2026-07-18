@@ -7,5 +7,8 @@
     "dev:api": "pnpm --filter api start:dev",
     "build:web": "pnpm --filter web build",
     "build:api": "pnpm --filter api build"
+  },
+  "dependencies": {
+    "qrcode.react": "^4.2.0"
   }
 }
