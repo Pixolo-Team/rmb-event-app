@@ -55,6 +55,39 @@ See `apps/api/src/mail/mail.service.ts` and `apps/api/src/whatsapp/whatsapp.serv
 
 **Check-in:** after onboarding, `/home` requests geolocation and checks you in automatically if within the configured venue radius (set one at `/admin/event` first — otherwise you'll always land on the manual "Check In Manually" fallback). Staff can check attendees in by scanning their badge QR at `/admin/checkin` (camera-based), and print physical QR badges at `/admin/badges`.
 
+## Deployment
+
+### `apps/web`
+
+`API_ORIGIN` is the only variable the frontend reads. Set it to the deployed API's origin (e.g. `https://api.example.com`, no trailing slash):
+
+| Variable | Required | Notes |
+|---|---|---|
+| `API_ORIGIN` | Yes | Origin of the deployed `apps/api`. Defaults to `http://localhost:4000` if unset — in production that fails silently rather than loudly, so set it explicitly. |
+
+It has no `NEXT_PUBLIC_` prefix, so it never reaches the browser bundle. `next.config.js` reads it when the config is evaluated, which means it must exist in the Next server's own build/runtime environment — it can't be injected client-side afterwards.
+
+**Don't bypass the rewrite by pointing the browser straight at the API.** Every page fetches relative paths (`/api/...`) and `next.config.js` proxies `/api/*` and `/uploads/*` through to `API_ORIGIN`, so the browser only ever sees the web origin. The session cookies (`session.service.ts`, `admin-session.service.ts`) are host-only with `sameSite: "lax"` — a cross-origin call from the browser to the API would silently drop them and every authed request would 401.
+
+`NODE_ENV` is set to `production` by `next build`/`next start` automatically. It gates the `?preview=1` mock-data mode and the planned-but-unbuilt menu entries, which correctly disappear in production without any configuration.
+
+### `apps/api`
+
+See `apps/api/.env.example` for the annotated list. Beyond the local-dev values, production needs:
+
+| Variable | Required | Notes |
+|---|---|---|
+| `DATABASE_URL` | Yes | Pooled connection (Supabase: port 6543 + `pgbouncer=true`). |
+| `DIRECT_URL` | Yes | Unpooled; used only by `prisma migrate`. |
+| `SESSION_JWT_SECRET` | Yes | Long random string. The default is a placeholder — change it. |
+| `ADMIN_PASSWORD` | Yes | Admin login refuses to work in production if unset (no dev fallback). |
+| `WEB_ORIGIN` | Yes | Origin of the deployed `apps/web`, for CORS. |
+| `NODE_ENV` | Yes | Must be `production` — this is what flips session cookies to `secure` (HTTPS-only). |
+| `PORT` | Host-dependent | Many hosts inject this themselves. |
+| `SMTP_*`, `MAIL_FROM` | No | Unset → magic links are logged instead of emailed. Required for real logins by anyone without terminal access. |
+
+Two things to check against your host before the first deploy: uploads are written to `<cwd>/uploads` on local disk and served via `useStaticAssets`, so a host with an ephemeral filesystem will lose attendee photos and avatars on restart; and WhatsApp delivery is still a console stub (see the table below), so onboarding invites won't actually reach attendees yet.
+
 ## What's real vs. stubbed
 
 | Piece | Status |
