@@ -1,6 +1,12 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { createPrivateKey, createPublicKey, sign, verify } from "crypto";
-import { readFileSync, writeFileSync, existsSync } from "fs";
+import {
+  createPrivateKey,
+  createPublicKey,
+  generateKeyPairSync,
+  sign,
+  verify,
+} from "crypto";
+import { mkdirSync, readFileSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 
 export interface QRPayload {
@@ -19,45 +25,74 @@ export class QRSigningService {
   private readonly keyDir = join(process.cwd(), ".keys");
 
   constructor() {
-    this.privateKey = this.loadOrGeneratePrivateKey();
-    this.publicKey = this.loadOrGeneratePublicKey();
+    const keys = this.resolveKeys();
+    this.privateKey = keys.privateKey;
+    this.publicKey = keys.publicKey;
   }
 
-  private loadOrGeneratePrivateKey(): string {
+  /**
+   * Resolve the RSA key pair, in priority order:
+   *   1. QR_PRIVATE_KEY env var — the production path. Stable across restarts
+   *      and shared by every instance, so signed QR tokens keep verifying.
+   *   2. Persisted .keys/*.pem files — dev convenience / persistent-volume hosts.
+   *   3. A freshly generated ephemeral pair — last resort. Persisting it is
+   *      best-effort so a read-only filesystem degrades instead of crashing boot.
+   */
+  private resolveKeys(): { privateKey: string; publicKey: string } {
+    const envKey = process.env.QR_PRIVATE_KEY?.trim();
+    if (envKey) {
+      const privateKey = this.normalizePem(envKey);
+      // Derive the public key from the private key so only one secret is needed.
+      const publicKey = createPublicKey(privateKey)
+        .export({ type: "spki", format: "pem" })
+        .toString();
+      this.logger.log("Loaded QR signing key from QR_PRIVATE_KEY env var");
+      return { privateKey, publicKey };
+    }
+
     const privateKeyPath = join(this.keyDir, "qr-private.pem");
-    if (existsSync(privateKeyPath)) {
-      return readFileSync(privateKeyPath, "utf-8");
-    }
-    this.logger.log("Generating new RSA key pair for QR signing");
-    return this.generateAndSaveKeyPair().privateKey;
-  }
-
-  private loadOrGeneratePublicKey(): string {
     const publicKeyPath = join(this.keyDir, "qr-public.pem");
-    if (existsSync(publicKeyPath)) {
-      return readFileSync(publicKeyPath, "utf-8");
-    }
-    return this.generateAndSaveKeyPair().publicKey;
-  }
-
-  private generateAndSaveKeyPair(): { privateKey: string; publicKey: string } {
-    if (!existsSync(this.keyDir)) {
-      const fs = require("fs");
-      fs.mkdirSync(this.keyDir, { recursive: true });
+    if (existsSync(privateKeyPath) && existsSync(publicKeyPath)) {
+      return {
+        privateKey: readFileSync(privateKeyPath, "utf-8"),
+        publicKey: readFileSync(publicKeyPath, "utf-8"),
+      };
     }
 
-    const { generateKeyPairSync } = require("crypto");
+    this.logger.warn(
+      "No QR_PRIVATE_KEY env var or .keys/ files found — generating an ephemeral RSA key pair. " +
+        "On an ephemeral or multi-instance host set QR_PRIVATE_KEY so signed QR tokens verify across restarts.",
+    );
     const { privateKey, publicKey } = generateKeyPairSync("rsa", {
       modulusLength: 2048,
       publicKeyEncoding: { type: "spki", format: "pem" },
       privateKeyEncoding: { type: "pkcs8", format: "pem" },
     });
-
-    writeFileSync(join(this.keyDir, "qr-private.pem"), privateKey);
-    writeFileSync(join(this.keyDir, "qr-public.pem"), publicKey);
-    this.logger.log("RSA key pair saved to .keys directory");
-
+    this.tryPersist(privateKey, publicKey);
     return { privateKey, publicKey };
+  }
+
+  /** Accept either raw PEM or base64-encoded PEM (friendlier for env vars). */
+  private normalizePem(value: string): string {
+    if (value.includes("BEGIN")) return value;
+    return Buffer.from(value, "base64").toString("utf-8");
+  }
+
+  /** Best-effort key persistence; a read-only FS must not crash startup. */
+  private tryPersist(privateKey: string, publicKey: string): void {
+    try {
+      if (!existsSync(this.keyDir)) {
+        mkdirSync(this.keyDir, { recursive: true });
+      }
+      writeFileSync(join(this.keyDir, "qr-private.pem"), privateKey);
+      writeFileSync(join(this.keyDir, "qr-public.pem"), publicKey);
+      this.logger.log("RSA key pair saved to .keys directory");
+    } catch (error) {
+      this.logger.warn(
+        `Could not persist QR keys to ${this.keyDir} (read-only filesystem?); ` +
+          `using in-memory keys for this process only: ${error}`,
+      );
+    }
   }
 
   /** Sign a QR payload and return the signed token (base64url encoded) */

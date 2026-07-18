@@ -57,6 +57,10 @@ See `apps/api/src/mail/mail.service.ts` and `apps/api/src/whatsapp/whatsapp.serv
 
 ## Deployment
 
+See [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) for the full env-var reference, release
+commands, and runtime constraints (writable working dir, QR key stability, ephemeral
+uploads). Quick summary below.
+
 ### `apps/web`
 
 `API_ORIGIN` is the only variable the frontend reads. Set it to the deployed API's origin (e.g. `https://api.example.com`, no trailing slash):

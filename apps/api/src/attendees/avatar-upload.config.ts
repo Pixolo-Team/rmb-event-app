@@ -2,6 +2,7 @@ import { BadRequestException } from "@nestjs/common";
 import { randomUUID } from "crypto";
 import { diskStorage } from "multer";
 import path from "path";
+import { ensureUploadDir } from "../common/upload-destination";
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"];
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
@@ -10,7 +11,7 @@ export const AVATARS_UPLOAD_DIR = path.join(process.cwd(), "uploads", "avatars")
 
 export const avatarUploadOptions = {
   storage: diskStorage({
-    destination: AVATARS_UPLOAD_DIR,
+    destination: ensureUploadDir(AVATARS_UPLOAD_DIR),
     filename: (_req, file, cb) => {
       const ext = path.extname(file.originalname).toLowerCase();
       cb(null, `${randomUUID()}${ext}`);
