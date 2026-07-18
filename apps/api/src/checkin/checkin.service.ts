@@ -1,7 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { CheckInMethod } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventService } from "../event/event.service";
+import { QRSigningService } from "../qr/qr-signing.service";
 import { distanceMeters } from "../common/geo";
 
 export type CheckinOutcome =
@@ -12,9 +13,12 @@ export type CheckinOutcome =
 
 @Injectable()
 export class CheckinService {
+  private readonly logger = new Logger(CheckinService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventService: EventService,
+    private readonly qrSigning: QRSigningService,
   ) {}
 
   async getMyStatus(attendeeId: string) {
@@ -45,7 +49,18 @@ export class CheckinService {
   async checkInByStaffQrScan(
     qrToken: string,
   ): Promise<(CheckinOutcome & { attendeeName: string }) | { status: "not_found" }> {
-    const attendee = await this.prisma.attendee.findUnique({ where: { qrToken } });
+    // First, try to verify as a signed JWT token (PF5)
+    const payload = this.qrSigning.verify(qrToken);
+    let attendee;
+
+    if (payload) {
+      // Valid signed JWT — use the attendeeId from payload
+      attendee = await this.prisma.attendee.findUnique({ where: { id: payload.attendeeId } });
+    } else {
+      // Fall back to DB lookup for legacy tokens (backward compatibility)
+      attendee = await this.prisma.attendee.findUnique({ where: { qrToken } });
+    }
+
     if (!attendee) {
       return { status: "not_found" };
     }
