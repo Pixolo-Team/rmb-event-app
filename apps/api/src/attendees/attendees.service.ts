@@ -1,6 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { SessionService } from "../session/session.service";
+import { promises as fs } from "fs";
+import path from "path";
+import { AVATARS_UPLOAD_DIR } from "./avatar-upload.config";
 import { MatchingService } from "../matching/matching.service";
 import type { MatchProfile } from "../matching/matching.types";
 import { hashToken } from "../common/tokens";
@@ -202,11 +205,36 @@ export class AttendeesService {
   }
 
   async updatePhoto(attendeeId: string, photoUrl: string | null) {
-    return this.prisma.attendee.update({
-      where: { id: attendeeId },
-      data: { photoUrl },
-    });
+  const attendee = await this.prisma.attendee.findUnique({
+    where: { id: attendeeId },
+    select: { photoUrl: true },
+  });
+
+  if (attendee?.photoUrl && attendee.photoUrl !== photoUrl) {
+    try {
+      await fs.unlink(
+        path.join(
+          AVATARS_UPLOAD_DIR,
+          path.basename(attendee.photoUrl),
+        ),
+      );
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        throw error;
+      }
+    }
   }
+
+  return this.prisma.attendee.update({
+    where: { id: attendeeId },
+    data: { photoUrl },
+    select: {
+      id: true,
+      photoUrl: true,
+    },
+  });
+}
+
   private cityValue(city: { name: string; stateOrUt: string }) {
     return city.stateOrUt === "Legacy / Imported" ? city.name : `${city.name}, ${city.stateOrUt}`;
   }
