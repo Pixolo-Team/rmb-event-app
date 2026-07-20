@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { withCsrfHeaders } from "../../lib/csrf";
 
 type AdminAttendee = {
@@ -27,6 +27,10 @@ export default function AdminAttendeesPage() {
   const [state, setState] = useState<LoadState>("loading");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPhone, setNewPhone] = useState("");
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -61,6 +65,42 @@ export default function AdminAttendeesPage() {
       setMessage("Could not delete attendee. Try again.");
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  async function addAttendee(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = newName.trim();
+    const email = newEmail.trim();
+    const phone = newPhone.trim();
+    if (!name || !email || !phone) {
+      setMessage("Name, email and phone are required.");
+      return;
+    }
+
+    setAdding(true);
+    setMessage(null);
+    try {
+      const response = await fetch("/api/admin/attendees/manage", withCsrfHeaders({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name, email, phone }),
+      }));
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null) as { message?: string | string[] } | null;
+        const detail = Array.isArray(payload?.message) ? payload.message[0] : payload?.message;
+        throw new Error(detail || "Could not add attendee");
+      }
+      setNewName("");
+      setNewEmail("");
+      setNewPhone("");
+      await loadAttendees();
+      setMessage(`${name} was added.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not add attendee. Try again.");
+    } finally {
+      setAdding(false);
     }
   }
 
@@ -117,6 +157,55 @@ export default function AdminAttendeesPage() {
           </div>
         </div>
       )}
+
+      <section className="admin-overview-panel admin-add-attendee-panel">
+        <div className="admin-panel-head">
+          <div>
+            <p className="eyebrow">Single attendee</p>
+            <h2>Add attendee</h2>
+          </div>
+          <span>ID and QR token are generated automatically</span>
+        </div>
+        <form className="admin-add-attendee-form" onSubmit={addAttendee}>
+          <div className="field">
+            <label htmlFor="new-attendee-name">Name</label>
+            <input
+              id="new-attendee-name"
+              value={newName}
+              onChange={(event) => setNewName(event.target.value)}
+              placeholder="e.g. Jyoti Pandey"
+              disabled={adding}
+              required
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="new-attendee-email">Email</label>
+            <input
+              id="new-attendee-email"
+              type="email"
+              value={newEmail}
+              onChange={(event) => setNewEmail(event.target.value)}
+              placeholder="name@example.com"
+              disabled={adding}
+              required
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="new-attendee-phone">Phone number</label>
+            <input
+              id="new-attendee-phone"
+              value={newPhone}
+              onChange={(event) => setNewPhone(event.target.value)}
+              placeholder="+91..."
+              disabled={adding}
+              required
+            />
+          </div>
+          <button className="btn-primary" type="submit" disabled={adding}>
+            {adding ? "Adding..." : "Add attendee"}
+          </button>
+        </form>
+      </section>
 
       <div className="feedback-admin-toolbar" style={{ marginTop: 18 }}>
         <input

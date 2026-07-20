@@ -1,4 +1,6 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { randomUUID } from "crypto";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { SessionService } from "../session/session.service";
 import { promises as fs } from "fs";
@@ -9,6 +11,7 @@ import type { MatchProfile } from "../matching/matching.types";
 import { hashToken } from "../common/tokens";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { GOALS_TAGS, LOOKING_FOR_TAGS, OFFERING_TAGS } from "./profile-options";
+import { CreateAdminAttendeeDto } from "./dto/create-admin-attendee.dto";
 
 export type ResolveOnboardingResult =
   | {
@@ -450,6 +453,38 @@ export class AttendeesService {
       checkedInAt: attendee.checkIn?.createdAt ?? null,
       checkInMethod: attendee.checkIn?.method ?? null,
     }));
+  }
+
+  async createForAdmin(dto: CreateAdminAttendeeDto) {
+    const name = dto.name.trim();
+    const email = dto.email.trim().toLowerCase();
+    const phone = dto.phone.trim();
+    if (!name || !email || !phone) throw new BadRequestException("Name, email and phone are required");
+
+    try {
+      return await this.prisma.attendee.create({
+        data: {
+          id: randomUUID(),
+          name,
+          email,
+          phone,
+          qrToken: randomUUID(),
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          qrToken: true,
+          createdAt: true,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        throw new ConflictException("An attendee with this email or phone already exists");
+      }
+      throw error;
+    }
   }
 
   async softDeleteForAdmin(attendeeId: string) {
