@@ -3,6 +3,7 @@ import { withCsrfHeaders } from "../../lib/csrf";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { AttendeeMe } from "./TutorialPage";
 import { TEMP_BYPASS_LOGIN } from "./TutorialPage";
+import { PoweredByFooter } from "./PoweredByFooter";
 
 type CityOption = {
   name: string;
@@ -426,6 +427,8 @@ export function EditProfileForm({
           </button>
         </div>
       </section>
+
+      <PoweredByFooter />
     </main>
   );
 }

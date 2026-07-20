@@ -6,6 +6,7 @@ import { FeedView, PostComposerModal } from "./FeedView";
 import { AttendeeCard } from "./AttendeeCard";
 import { FullProfileModal } from "./FullProfileModal";
 import { ProfileView } from "./ProfileView";
+import { PoweredByFooter } from "./PoweredByFooter";
 import { AddPostIcon, BookmarkTabIcon, HomeIcon, PeopleIcon, ProfileIcon } from "./icons";
 import { withCsrfHeaders } from "../../lib/csrf";
 
@@ -181,12 +182,12 @@ const TUTORIAL_CARDS: readonly TutorialCard[] = [
   {
     eyebrow: "Welcome",
     title: "This is your event app",
-    body: "Use Evento to get event-ready, find the right people, and keep the contacts you make in one place.",
+    body: "Use RMBF Evento to get event-ready, find the right people, and keep the contacts you make in one place.",
   },
   {
     eyebrow: "Event Day",
     title: "Check in fast",
-    body: "Open the app when you arrive. Evento will try location check-in first and gives you a manual fallback if needed.",
+    body: "Open the app when you arrive. RMBF Evento will try location check-in first and gives you a manual fallback if needed.",
   },
   {
     eyebrow: "Networking",
@@ -337,7 +338,7 @@ export function TutorialPage() {
         <div className="card">
           <div className="wordmark">
             <span className="dot" />
-            Evento
+            RMBF Evento
           </div>
           <div className="center-state">
             <span className="spinner" style={{ borderTopColor: "var(--brand-500)", borderColor: "var(--border)" }} />
@@ -354,7 +355,7 @@ export function TutorialPage() {
         <div className="card">
           <div className="wordmark">
             <span className="dot" />
-            Evento
+            RMBF Evento
           </div>
           <div className="center-state">
             <div className="ring warn">!</div>
@@ -375,7 +376,7 @@ export function TutorialPage() {
           <div>
             <div className="wordmark app-wordmark">
               <span className="dot" />
-              Evento
+              RMBF Evento
             </div>
             <p className="app-kicker">
               {view === "posts" && "Posts"}
@@ -384,6 +385,12 @@ export function TutorialPage() {
               {view === "profile" && "Profile"}
             </p>
           </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/rmb-fellowship-logo.png"
+            alt="Rotary Means Business Fellowship"
+            className="app-topbar-brand"
+          />
         </header> : null}
 
         {actionError ? (
@@ -435,6 +442,8 @@ export function TutorialPage() {
                 />
               ))
             )}
+
+            <PoweredByFooter />
           </main>
         ) : null}
 
@@ -464,6 +473,8 @@ export function TutorialPage() {
                 />
               ))
             )}
+
+            <PoweredByFooter />
           </main>
         ) : null}
 
@@ -558,7 +569,7 @@ export function TutorialPage() {
                 </button>
               ) : (
                 <button className="btn-primary tutorial-btn" type="button" onClick={() => closeTutorial(true)}>
-                  Start using Evento
+                  Start using RMBF Evento
                 </button>
               )}
             </div>

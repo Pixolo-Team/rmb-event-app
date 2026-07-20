@@ -3,6 +3,8 @@
 import { ChangeEvent, Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { AttendeeMe, FeedCommentData, FeedPhotoData, TEMP_BYPASS_LOGIN } from "./TutorialPage";
 import { CommentIcon, ThumbUpIcon } from "./icons";
+import { PoweredByFooter } from "./PoweredByFooter";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { withCsrfHeaders } from "../../lib/csrf";
 type FeedPageResponse = {
   photos: FeedPhotoData[];
@@ -259,6 +261,8 @@ export function PostComposerModal({
             {composerStatus === "uploading" ? `Uploading... ${uploadProgress}%` : "Post photo"}
           </button>
         </div>
+
+        <PoweredByFooter />
       </div>
     </div>
   );
@@ -287,6 +291,7 @@ export function FeedView({
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [enlargedPhotoId, setEnlargedPhotoId] = useState<string | null>(null);
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!openMenuId) return;
@@ -434,8 +439,7 @@ export function FeedView({
     }
   }
 
-  async function handleDelete(photoId: string) {
-    if (typeof window !== "undefined" && !window.confirm("Delete this photo?")) return;
+  async function deletePhoto(photoId: string) {
     setOpenMenuId(null);
 
     if (localMode) {
@@ -526,7 +530,7 @@ export function FeedView({
                 onToggleLike={() => handleToggleLike(photo)}
                 onCommentDraftChange={(value) => setCommentDrafts((current) => ({ ...current, [photo.id]: value }))}
                 onSubmitComment={() => handleAddComment(photo.id)}
-                onDelete={() => handleDelete(photo.id)}
+                onDelete={() => setDeleteTargetId(photo.id)}
                 onEnlarge={() => setEnlargedPhotoId(photo.id)}
               />
             ))
@@ -537,6 +541,8 @@ export function FeedView({
             {loadingMore ? "Loading..." : "Load more"}
           </button>
         ) : null}
+
+        <PoweredByFooter />
       </main>
 
       {enlargedPhoto ? (
@@ -590,6 +596,18 @@ export function FeedView({
           </div>
         </div>
       ) : null}
+
+      <ConfirmDialog
+        open={deleteTargetId !== null}
+        title="Delete this photo?"
+        message="This can't be undone."
+        confirmLabel="Delete"
+        onConfirm={() => {
+          if (deleteTargetId) deletePhoto(deleteTargetId);
+          setDeleteTargetId(null);
+        }}
+        onCancel={() => setDeleteTargetId(null)}
+      />
     </>
   );
 }

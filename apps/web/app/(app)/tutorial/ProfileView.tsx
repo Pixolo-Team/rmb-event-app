@@ -9,6 +9,7 @@ import { getInitials } from "./AttendeeCard";
 import { EditProfileForm } from "./EditProfileForm";
 import { LinkedInIcon, ScanIcon } from "./icons";
 import { ScanConnect } from "./ScanConnect";
+import { PoweredByFooter } from "./PoweredByFooter";
 import { withCsrfHeaders } from "../../lib/csrf";
 
 function TagGroup({ label, values }: { label: string; values: string[] | undefined }) {
@@ -174,6 +175,8 @@ export function ProfileView({
           <span>Log out</span>
         </button>
       </section>
+
+      <PoweredByFooter />
 
       {qrEnlarged ? (
         <div className="photo-modal-overlay" role="dialog" aria-modal="true" onClick={() => setQrEnlarged(false)}>
