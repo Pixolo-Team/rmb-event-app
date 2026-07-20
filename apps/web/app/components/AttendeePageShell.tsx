@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AttendeeBottomTabs, AttendeeMenu, type MenuAttendee } from "./AttendeeMenu";
+import { PoweredByFooter } from "./PoweredByFooter";
 import { profileCache, type MyProfile } from "../lib/profileCache";
 
 const PROFILE_REVALIDATE_MS = 60_000;
@@ -112,10 +113,19 @@ export function AttendeePageShell({ children }: { children: ReactNode }) {
   return (
     <div className="attendee-shell">
       <header className="full-page-header">
-        <div className="wordmark"><span className="dot" />Evento</div>
-        <AttendeeMenu attendee={attendee} />
+        <div className="wordmark"><span className="dot" />RMBF Evento</div>
+        <div className="full-page-header-right">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/rmb-fellowship-logo.png"
+            alt="Rotary Means Business Fellowship"
+            className="app-topbar-brand"
+          />
+          <AttendeeMenu attendee={attendee} />
+        </div>
       </header>
       {children}
+      <PoweredByFooter />
       <AttendeeBottomTabs />
     </div>
   );

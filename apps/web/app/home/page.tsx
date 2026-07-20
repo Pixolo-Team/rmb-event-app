@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 // COMPONENTS //
 import Link from "next/link";
 import { AttendeeBottomTabs, AttendeeMenu, type MenuAttendee } from "../components/AttendeeMenu";
+import { PoweredByFooter } from "../components/PoweredByFooter";
 
 // OTHERS //
 import { distanceMeters } from "../lib/geo";
@@ -630,6 +631,8 @@ function DashboardMode({
             </ul>
           </section>
         )}
+
+        <PoweredByFooter />
       </main>
     </div>
   );
@@ -703,6 +706,8 @@ function PreEventMode({
             </ul>
           </section>
         )}
+
+        <PoweredByFooter />
       </main>
     </div>
   );
@@ -740,6 +745,8 @@ function EndedMode({
         </p>
         <Link href="/summary" className="btn-primary home-scan-cta">View your summary</Link>
         <Link href="/connections" className="link-muted">See all your connections</Link>
+
+        <PoweredByFooter />
       </div>
     </div>
   );
@@ -762,9 +769,17 @@ function PageHeader({ attendee }: { attendee: Attendee | null }) {
     <div className="full-page-header">
       <div className="wordmark">
         <span className="dot" />
-        Evento
+        RMBF Evento
       </div>
-      {attendee && <AttendeeMenu attendee={attendee} />}
+      <div className="full-page-header-right">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/images/rmb-fellowship-logo.png"
+          alt="Rotary Means Business Fellowship"
+          className="app-topbar-brand"
+        />
+        {attendee && <AttendeeMenu attendee={attendee} />}
+      </div>
     </div>
   );
 }
