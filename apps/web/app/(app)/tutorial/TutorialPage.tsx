@@ -7,6 +7,7 @@ import { AttendeeCard } from "./AttendeeCard";
 import { FullProfileModal } from "./FullProfileModal";
 import { ProfileView } from "./ProfileView";
 import { PoweredByFooter } from "./PoweredByFooter";
+import { RotaryLoader } from "../../components/RotaryLoader";
 import { AddPostIcon, BookmarkTabIcon, HomeIcon, PeopleIcon, ProfileIcon } from "./icons";
 import { withCsrfHeaders } from "../../lib/csrf";
 
@@ -341,7 +342,7 @@ export function TutorialPage() {
             RMBF Evento
           </div>
           <div className="center-state">
-            <span className="spinner" style={{ borderTopColor: "var(--brand-500)", borderColor: "var(--border)" }} />
+            <RotaryLoader />
             <p>Loading your app&hellip;</p>
           </div>
         </div>

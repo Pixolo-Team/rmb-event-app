@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AttendeeBottomTabs, AttendeeMenu, type MenuAttendee } from "./AttendeeMenu";
 import { PoweredByFooter } from "./PoweredByFooter";
+import { RotaryLoader } from "./RotaryLoader";
 import { profileCache, type MyProfile } from "../lib/profileCache";
 
 const PROFILE_REVALIDATE_MS = 60_000;
@@ -109,7 +110,10 @@ export function AttendeePageShell({ children }: { children: ReactNode }) {
   if (!attendee) {
     return (
       <main className="attendee-page">
-        <div className="directory-loading" role="status">Loading...</div>
+        <div className="directory-loading" role="status">
+          <RotaryLoader />
+          Loading...
+        </div>
       </main>
     );
   }
