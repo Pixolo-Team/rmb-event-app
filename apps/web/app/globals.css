@@ -1745,6 +1745,7 @@ p.copy {
   background: var(--surface);
   box-shadow: 0 3px 10px rgba(20, 40, 80, 0.06);
   transition: border-color 120ms ease-out, transform 120ms ease-out;
+  overflow: hidden;
 }
 .directory-card-wrap:hover {
   border-color: var(--brand-500);
