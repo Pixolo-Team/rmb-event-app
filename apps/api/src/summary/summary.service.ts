@@ -9,13 +9,13 @@ export class SummaryService {
 
   async get(attendeeId: string) {
     const [attendee, event, meetings, allMeetings, checkedIn] = await Promise.all([
-      this.prisma.attendee.findUnique({ where: { id: attendeeId }, select: { id: true, name: true } }),
+      this.prisma.attendee.findUnique({ where: { id: attendeeId }, select: { id: true, name: true, deletedAt: true } }),
       this.prisma.event.findFirst({ orderBy: { createdAt: "desc" }, select: { name: true, startAt: true, endAt: true } }),
       this.connectionRows(attendeeId),
-      this.prisma.meeting.findMany({ select: { attendeeAId: true, attendeeBId: true } }),
-      this.prisma.attendee.findMany({ where: { checkIn: { isNot: null } }, select: { id: true, name: true } }),
+      this.prisma.meeting.findMany({ where: { attendeeA: { deletedAt: null }, attendeeB: { deletedAt: null } }, select: { attendeeAId: true, attendeeBId: true } }),
+      this.prisma.attendee.findMany({ where: { checkIn: { isNot: null }, deletedAt: null }, select: { id: true, name: true } }),
     ]);
-    if (!attendee) throw new NotFoundException("Attendee not found");
+    if (!attendee || attendee.deletedAt) throw new NotFoundException("Attendee not found");
 
     const counts = new Map<string, number>();
     allMeetings.forEach((meeting) => { counts.set(meeting.attendeeAId, (counts.get(meeting.attendeeAId) ?? 0) + 1); counts.set(meeting.attendeeBId, (counts.get(meeting.attendeeBId) ?? 0) + 1); });

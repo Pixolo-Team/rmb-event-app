@@ -61,7 +61,7 @@ export class CheckinService {
       attendee = await this.prisma.attendee.findUnique({ where: { qrToken } });
     }
 
-    if (!attendee) {
+    if (!attendee || attendee.deletedAt) {
       return { status: "not_found" };
     }
     const outcome = await this.recordCheckIn(attendee.id, "STAFF_QR");
@@ -90,8 +90,9 @@ export class CheckinService {
 
   async getAdminStatus() {
     const [totalAttendees, checkIns] = await Promise.all([
-      this.prisma.attendee.count(),
+      this.prisma.attendee.count({ where: { deletedAt: null } }),
       this.prisma.checkIn.findMany({
+        where: { attendee: { deletedAt: null } },
         include: { attendee: { select: { id: true, name: true, businessName: true } } },
         orderBy: { createdAt: "desc" },
       }),
@@ -102,7 +103,7 @@ export class CheckinService {
 
     const checkedInIds = checkIns.map((c) => c.attendeeId);
     const notCheckedIn = await this.prisma.attendee.findMany({
-      where: { id: { notIn: checkedInIds } },
+      where: { id: { notIn: checkedInIds }, deletedAt: null },
       select: { id: true, name: true, phone: true, businessName: true },
       orderBy: { name: "asc" },
     });

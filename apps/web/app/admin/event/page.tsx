@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { distanceMeters } from "../../lib/geo";
 import { withCsrfHeaders } from "../../lib/csrf";
 
@@ -9,6 +10,8 @@ const RADIUS_OPTIONS = [100, 250, 500, 1000, 5000];
 interface EventSettings {
   id: string;
   name: string;
+  startAt: string | null;
+  endAt: string | null;
   venueLat: number | null;
   venueLng: number | null;
   checkinRadiusM: number;
@@ -18,6 +21,9 @@ type SaveState = "idle" | "saving" | "saved" | "error";
 
 export default function AdminEventSettingsPage() {
   const [event, setEvent] = useState<EventSettings | null>(null);
+  const [eventName, setEventName] = useState("");
+  const [startAt, setStartAt] = useState("");
+  const [endAt, setEndAt] = useState("");
   const [venueLat, setVenueLat] = useState("");
   const [venueLng, setVenueLng] = useState("");
   const [checkinRadiusM, setCheckinRadiusM] = useState(500);
@@ -30,6 +36,9 @@ export default function AdminEventSettingsPage() {
       .then((res) => res.json())
       .then((data: EventSettings) => {
         setEvent(data);
+        setEventName(data.name);
+        setStartAt(toDatetimeLocalValue(data.startAt));
+        setEndAt(toDatetimeLocalValue(data.endAt));
         setVenueLat(data.venueLat?.toString() ?? "");
         setVenueLng(data.venueLng?.toString() ?? "");
         setCheckinRadiusM(data.checkinRadiusM);
@@ -53,6 +62,9 @@ export default function AdminEventSettingsPage() {
       }
       const data: EventSettings = await res.json();
       setEvent(data);
+      setEventName(data.name);
+      setStartAt(toDatetimeLocalValue(data.startAt));
+      setEndAt(toDatetimeLocalValue(data.endAt));
       setVenueLat(data.venueLat?.toString() ?? "");
       setVenueLng(data.venueLng?.toString() ?? "");
       setCheckinRadiusM(data.checkinRadiusM);
@@ -64,6 +76,15 @@ export default function AdminEventSettingsPage() {
   }
 
   function handleSave() {
+    const trimmedName = eventName.trim();
+    if (!trimmedName) {
+      setFieldError("Event name is required.");
+      return;
+    }
+    if (startAt && endAt && new Date(startAt).getTime() >= new Date(endAt).getTime()) {
+      setFieldError("End time must be after start time.");
+      return;
+    }
     const lat = Number(venueLat);
     const lng = Number(venueLng);
     if (venueLat.trim() === "" || Number.isNaN(lat) || lat < -90 || lat > 90) {
@@ -74,7 +95,14 @@ export default function AdminEventSettingsPage() {
       setFieldError("Invalid coordinates — longitude must be between -180 and 180.");
       return;
     }
-    save({ venueLat: lat, venueLng: lng, checkinRadiusM });
+    save({
+      name: trimmedName,
+      startAt: toIsoValue(startAt),
+      endAt: toIsoValue(endAt),
+      venueLat: lat,
+      venueLng: lng,
+      checkinRadiusM,
+    });
   }
 
   function handleTestGeolocation() {
@@ -110,9 +138,12 @@ export default function AdminEventSettingsPage() {
       </div>
       <h1 className="title">Event settings</h1>
       <p className="copy">
-        Configure the venue location and check-in radius. Attendees within this radius auto check in on app open;
-        everyone else falls back to manual check-in.
+        Configure the event details, venue location, and check-in radius. The event timing controls the attendee
+        home screen before, during, and after the event.
       </p>
+      <Link className="btn-secondary" href="/admin/attendees" style={{ marginBottom: 18 }}>
+        Manage attendees
+      </Link>
 
       {!venueConfigured && (
         <div className="banner warn" style={{ marginBottom: 18 }}>
@@ -122,6 +153,37 @@ export default function AdminEventSettingsPage() {
           </div>
         </div>
       )}
+
+      <div className="field">
+        <label htmlFor="eventName">Event name</label>
+        <input
+          id="eventName"
+          placeholder="e.g. RMB Business Conclave 2026"
+          value={eventName}
+          onChange={(e) => setEventName(e.target.value)}
+        />
+      </div>
+
+      <div className="field">
+        <label htmlFor="startAt">Start at</label>
+        <input
+          id="startAt"
+          type="datetime-local"
+          value={startAt}
+          onChange={(e) => setStartAt(e.target.value)}
+        />
+      </div>
+
+      <div className="field">
+        <label htmlFor="endAt">End at</label>
+        <input
+          id="endAt"
+          type="datetime-local"
+          value={endAt}
+          onChange={(e) => setEndAt(e.target.value)}
+        />
+        <div className="hint">Leave start or end blank if the schedule is not confirmed yet.</div>
+      </div>
 
       <div className="field">
         <label htmlFor="venueLat">Venue latitude</label>
@@ -195,4 +257,17 @@ export default function AdminEventSettingsPage() {
       </button>
     </div>
   );
+}
+
+function toDatetimeLocalValue(value: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
+function toIsoValue(value: string) {
+  if (!value) return null;
+  return new Date(value).toISOString();
 }

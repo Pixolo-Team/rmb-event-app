@@ -3,6 +3,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AttendeeBottomTabs, AttendeeMenu, type MenuAttendee } from "./AttendeeMenu";
+import { PoweredByFooter } from "./PoweredByFooter";
+import { RotaryLoader } from "./RotaryLoader";
 import { profileCache, type MyProfile } from "../lib/profileCache";
 
 const PROFILE_REVALIDATE_MS = 60_000;
@@ -25,7 +27,11 @@ function loadProfile() {
     lastProfileRevalidatedAt = Date.now();
     profileRequest = fetch("/api/attendees/me", { credentials: "include" })
       .then(async (response) => {
-        if (response.status === 401 || response.status === 403) return "login" as const;
+        if (response.status === 401 || response.status === 403) {
+          profileCache.clear();
+          cachedMenuAttendee = null;
+          return "login" as const;
+        }
         if (!response.ok) return null;
 
         const me = (await response.json()) as MyProfile;
@@ -104,7 +110,10 @@ export function AttendeePageShell({ children }: { children: ReactNode }) {
   if (!attendee) {
     return (
       <main className="attendee-page">
-        <div className="directory-loading" role="status">Loading...</div>
+        <div className="directory-loading" role="status">
+          <RotaryLoader />
+          Loading...
+        </div>
       </main>
     );
   }
@@ -112,10 +121,20 @@ export function AttendeePageShell({ children }: { children: ReactNode }) {
   return (
     <div className="attendee-shell">
       <header className="full-page-header">
-        <div className="wordmark"><span className="dot" />Evento</div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/images/rmb-fellowship-logo.png"
+          alt="Rotary Means Business Fellowship"
+          className="app-topbar-brand"
+          width={50}
+          height={50}
+        />
         <AttendeeMenu attendee={attendee} />
       </header>
-      {children}
+      <div className="attendee-shell-content">
+        {children}
+        <PoweredByFooter />
+      </div>
       <AttendeeBottomTabs />
     </div>
   );
