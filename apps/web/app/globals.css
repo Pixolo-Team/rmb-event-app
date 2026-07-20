@@ -230,6 +230,8 @@ p.copy {
   background-repeat: no-repeat;
   color: var(--ink);
 }
+
+
 @media (prefers-color-scheme: dark) {
   .field select,
   .field input[list],
@@ -1128,6 +1130,10 @@ p.copy {
   max-width: 1040px;
   margin: 0 auto;
   padding: 28px 16px calc(112px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
 }
 .page-heading-row h1,
 .profile-hero h1 {
