@@ -101,15 +101,9 @@ export function LoginForm() {
 
   if (checkingSession) {
     return (
-      <div className="card">
-        <div className="wordmark">
-          <span className="dot" />
-          RMBF Evento
-        </div>
-        <div className="center-state">
-          <RotaryLoader />
-          <p>Checking your session&hellip;</p>
-        </div>
+      <div className="center-state">
+        <RotaryLoader />
+        <p>Checking your session&hellip;</p>
       </div>
     );
   }
