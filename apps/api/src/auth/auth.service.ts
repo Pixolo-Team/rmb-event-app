@@ -55,7 +55,8 @@ export class AuthService {
     const attendee = await this.prisma.attendee.findUnique({ where: { email } });
     if (!attendee || attendee.deletedAt) {
       return { kind: "not_registered" };
-      
+    }
+
     const rawToken = generateOpaqueToken();
 
     await this.prisma.magicLinkToken.create({
