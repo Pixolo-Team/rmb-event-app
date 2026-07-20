@@ -11,6 +11,7 @@ const MAX_SENDS_PER_IP_PER_HOUR = 15; // coarse device proxy — see SCREENS.md'
 
 export type RequestMagicLinkResult =
   | { kind: "sent"; devLink?: string }
+  | { kind: "not_registered" }
   | { kind: "rate_limited"; retryAfterSeconds: number };
 
 export type VerifyMagicLinkResult =
@@ -48,13 +49,13 @@ export class AuthService {
       };
     }
 
-    // Deliberately the same outcome whether or not the email matches an attendee —
-    // see SCREENS.md Screen 2.0 on why this response never confirms registration.
+    // The pilot deliberately reports an unknown address so a legitimate attendee
+    // can correct it or ask the organizer for help instead of waiting indefinitely.
+    // Rate limits still constrain automated account-discovery attempts.
     const attendee = await this.prisma.attendee.findUnique({ where: { email } });
     if (!attendee || attendee.deletedAt) {
-      return { kind: "sent" };
-    }
-
+      return { kind: "not_registered" };
+      
     const rawToken = generateOpaqueToken();
 
     await this.prisma.magicLinkToken.create({

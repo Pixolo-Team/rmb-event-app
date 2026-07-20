@@ -75,6 +75,10 @@ The PRD names the frontend/backend stack (Next.js + NestJS) but leaves several v
 - **Offline-first is a client concern, not a backend one.** The API is a normal stateless REST service; all offline behavior (write queueing, cache-then-network reads, conflict-free sync) lives in the PWA's service worker + IndexedDB layer. The backend's only obligation is **idempotency** — every write the client might replay (check-in, meeting scan, bookmark, feedback) must be safe to submit twice.
 - **No WebSockets for the pilot.** The leaderboard and admin dashboard poll every 5–10s per the PRD's explicit spec ("not every scan, to avoid flickering"). This is simpler to build and debug in a month than a realtime layer, and the PRD never asks for sub-5-second latency.
 - **Auth has two independent tracks:** attendee (passwordless magic link, JWT session, see Screen 2.0) and admin (password + session cookie, 30-min idle timeout). They don't share a user table conceptually, even if implemented as one table with a `role` column.
+- **Unknown attendee emails are reported explicitly (decision 2026-07-20).** In this closed, invite-only pilot, preventing a legitimate attendee from getting stuck after using the wrong address outweighs strict account-enumeration resistance. The API returns `not_registered`, the login screen directs the attendee to retry or contact the organizer, and existing per-email/per-IP rate limits remain the abuse control.
+- **Onboarding is required and progressive (decision 2026-07-20).** Login checks the current session before rendering; completed attendees go to Home and incomplete attendees go to the required three-step onboarding flow. Profile save offers installation in a modal, but PWA installation remains optional and always has an in-browser fallback.
+- **Login routing is cache-first, server-authoritative.** The cached self-profile provides an immediate `profileCompletedAt` routing hint so returning attendees do not wait on Supabase before leaving Login. Cookie authentication is still verified by protected destinations; confirmed `401/403` responses and explicit logout clear the profile cache to prevent stale redirect loops.
+- **Home bootstrap is cache-first.** A compact local snapshot of attendee header data, event lifecycle configuration and check-in status renders Home synchronously. Live `/attendees/me`, `/checkin/me` and `/event` reads refresh it in the background; authentication rejection clears both profile and Home caches, while transient network failures leave the last usable Home visible.
 
 ---
 
@@ -161,20 +165,25 @@ rmb-event-app/
 Entities, in build order (matches the dependency chain in `FEATURES.md`):
 
 **Attendee**
-`id, name, email (unique), phone (unique), businessName, businessCategory (nullable), city (nullable), chapterId (nullable), tableNumber (nullable), photoUrl (nullable), linkedinUrl (nullable), websiteUrl (nullable), qrToken (signed, unique), importRowFlag (nullable — mismatched-email etc.), createdAt`
+`id, name, email (unique), phone (unique), businessName, businessCategory (nullable), city (nullable), chapterId (nullable), tableNumber (nullable), photoUrl (nullable), linkedinUrl (nullable), qrToken (signed, unique), createdAt`
 — no separate `industry` column: `businessCategory` is the only categorization field, avoiding two overlapping fields on the same form.
-— `linkedinUrl` / `websiteUrl` (F4.7, PRD US1.6) are **nullable with no default and no uniqueness constraint** — both are optional everywhere, two attendees may legitimately share a company website, and `NULL` (not `''`) is the single representation of "not provided" so the UI has one condition to test when deciding whether to render the action. Stored normalized (scheme included, trimmed) by the write path, so any non-null value is safe to render as an `href` without re-parsing. Added by migration to a table that already has production rows — the columns must be nullable for that migration to be non-breaking.
+— `linkedinUrl` exists as a nullable optional profile field. `websiteUrl` and the complete edit/import/export contract remain planned under F4.7; neither is part of current onboarding.
 — `city` and `businessCategory` are collected in profile setup (Screen 1.1) since the registration form doesn't capture them; the import maps them if a future file has City/Category columns.
 — dropdown option records are normalized reference data, while the pilot continues storing the selected canonical display value on `Attendee` to avoid a disruptive attendee-data migration. Profile writes validate both selections against active database options.
 
 **Profile** *(or merged into Attendee — separate only if profile completion needs its own timestamp/status)*
-`attendeeId, lookingFor[], offering[], goals[], bio, profileCompletedAt`
+`attendeeId, lookingFor[], offering[], goals[], bio, profileCompletedAt` — `profileCompletedAt` is the routing boundary: null means required onboarding; non-null means Login and `/onboarding` redirect to Home.
 
 **Chapter**
 `id, name, active, sortOrder` — seeded from the distinct values seen in the import; not user-creatable in the pilot admin.
 
 **BusinessCategoryOption**
-`id, name (unique), active, sortOrder` — database-backed source for onboarding and directory dropdowns. The existing pilot taxonomy is seeded by migration; imported legacy values are preserved as options.
+`id, name (unique), active, sortOrder` — database-backed source for the searchable single-select in onboarding and directory filters. Imported legacy values are preserved as options during the taxonomy transition.
+
+**OfferingOption**
+`id, categoryId, name, active, sortOrder, unique(categoryId, name)` — database-backed offerings owned by one business category. Onboarding queries active offerings for the selected category and renders them as a searchable multi-checkbox list. Category deletion cascades to its reference offerings; deactivation is preferred once production data refers to an option. Selected values remain in `Attendee.offering[]` for backward compatibility until the onboarding/API work migrates selections to stable IDs.
+
+**Initial dependent taxonomy (decision 2026-07-20):** `Technology` is the first category, with Web Development, Mobile App Development, Custom Software Development, UI/UX Design, E-commerce Development, Digital Marketing / SEO, IT Consulting, Cloud Services / Hosting, Cybersecurity, Data Analytics, AI/ML Solutions, CRM/ERP Implementation, IT Support & Managed Services, and Fractional CTO / Tech Advisory. Additional categories and offerings can be loaded as curated data without schema changes.
 
 **CityOption**
 `id, name, stateOrUt, active, sortOrder, unique(name, stateOrUt)` — a curated nationwide catalogue of major Indian cities across every state and union territory. The UI displays `City, State/UT` in the dropdown; legacy attendee city values are backfilled rather than discarded.
@@ -223,7 +232,7 @@ Grouped by NestJS module. All attendee-facing writes are idempotent (safe to ret
 **attendees / import** — *F1.1, F1.2, F2.4*
 `POST /admin/import` (upload + column mapping) · `GET /admin/import/:batchId` (status/report) · `GET /attendees/me` · `PATCH /attendees/me/profile` · `GET /attendees` (directory, filterable by businessCategory/chapter/company/checkedIn) · `GET /attendees/:id`
 
-For F4.7, `PATCH /attendees/me/profile` accepts `linkedinUrl` and `websiteUrl` (both optional, both nullable-to-clear), validating and normalizing server-side — the client's inline validation is a convenience, not the boundary. `GET /attendees/:id` and `GET /attendees` return them as nullable fields on the directory/profile shape; they are non-sensitive attendee-published links, so they need no special gating beyond the existing attendee session. `POST /admin/import` gains two optional column mappings.
+Planned for F4.7: `PATCH /attendees/me/profile` will accept `linkedinUrl` and `websiteUrl` as optional nullable-to-clear values with server-side validation and normalization. Directory/profile reads and optional import mappings will be expanded when that feature is implemented.
 
 For F2.4/F2.5, both directory endpoints require an attendee session. `GET /attendees` returns public directory-card fields plus check-in state and filter facets. Business category, city, and chapter facets come from their active database reference tables and therefore remain populated even when the attendee result set is empty; company and “No chapter” availability remain attendee-derived. `GET /attendees/:id` returns the detailed attendee profile but never `qrToken`. The client caches the last successful list and per-profile responses for mid-session offline access. Bookmark state is added by F5; match reasons are added only by the decoupled F2.1 service.
 

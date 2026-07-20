@@ -11,6 +11,7 @@ import { LinkedInIcon, ScanIcon } from "./icons";
 import { ScanConnect } from "./ScanConnect";
 import { PoweredByFooter } from "./PoweredByFooter";
 import { withCsrfHeaders } from "../../lib/csrf";
+import { profileCache } from "../../lib/profileCache";
 
 function TagGroup({ label, values }: { label: string; values: string[] | undefined }) {
   if (!values?.length) return null;
@@ -87,6 +88,7 @@ export function ProfileView({
         // Even if the network call fails, still send the user to the login screen.
       }
     }
+    profileCache.clear();
     router.push("/login");
   }
 
