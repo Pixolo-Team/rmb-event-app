@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { withCsrfHeaders, getCsrfToken } from "../../lib/csrf";
+import { PoweredByFooter } from "../../components/PoweredByFooter";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -56,9 +57,17 @@ export function LoginForm() {
 
   return (
     <div className="card">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/images/rmb-fellowship-logo.png"
+        alt="Rotary Means Business Fellowship"
+        className="login-brand"
+        width={72}
+        height={72}
+      />
       <div className="wordmark">
         <span className="dot" />
-        Evento
+        RMBF Evento
       </div>
       <h1 className="title">Get your access link</h1>
       <p className="copy">Enter the email you registered with. We&apos;ll send you a secure magic link.</p>
@@ -104,6 +113,8 @@ export function LoginForm() {
           </div>
         </div>
       ) : null}
+
+      <PoweredByFooter />
     </div>
   );
 }

@@ -207,14 +207,15 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
               })}
             </nav>
 
-            <div className="menu-account">
-              <button className="menu-link menu-signout" type="button" disabled={signingOut} onClick={signOut}>
-                <SignOutIcon />
-                {signingOut ? "Signing out…" : "Sign out"}
-              </button>
+            <div className="menu-bottom">
+              <PoweredByFooter />
+              <div className="menu-account">
+                <button className="menu-link menu-signout" type="button" disabled={signingOut} onClick={signOut}>
+                  <SignOutIcon />
+                  {signingOut ? "Signing out…" : "Sign out"}
+                </button>
+              </div>
             </div>
-
-            <PoweredByFooter />
           </aside>
         </div>
       )}

@@ -118,6 +118,8 @@ export function AttendeePageShell({ children }: { children: ReactNode }) {
           src="/images/rmb-fellowship-logo.png"
           alt="Rotary Means Business Fellowship"
           className="app-topbar-brand"
+          width={50}
+          height={50}
         />
         <AttendeeMenu attendee={attendee} />
       </header>
