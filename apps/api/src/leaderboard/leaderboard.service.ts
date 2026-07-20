@@ -34,7 +34,7 @@ export class LeaderboardService {
 
     const [attendees, meetings] = await Promise.all([
       this.prisma.attendee.findMany({
-        where: { checkIn: { isNot: null } },
+        where: { checkIn: { isNot: null }, deletedAt: null },
         select: { id: true, name: true, businessName: true, photoUrl: true },
       }),
       this.prisma.meeting.findMany({ select: { attendeeAId: true, attendeeBId: true } }),
@@ -63,7 +63,16 @@ export class LeaderboardService {
   }
 
   private async uncheckedInEntry(attendeeId: string, ranked: LeaderboardEntry[]): Promise<LeaderboardEntry | null> {
-    const attendee = await this.prisma.attendee.findUnique({ where: { id: attendeeId }, select: { id: true, name: true, businessName: true, photoUrl: true } });
-    return attendee ? { ...attendee, metCount: 0, rank: ranked.length + 1 } : null;
+    const attendee = await this.prisma.attendee.findUnique({ where: { id: attendeeId }, select: { id: true, name: true, businessName: true, photoUrl: true, deletedAt: true } });
+    if (attendee?.deletedAt) return null;
+    if (!attendee) return null;
+    return {
+      id: attendee.id,
+      name: attendee.name,
+      businessName: attendee.businessName,
+      photoUrl: attendee.photoUrl,
+      metCount: 0,
+      rank: ranked.length + 1,
+    };
   }
 }

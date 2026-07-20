@@ -51,7 +51,7 @@ export class AuthService {
     // Deliberately the same outcome whether or not the email matches an attendee —
     // see SCREENS.md Screen 2.0 on why this response never confirms registration.
     const attendee = await this.prisma.attendee.findUnique({ where: { email } });
-    if (!attendee) {
+    if (!attendee || attendee.deletedAt) {
       return { kind: "sent" };
     }
 
@@ -77,7 +77,7 @@ export class AuthService {
       include: { attendee: true },
     });
 
-    if (!record || record.usedAt || record.expiresAt < new Date()) {
+    if (!record || record.usedAt || record.expiresAt < new Date() || record.attendee.deletedAt) {
       return { kind: "expired" };
     }
 

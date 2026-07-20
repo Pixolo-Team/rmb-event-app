@@ -38,8 +38,9 @@ export class ConnectionsService {
       // Fall back to DB lookup for legacy tokens (backward compatibility)
       const target = await this.prisma.attendee.findUnique({
         where: { qrToken },
+        select: { id: true, deletedAt: true },
       });
-      if (!target) throw new NotFoundException("That QR code isn't recognised");
+      if (!target || target.deletedAt) throw new NotFoundException("That QR code isn't recognised");
       targetId = target.id;
     }
 
@@ -49,7 +50,7 @@ export class ConnectionsService {
       where: { id: targetId },
       include: { chapter: true },
     });
-    if (!target) throw new NotFoundException("That QR code isn't recognised");
+    if (!target || target.deletedAt) throw new NotFoundException("That QR code isn't recognised");
 
     // Canonicalize the pair so it's stored once regardless of who scanned whom.
     const [attendeeAId, attendeeBId] = [attendeeId, target.id].sort();

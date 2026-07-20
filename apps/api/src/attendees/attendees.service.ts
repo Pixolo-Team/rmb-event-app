@@ -71,7 +71,7 @@ export class AttendeesService {
       include: { attendee: { include: { chapter: true } } },
     });
 
-    if (!record || record.expiresAt < new Date()) {
+    if (!record || record.expiresAt < new Date() || record.attendee.deletedAt) {
       return { kind: "expired" };
     }
 
@@ -100,7 +100,7 @@ export class AttendeesService {
       where: { id: attendeeId },
       include: { chapter: true },
     });
-    if (!attendee) throw new NotFoundException("Attendee not found");
+    if (!attendee || attendee.deletedAt) throw new NotFoundException("Attendee not found");
     return attendee;
   }
 
@@ -115,7 +115,7 @@ export class AttendeesService {
       where: { id },
       include: { chapter: true },
     });
-    if (!attendee || !attendee.profileCompletedAt) {
+    if (!attendee || attendee.deletedAt || !attendee.profileCompletedAt) {
       throw new NotFoundException("Profile not found");
     }
     return {
@@ -138,6 +138,7 @@ export class AttendeesService {
         where: {
           NOT: { id: attendeeId },
           profileCompletedAt: { not: null },
+          deletedAt: null,
         },
         include: { chapter: true },
         orderBy: { name: "asc" },
@@ -271,7 +272,7 @@ export class AttendeesService {
   async listDirectory(currentAttendeeId: string) {
     const [attendees, businessCategories, cities, chapters, bookmarks, meetings] = await this.prisma.$transaction([
       this.prisma.attendee.findMany({
-        where: { id: { not: currentAttendeeId } },
+        where: { id: { not: currentAttendeeId }, deletedAt: null },
         select: {
           id: true,
           name: true,
@@ -368,6 +369,7 @@ export class AttendeesService {
           goals: true,
           bio: true,
           checkIn: { select: { createdAt: true } },
+          deletedAt: true,
           ...matchSelect,
         },
       }),
@@ -378,7 +380,7 @@ export class AttendeesService {
         ? Promise.resolve(null)
         : this.prisma.bookmark.findUnique({ where: { attendeeId_targetId: { attendeeId: viewerId, targetId } } }),
     ]);
-    if (!attendee) throw new NotFoundException("Attendee not found");
+    if (!attendee || attendee.deletedAt) throw new NotFoundException("Attendee not found");
 
     // F2.5 personalised match reason, via the decoupled F2.1 engine. Absent when
     // viewing your own profile or when there is no meaningful match to explain.
@@ -392,6 +394,7 @@ export class AttendeesService {
       chapter: undefined,
       checkedIn: Boolean(attendee.checkIn),
       checkIn: undefined,
+      deletedAt: undefined,
       match: match && match.headline ? match : null,
       bookmarked: Boolean(bookmark),
     };
@@ -400,6 +403,7 @@ export class AttendeesService {
   // F3.5 (Print Badges) — qrToken is otherwise never exposed over the API.
   async listForBadges() {
     const attendees = await this.prisma.attendee.findMany({
+      where: { deletedAt: null },
       select: { id: true, name: true, businessName: true, qrToken: true, chapter: { select: { name: true } } },
       orderBy: { name: "asc" },
     });
@@ -410,6 +414,58 @@ export class AttendeesService {
       chapterName: a.chapter?.name ?? null,
       qrToken: a.qrToken,
     }));
+  }
+
+  async listForAdminManagement() {
+    const attendees = await this.prisma.attendee.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        businessName: true,
+        businessCategory: true,
+        city: true,
+        tableNumber: true,
+        profileCompletedAt: true,
+        deletedAt: true,
+        checkIn: { select: { createdAt: true, method: true } },
+        chapter: { select: { name: true } },
+      },
+      orderBy: [{ deletedAt: "asc" }, { name: "asc" }],
+    });
+
+    return attendees.map((attendee) => ({
+      id: attendee.id,
+      name: attendee.name,
+      email: attendee.email,
+      phone: attendee.phone,
+      businessName: attendee.businessName,
+      businessCategory: attendee.businessCategory,
+      city: attendee.city,
+      tableNumber: attendee.tableNumber,
+      chapterName: attendee.chapter?.name ?? null,
+      profileCompletedAt: attendee.profileCompletedAt,
+      deletedAt: attendee.deletedAt,
+      checkedInAt: attendee.checkIn?.createdAt ?? null,
+      checkInMethod: attendee.checkIn?.method ?? null,
+    }));
+  }
+
+  async softDeleteForAdmin(attendeeId: string) {
+    const attendee = await this.prisma.attendee.findUnique({
+      where: { id: attendeeId },
+      select: { id: true, deletedAt: true },
+    });
+    if (!attendee) throw new NotFoundException("Attendee not found");
+    if (attendee.deletedAt) return { status: "already_deleted", deletedAt: attendee.deletedAt };
+
+    const deleted = await this.prisma.attendee.update({
+      where: { id: attendeeId },
+      data: { deletedAt: new Date() },
+      select: { deletedAt: true },
+    });
+    return { status: "deleted", deletedAt: deleted.deletedAt };
   }
 }
 

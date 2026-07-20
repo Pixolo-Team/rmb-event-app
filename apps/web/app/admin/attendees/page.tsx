@@ -1,0 +1,194 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { withCsrfHeaders } from "../../lib/csrf";
+
+type AdminAttendee = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  businessName: string | null;
+  businessCategory: string | null;
+  city: string | null;
+  tableNumber: string | null;
+  chapterName: string | null;
+  profileCompletedAt: string | null;
+  deletedAt: string | null;
+  checkedInAt: string | null;
+  checkInMethod: "GEOLOCATION" | "MANUAL" | "STAFF_QR" | null;
+};
+
+type LoadState = "loading" | "ready" | "error";
+
+export default function AdminAttendeesPage() {
+  const [attendees, setAttendees] = useState<AdminAttendee[]>([]);
+  const [query, setQuery] = useState("");
+  const [state, setState] = useState<LoadState>("loading");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadAttendees();
+  }, []);
+
+  async function loadAttendees() {
+    setState("loading");
+    try {
+      const response = await fetch("/api/admin/attendees/manage", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to load attendees");
+      setAttendees((await response.json()) as AdminAttendee[]);
+      setState("ready");
+    } catch {
+      setState("error");
+    }
+  }
+
+  async function deleteAttendee(attendee: AdminAttendee) {
+    setDeletingId(attendee.id);
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/admin/attendees/${attendee.id}`, withCsrfHeaders({
+        method: "DELETE",
+        credentials: "include",
+      }));
+      if (!response.ok) throw new Error("Failed to delete attendee");
+      await loadAttendees();
+      setMessage(`${attendee.name} was soft deleted.`);
+      setConfirmingId(null);
+    } catch {
+      setMessage("Could not delete attendee. Try again.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  const filtered = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    if (!term) return attendees;
+    return attendees.filter((attendee) =>
+      [
+        attendee.name,
+        attendee.email,
+        attendee.phone,
+        attendee.businessName,
+        attendee.chapterName,
+        attendee.businessCategory,
+        attendee.city,
+        attendee.tableNumber,
+      ].some((value) => value?.toLowerCase().includes(term)),
+    );
+  }, [attendees, query]);
+
+  const activeCount = attendees.filter((attendee) => !attendee.deletedAt).length;
+  const deletedCount = attendees.length - activeCount;
+
+  return (
+    <main className="admin-page admin-overview">
+      <div className="admin-hub-head">
+        <div>
+          <p className="eyebrow">Roster</p>
+          <h1>Manage attendees</h1>
+          <p className="admin-overview-copy">
+            View imported attendees and soft delete records without removing their database history.
+          </p>
+        </div>
+        <div className="admin-overview-actions">
+          <span className="admin-updated-at">{activeCount} active</span>
+          <span className="admin-updated-at">{deletedCount} deleted</span>
+          <button className="btn-secondary" type="button" onClick={loadAttendees} disabled={state === "loading"}>
+            {state === "loading" ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
+      </div>
+
+      {message && (
+        <div className={`banner ${message.startsWith("Could") ? "warn" : "ok"}`}>
+          <div>{message}</div>
+        </div>
+      )}
+
+      {state === "error" && (
+        <div className="banner warn">
+          <div>
+            <b>Can&rsquo;t load attendees</b>
+            Refresh the page to try again.
+          </div>
+        </div>
+      )}
+
+      <div className="feedback-admin-toolbar" style={{ marginTop: 18 }}>
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search name, email, company, table"
+          aria-label="Search attendees"
+        />
+      </div>
+
+      <section className="admin-attendee-list">
+        {state === "loading" && attendees.length === 0 ? (
+          <div className="directory-state">
+            <h2>Loading attendees</h2>
+            <p>The roster will appear here in a moment.</p>
+          </div>
+        ) : filtered.length ? (
+          filtered.map((attendee) => (
+            <article key={attendee.id} className={`admin-attendee-row${attendee.deletedAt ? " is-deleted" : ""}`}>
+              <div>
+                <div className="admin-attendee-title">
+                  <b>{attendee.name}</b>
+                  <span className={attendee.deletedAt ? "badge-warning" : "badge-success"}>
+                    {attendee.deletedAt ? "Deleted" : "Active"}
+                  </span>
+                </div>
+                <span>{attendee.businessName ?? "No company"} · {attendee.email}</span>
+                <small>
+                  {[attendee.chapterName, attendee.businessCategory, attendee.city, attendee.tableNumber ? `Table ${attendee.tableNumber}` : null]
+                    .filter(Boolean)
+                    .join(" · ") || "No extra details"}
+                </small>
+              </div>
+              <div className="admin-attendee-meta">
+                <span>{attendee.profileCompletedAt ? "Profile complete" : "Profile pending"}</span>
+                <span>{attendee.checkedInAt ? `Checked in ${formatDate(attendee.checkedInAt)}` : "Not checked in"}</span>
+              </div>
+              {confirmingId === attendee.id ? (
+                <div className="admin-attendee-confirm" role="group" aria-label={`Confirm delete ${attendee.name}`}>
+                  <span>Soft delete this attendee?</span>
+                  <div>
+                    <button className="btn-secondary" type="button" onClick={() => setConfirmingId(null)} disabled={deletingId === attendee.id}>
+                      Cancel
+                    </button>
+                    <button className="btn-danger-soft" type="button" onClick={() => deleteAttendee(attendee)} disabled={deletingId === attendee.id}>
+                      {deletingId === attendee.id ? "Deleting..." : "Confirm delete"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  className="btn-secondary admin-delete-button"
+                  type="button"
+                  onClick={() => setConfirmingId(attendee.id)}
+                  disabled={Boolean(attendee.deletedAt) || deletingId === attendee.id}
+                >
+                  {attendee.deletedAt ? "Deleted" : "Delete"}
+                </button>
+              )}
+            </article>
+          ))
+        ) : (
+          <div className="directory-state">
+            <h2>No attendees found</h2>
+            <p>Try a different search.</p>
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}

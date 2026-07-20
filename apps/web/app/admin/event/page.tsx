@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { distanceMeters } from "../../lib/geo";
 import { withCsrfHeaders } from "../../lib/csrf";
 
@@ -140,6 +141,9 @@ export default function AdminEventSettingsPage() {
         Configure the event details, venue location, and check-in radius. The event timing controls the attendee
         home screen before, during, and after the event.
       </p>
+      <Link className="btn-secondary" href="/admin/attendees" style={{ marginBottom: 18 }}>
+        Manage attendees
+      </Link>
 
       {!venueConfigured && (
         <div className="banner warn" style={{ marginBottom: 18 }}>

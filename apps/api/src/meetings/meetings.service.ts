@@ -22,9 +22,9 @@ export class MeetingsService {
   async scan(scannerId: string, qrToken: string): Promise<ScanResult> {
     const target = await this.prisma.attendee.findUnique({
       where: { qrToken },
-      select: { id: true, name: true, businessName: true },
+      select: { id: true, name: true, businessName: true, deletedAt: true },
     });
-    if (!target) return { status: "not_found" };
+    if (!target || target.deletedAt) return { status: "not_found" };
     if (target.id === scannerId) return { status: "self" };
 
     // Canonical unordered pair so both scan directions map to the same row.

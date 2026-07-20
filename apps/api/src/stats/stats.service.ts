@@ -96,12 +96,14 @@ export class StatsService {
 
   private async buildAdminOverview(): Promise<AdminOverview> {
     const event = await this.eventService.getOrCreate();
-    const totalAttendees = await this.prisma.attendee.count();
+    const totalAttendees = await this.prisma.attendee.count({ where: { deletedAt: null } });
     const checkedIns = await this.prisma.checkIn.findMany({
+      where: { attendee: { deletedAt: null } },
       orderBy: { createdAt: "asc" },
       select: { attendeeId: true, method: true, createdAt: true },
     });
     const meetings = await this.prisma.meeting.findMany({
+      where: { attendeeA: { deletedAt: null }, attendeeB: { deletedAt: null } },
       orderBy: { createdAt: "asc" },
       select: { attendeeAId: true, attendeeBId: true, createdAt: true },
     });
@@ -109,7 +111,7 @@ export class StatsService {
     const likesCount = await this.prisma.like.count();
     const feedback = await this.prisma.feedback.findMany({ select: { rating: true, createdAt: true } });
     const checkedInAttendees = await this.prisma.attendee.findMany({
-      where: { checkIn: { isNot: null } },
+      where: { checkIn: { isNot: null }, deletedAt: null },
       select: { id: true, name: true, businessName: true },
     });
 
