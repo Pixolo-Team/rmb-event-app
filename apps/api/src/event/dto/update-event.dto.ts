@@ -1,6 +1,19 @@
-import { IsBoolean, IsInt, IsLatitude, IsLongitude, IsOptional, Max, Min } from "class-validator";
+import { IsBoolean, IsInt, IsISO8601, IsLatitude, IsLongitude, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
 
 export class UpdateEventDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  name?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  startAt?: string | null;
+
+  @IsOptional()
+  @IsISO8601()
+  endAt?: string | null;
+
   @IsOptional()
   @IsLatitude()
   venueLat?: number;

@@ -7,7 +7,7 @@ import { withCsrfHeaders } from "../lib/csrf";
 
 const TOOLS = [
   { href: "/admin/import", title: "Attendee Import", desc: "Upload the guest list (CSV / Excel)" },
-  { href: "/admin/event", title: "Event Settings", desc: "Venue location & check-in radius" },
+  { href: "/admin/event", title: "Event Settings", desc: "Event details, venue location & check-in radius" },
   { href: "/admin/checkin", title: "Live Check-In", desc: "Staff QR scan & arrival dashboard" },
   { href: "/admin/badges", title: "Print Badges", desc: "QR badges for the registration desk" },
   { href: "/admin/feed", title: "Photo Moderation", desc: "Review & remove event photos" },
