@@ -95,6 +95,7 @@ model Attendee {
   // to compile. Nullable — the link is optional everywhere (PRD US1.6).
   linkedInUrl        String?
   profileCompletedAt DateTime?
+  deletedAt          DateTime?
 
   // Signed, opaque, non-sequential — generated at import time (PRD Security & Privacy).
   qrToken String @unique
@@ -112,6 +113,8 @@ model Attendee {
   matchCachesMade  MatchCache[] @relation("MatchViewer")
   matchCachesOnMe  MatchCache[] @relation("MatchCandidate")
   feedback         Feedback[]
+
+  @@index([deletedAt])
 }
 
 model Feedback {

@@ -53,10 +53,9 @@ export class AuthService {
     // can correct it or ask the organizer for help instead of waiting indefinitely.
     // Rate limits still constrain automated account-discovery attempts.
     const attendee = await this.prisma.attendee.findUnique({ where: { email } });
-    if (!attendee) {
+    if (!attendee || attendee.deletedAt) {
       return { kind: "not_registered" };
-    }
-
+      
     const rawToken = generateOpaqueToken();
 
     await this.prisma.magicLinkToken.create({
@@ -79,7 +78,7 @@ export class AuthService {
       include: { attendee: true },
     });
 
-    if (!record || record.usedAt || record.expiresAt < new Date()) {
+    if (!record || record.usedAt || record.expiresAt < new Date() || record.attendee.deletedAt) {
       return { kind: "expired" };
     }
 
