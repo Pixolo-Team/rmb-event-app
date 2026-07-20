@@ -1436,11 +1436,15 @@ p.copy {
   font-size: 1.5rem;
   font-weight: 800;
 }
+.gallery-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  margin-bottom: 16px;
+  gap: 12px;
 }
 .gallery-grid-item {
   position: relative;
@@ -2385,7 +2389,7 @@ a.contact-row:active { background: var(--brand-100); }
   width: 100%;
   max-width: 480px;
   margin: 0 auto;
-  padding: 20px 16px 40px;
+  padding: 20px 16px calc(112px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   gap: 14px;

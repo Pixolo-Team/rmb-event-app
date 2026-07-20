@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { withCsrfHeaders } from "../lib/csrf";
+import { PoweredByFooter } from "./PoweredByFooter";
 
 export interface MenuAttendee {
   name: string;
@@ -212,6 +213,8 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
                 {signingOut ? "Signing out…" : "Sign out"}
               </button>
             </div>
+
+            <PoweredByFooter />
           </aside>
         </div>
       )}
