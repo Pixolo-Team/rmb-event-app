@@ -4,6 +4,8 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { withCsrfHeaders, getCsrfToken } from "../../lib/csrf";
 import { profileCache } from "../../lib/profileCache";
+import { RotaryLoader } from "../../components/RotaryLoader";
+import { PoweredByFooter } from "../../components/PoweredByFooter";
 
 export function LoginForm() {
   const router = useRouter();
@@ -100,20 +102,15 @@ export function LoginForm() {
 
   if (checkingSession) {
     return (
-      <div className="card">
-        <div className="wordmark">
-          <span className="dot" />
-          Evento
-        </div>
-        <div className="center-state">
-          <span className="spinner" style={{ borderTopColor: "var(--brand-500)", borderColor: "var(--border)" }} />
-          <p>Checking your session&hellip;</p>
-        </div>
+      <div className="center-state">
+        <RotaryLoader />
+        <p>Checking your session&hellip;</p>
       </div>
     );
   }
 
   return (
+    <>
     <div className="card">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -181,5 +178,7 @@ export function LoginForm() {
       ) : null}
 
     </div>
+    <PoweredByFooter />
+    </>
   );
 }

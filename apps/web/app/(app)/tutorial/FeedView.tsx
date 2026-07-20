@@ -292,6 +292,7 @@ export function FeedView({
   const [enlargedPhotoId, setEnlargedPhotoId] = useState<string | null>(null);
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [enlargedClosing, setEnlargedClosing] = useState(false);
 
   useEffect(() => {
     if (!openMenuId) return;
@@ -317,6 +318,15 @@ export function FeedView({
       document.documentElement.style.overflow = previousHtmlOverflow;
     };
   }, [enlargedPhotoId]);
+
+  function closeEnlarged() {
+    if (enlargedClosing) return;
+    setEnlargedClosing(true);
+    window.setTimeout(() => {
+      setEnlargedPhotoId(null);
+      setEnlargedClosing(false);
+    }, 200);
+  }
 
   useEffect(() => {
     if (localMode) {
@@ -408,7 +418,7 @@ export function FeedView({
         ),
       );
       setCommentDrafts((current) => ({ ...current, [photoId]: "" }));
-      if (enlargedPhotoId === photoId) setEnlargedPhotoId(null);
+      if (enlargedPhotoId === photoId) closeEnlarged();
       return;
     }
 
@@ -433,7 +443,7 @@ export function FeedView({
         ),
       );
       setCommentDrafts((current) => ({ ...current, [photoId]: "" }));
-      if (enlargedPhotoId === photoId) setEnlargedPhotoId(null);
+      if (enlargedPhotoId === photoId) closeEnlarged();
     } catch {
       setActionError("Couldn't post comment. Check your connection and try again.");
     }
@@ -444,7 +454,7 @@ export function FeedView({
 
     if (localMode) {
       setPhotos((current) => current.filter((item) => item.id !== photoId));
-      if (enlargedPhotoId === photoId) setEnlargedPhotoId(null);
+      if (enlargedPhotoId === photoId) closeEnlarged();
       return;
     }
 
@@ -456,7 +466,7 @@ export function FeedView({
         return;
       }
       setPhotos((current) => current.filter((item) => item.id !== photoId));
-      if (enlargedPhotoId === photoId) setEnlargedPhotoId(null);
+      if (enlargedPhotoId === photoId) closeEnlarged();
     } catch {
       setActionError("Couldn't delete photo. Check your connection and try again.");
     }
@@ -544,10 +554,15 @@ export function FeedView({
       </main>
 
       {enlargedPhoto ? (
-        <div className="photo-modal-overlay" role="dialog" aria-modal="true" onClick={() => setEnlargedPhotoId(null)}>
+        <div
+          className={`photo-modal-overlay${enlargedClosing ? " closing" : ""}`}
+          role="dialog"
+          aria-modal="true"
+          onClick={closeEnlarged}
+        >
           <div className="photo-modal-card" onClick={(event) => event.stopPropagation()}>
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-              <button className="icon-action" type="button" onClick={() => setEnlargedPhotoId(null)}>
+              <button className="icon-action" type="button" onClick={closeEnlarged}>
                 Close
               </button>
             </div>
