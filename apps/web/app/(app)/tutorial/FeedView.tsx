@@ -3,6 +3,7 @@
 import { ChangeEvent, Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { AttendeeMe, FeedCommentData, FeedPhotoData, TEMP_BYPASS_LOGIN } from "./TutorialPage";
 import { CommentIcon, ThumbUpIcon } from "./icons";
+import { PoweredByFooter } from "./PoweredByFooter";
 import { withCsrfHeaders } from "../../lib/csrf";
 type FeedPageResponse = {
   photos: FeedPhotoData[];
@@ -259,6 +260,8 @@ export function PostComposerModal({
             {composerStatus === "uploading" ? `Uploading... ${uploadProgress}%` : "Post photo"}
           </button>
         </div>
+
+        <PoweredByFooter />
       </div>
     </div>
   );
@@ -537,6 +540,8 @@ export function FeedView({
             {loadingMore ? "Loading..." : "Load more"}
           </button>
         ) : null}
+
+        <PoweredByFooter />
       </main>
 
       {enlargedPhoto ? (
