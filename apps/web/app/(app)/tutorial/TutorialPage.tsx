@@ -403,11 +403,14 @@ export function TutorialPage() {
         ) : null}
 
         {view === "posts" ? (
-          <FeedView
-            attendee={attendee}
-            photos={photos}
-            setPhotos={setPhotos}
-          />
+          <>
+            <FeedView
+              attendee={attendee}
+              photos={photos}
+              setPhotos={setPhotos}
+            />
+            <PoweredByFooter />
+          </>
         ) : null}
 
         {view === "people" ? (

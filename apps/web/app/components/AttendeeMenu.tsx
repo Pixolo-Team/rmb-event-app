@@ -24,7 +24,8 @@ const DRAWER_ITEMS: MenuItem[] = [
   { href: "/leaderboard", label: "Leaderboard", icon: TrophyIcon, available: true },
   { href: "/summary", label: "Event Summary", icon: SummaryIcon, available: true },
   { href: "/feedback", label: "Give Feedback", icon: FeedbackIcon, available: true },
-  { href: "/feed", label: "Event Photos", icon: PhotoIcon, available: true },
+  { href: "/feed", label: "Feed", icon: PhotoIcon, available: true },
+  { href: "/gallery", label: "Gallery", icon: PhotoIcon, available: true },
   { href: "/profile?qr=1", label: "Show My QR", icon: QrIcon, available: true },
 ];
 

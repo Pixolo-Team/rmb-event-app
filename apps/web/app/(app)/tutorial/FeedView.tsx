@@ -541,8 +541,6 @@ export function FeedView({
             {loadingMore ? "Loading..." : "Load more"}
           </button>
         ) : null}
-
-        <PoweredByFooter />
       </main>
 
       {enlargedPhoto ? (

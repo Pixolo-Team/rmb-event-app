@@ -634,6 +634,7 @@ function DashboardMode({
 
         <PoweredByFooter />
       </main>
+      <AttendeeBottomTabs />
     </div>
   );
 }
@@ -709,6 +710,7 @@ function PreEventMode({
 
         <PoweredByFooter />
       </main>
+      <AttendeeBottomTabs />
     </div>
   );
 }
@@ -748,6 +750,7 @@ function EndedMode({
 
         <PoweredByFooter />
       </div>
+      <AttendeeBottomTabs />
     </div>
   );
 }
