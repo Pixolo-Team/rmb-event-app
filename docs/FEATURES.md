@@ -35,13 +35,13 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
 | PF1 | PWA shell & installability (manifest, icon, service worker, install-prompt wiring) | — | P0 | Yes (shell) | — | ✅ Done |
-| PF2 | Auth — email magic link (request + verify, session cookie) | Screen 2.0 | P0 | No | — | ✅ Done |
+| PF2 | Auth — email magic link, explicit unknown-email recovery, cache-first/server-authoritative Login routing, request/verify and session cookie | Screen 2.0 | P0 | No | — | ✅ Done |
 | PF3 | Admin login (password + session, 30-min idle timeout) | Screen 3.1 | P0 | No | — | ✅ Done |
 | PF4 | Offline sync engine — IndexedDB write queue + background sync | — | P0 | Yes | PF1 | ✅ Done |
 | PF5 | QR signing & verification (shared utility — signed opaque JWT payload, server-side verify) | — | P0 | — | — | ⬜ Not started |
 | PF6 | API hardening — rate limiting, CORS, input validation, CSRF (currently only on auth endpoints) | — | P0 | — | — | ✅ Done |
 | PF7 | Authenticated attendee navigation shell — **bottom tab bar (primary) + side-menu drawer (secondary)**, identity header, active state, auth/onboarding visibility gate, accessible close/back behavior, shared route inventory | All attendee screens | P0 | Yes (shell) | PF1, PF2 | 🟡 Partial |
-| PF8 | Database-backed dropdown reference data — business categories, nationwide Indian cities with state/UT labels, active/sort controls, and existing Chapter options | Screen 1.1, Directory filters | P0 | Cacheable | F1.2 | ✅ Done |
+| PF8 | Database-backed reference data — business categories, category-dependent offerings, nationwide Indian cities with state/UT labels, active/sort controls, and Chapter options | Screen 1.1, Directory filters | P0 | Cacheable | F1.2 | ✅ Done |
 
 **PF3 build notes:**
 - A single shared organizer credential (`ADMIN_USERNAME` / `ADMIN_PASSWORD` from env; dev falls back to `admin` / `evento-admin`, and production refuses to start the login flow without an explicit `ADMIN_PASSWORD`). Password comparison is constant-time. This is intentionally a single login for the pilot's one organizer — not per-user admin accounts (Phase 2).
@@ -71,6 +71,7 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 - Added normalized, active/sortable database reference tables for business categories and cities; Chapter received the same active/sort controls.
 - Seeded a broad Indian city catalogue spanning states and union territories. The profile city field provides searchable browser suggestions labelled `City, State/UT`.
 - Profile options are read from the database and profile writes validate the submitted category and city against active records. Existing unambiguous city values are normalized during migration; unmatched imported values remain valid legacy options.
+- Added `OfferingOption` with category ownership, active/sort controls and uniqueness within a category. The Technology seed contains 14 offerings; the onboarding API groups active offerings by category.
 - Directory filter facets for business category, city, and chapter are sourced directly from the same active reference tables, independent of how many attendee cards are returned. Company remains attendee-derived.
 
 **PF4 build notes:**
@@ -88,10 +89,10 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
 | F1.1 | Admin CSV/Excel import + column-mapping UI, dedup by phone+email, per-row result report (success/duplicate/error/flagged), retry-on-failure | Screen 3.3 | P0 | No | PF3 (now wired) | ✅ Done |
-| F1.2 | Profile Setup Form — business category (dropdown), city, looking-for/offering (multi-select dropdowns, shared taxonomy), goals, optional bio | Screen 1.1 | P0 | No | PF2 | ✅ Done |
-| F1.3 | PWA install prompt (Install Now / Install Later / Skip) | Screen 1.2 | P0 | Yes | PF1, F1.2 | ✅ Done |
-| F1.4 | Thanks & welcome screen | Screen 1.3 | P2 | Yes | F1.3 | ✅ Done |
-| F1.5 | First-time tutorial (60s, skippable, re-accessible from Settings) | Screen 2.12 | P2 | Yes (cached) | F1.4 | ⬜ Not started |
+| F1.2 | Required three-step Profile Setup — About You/DB City → Business Category/dependent Offering → searchable Looking For/Goals + optional Bio; responsive shell and per-step validation | Screen 1.1 | P0 | No | PF2, PF8 | ✅ Done |
+| F1.3 | Responsive PWA install modal — native prompt, Add to Home Screen fallback, Continue without installing, installed-mode detection | Screen 1.2 | P0 | Yes | PF1, F1.2 | ✅ Done |
+| F1.4 | Profile-complete screen — animated success tick and adaptive Open App / Install / Continue in browser actions | Screen 1.3 | P2 | Yes | F1.3 | ✅ Done |
+| F1.5 | First-time tutorial (skippable and re-accessible) | Screen 2.12 | P2 | Yes (cached) | F1.4 | ✅ Done |
 
 **Feeds into:** every other epic — this is where attendee records, QR codes, and profile tags originate.
 
@@ -311,10 +312,12 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 |---|---|---|---|---|---|---|
 | PF7.1 | Bottom tab bar (Home · People · Want to Meet · Profile) + drawer demoted to secondary destinations. **No center FAB** — Scan stays Home's CTA (decided 2026-07-17, see F3.6 notes) | All attendee screens | P0 | Yes (shell) | PF7 | ⬜ Not started |
 | F3.6 | Home as a **lifecycle-aware dashboard** — four modes (pre-event · arrival · checked-in dashboard · event ended) rather than the check-in-only screen shipped today. Checked-in mode carries a compact check-in strip (expandable to the desk view), table number, Scan CTA, three stats (people met / rank / time at event) and a People-to-meet preview. Restores `SCREENS.md` 2.1's "central hub" intent, which the F3.2 full-page revision stripped to check-in only. Surfaces F11.1's stats here, not just on Profile. Also fixes the false pre-event "Not checked in" warning | Screen 2.1 | P0 | Yes (cached) | F3.2, F11.1, F2.3 | ✅ Done |
+
+**F3.6 performance note:** Home persists a compact synchronous snapshot of attendee header data, event lifecycle configuration and check-in state. Repeat visits paint from local storage immediately while live identity, check-in and event reads refresh in the background; stats and matches retain their existing independent cache-first refreshes. Logout, authentication rejection and magic-link account switching clear identity-sensitive Home data.
 | F4.4 | **Attendee Card** on Profile — a designed identity card (photo/initials, name, company, category, city, chapter, tags, LinkedIn, website), *not* a list of `dt`/`dd` detail rows. QR stays pinned above it | Screen 2.11 | P1 | Yes | F4.1 | ⬜ Not started |
-| F4.5 | **Edit Profile** — dedicated form page reached from a Profile button. Editable = exactly the fields onboarding collects (business category, city, looking-for, offering, goals, bio, LinkedIn, website) **plus** photo (F4.6). Registered details (name, phone, email) stay read-only per the PRD's "Contact organizer to change this" rule — import dedup keys on phone+email | Screen 2.11a (new) | P1 | No | F1.2, F4.4 | ⬜ Not started |
+| F4.5 | **Edit Profile** — dedicated form page reached from Profile. Editable = current onboarding fields (business category, city, looking-for, dependent offering, goals, bio) plus photo (F4.6); LinkedIn/website arrive separately with F4.7. Registered details (name, phone, email) stay read-only per the PRD's "Contact organizer to change this" rule | Screen 2.11a (new) | P1 | No | F1.2, F4.4 | ⬜ Not started |
 | F4.6 | **Profile photo upload** — capture/choose, crop, replace; feeds the Attendee Card and every avatar. Reuses F7.1's client-side crop/resize pipeline | Screen 2.11a | P1 | No | F4.5 | ⬜ Not started |
-| F4.7 | **LinkedIn & website URL fields** — new `Attendee.linkedinUrl` + `Attendee.websiteUrl` columns + migration, optional import-column mapping (F1.1), onboarding (Screen 1.1) and edit-form input, URL validation/normalization; surfaced as tap actions on cards and profiles; added to the F9.2 CSV and F10.1 vCard exports. **Both fields optional everywhere** — see PRD US1.6 | Screen 1.1, 2.3, 2.11, 2.11a | P2 | Yes | F1.2 | ⬜ Not started |
+| F4.7 | **LinkedIn & website URL fields** — new nullable attendee fields, optional import mapping and edit-form inputs with URL validation/normalization; surfaced as tap actions on cards/profiles and added to exports. Deferred from the current onboarding form to keep its required path short | Screen 2.3, 2.11, 2.11a | P2 | Yes | F4.5 | ⬜ Not started |
 | F4.8 | **Logout on Profile** — sign-out action on the Profile screen itself (today it lives only in the drawer). Already anticipated by `SCREENS.md` 2.11 ("Tap Sign out") | Screen 2.11 | P2 | No | PF2 | ⬜ Not started |
 | F2.6 | **"Met" indicator on cards** — attendee/match/directory cards show when you've already met the person. Data already exists (`Meeting`, F4.2); this is the missing card affordance | Screens 2.2, 2.3, 1.4 | P1 | Yes | F4.2, F2.4 | ⬜ Not started |
 | F2.7 | **Icon action row on People / Want-to-Meet cards** — bookmark, call, LinkedIn/website and share as icon buttons, consistent with the polished F2.5 profile action row; link icons are omitted (never disabled) when the attendee has no link; cards open the full profile | Screens 2.2, 2.6 | P1 | Partial | F2.4, F4.7 | ⬜ Not started |

@@ -35,11 +35,25 @@ model Chapter {
 }
 
 model BusinessCategoryOption {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  active    Boolean  @default(true)
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
+  id        String           @id @default(uuid())
+  name      String           @unique
+  active    Boolean          @default(true)
+  sortOrder Int              @default(0)
+  createdAt DateTime         @default(now())
+  offerings OfferingOption[]
+}
+
+model OfferingOption {
+  id         String                 @id @default(uuid())
+  name       String
+  category   BusinessCategoryOption @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String
+  active     Boolean                @default(true)
+  sortOrder  Int                    @default(0)
+  createdAt  DateTime               @default(now())
+
+  @@unique([categoryId, name])
+  @@index([categoryId, active, sortOrder])
 }
 
 model CityOption {
@@ -81,6 +95,7 @@ model Attendee {
   // to compile. Nullable — the link is optional everywhere (PRD US1.6).
   linkedInUrl        String?
   profileCompletedAt DateTime?
+  deletedAt          DateTime?
 
   // Signed, opaque, non-sequential — generated at import time (PRD Security & Privacy).
   qrToken String @unique
@@ -98,6 +113,8 @@ model Attendee {
   matchCachesMade  MatchCache[] @relation("MatchViewer")
   matchCachesOnMe  MatchCache[] @relation("MatchCandidate")
   feedback         Feedback[]
+
+  @@index([deletedAt])
 }
 
 model Feedback {

@@ -41,4 +41,12 @@ export const profileCache = {
       // Storage full/unavailable — the live response stays usable this session.
     }
   },
+  clear() {
+    try {
+      localStorage.removeItem(KEY);
+      localStorage.removeItem("evento-home-v1");
+    } catch {
+      // Storage unavailable — there is nothing else to clear client-side.
+    }
+  },
 };

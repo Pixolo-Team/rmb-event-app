@@ -194,12 +194,12 @@ I want to tap the group link, sign in with my email, and answer a few quick ques
 So that I can get personalized match suggestions and not have to install an app first
 Acceptance Criteria:
 - Profile form opens in a mobile web view (does not require app install yet)
-- Fields: business category (database-backed dropdown — e.g., Manufacturer, Trader/Distributor, Service Provider, Retailer, Professional), city (searchable database-backed picker using `City, State/UT`), looking for (multi-select dropdown, shared business-type taxonomy — e.g. Real Estate Builders, Interior Designer, Digital Marketing), offering (multi-select dropdown, same taxonomy as looking for), goals (multi-select), optional free-text bio, optional LinkedIn URL, optional website URL (see US1.6). No separate "industry" field — business category is the only categorization field, and looking-for/offering tags carry the business-type detail so nothing is asked twice.
-- Form is under a minute to complete — 5–6 required-path fields plus up to three optional ones (bio, LinkedIn, website), which an attendee can leave untouched and submit past. Name, email, phone, business/profession name, chapter and photo are already known from registration and are pre-filled/read-only, not re-asked. City, business category, LinkedIn and website are asked here because the registration form does not capture them (if a future import file includes City/Category/LinkedIn/Website columns, they are imported and pre-filled instead)
-- The optional link fields are visually subordinate to the required ones (grouped last, under a "Add your links (optional)" heading) so they never read as blockers on the under-a-minute path
-- Validation: phone number and email already in system (auto-filled), name is required
-- After completion, user sees: "Great! Get suggestions by installing the app" → PWA install prompt
+- The form is a three-step flow with progress retained when moving Back/Continue: (1) About You — read-only registration details and database-backed City; (2) Your Business — Business Category followed immediately by its Offering multi-select; (3) Networking Goals — searchable multi-select dropdowns for Looking For and Goals, followed by optional Bio. Offering is disabled until a category is selected. Changing category after selecting offerings requires confirmation before incompatible selections are cleared. Back is presented as a left-arrow icon with a visible text label.
+- Form is under a minute to complete. Name, email, phone, business/profession name, chapter and photo are already known from registration and remain read-only. City and business category are required; offering, looking-for, goals and bio enrich matching. LinkedIn and website remain deferred to F4.7 rather than appearing in the current onboarding form.
+- Validation happens per step: City must match an active database option; Business Category must be active; Offering options come only from that category's active `OfferingOption` records.
+- After completion, profile save opens the PWA install modal unless the app is already running as an installed PWA
 - Profile is saved even if attendee doesn't install PWA
+- Profile setup itself cannot be skipped; all required onboarding fields must be valid before the attendee can continue to the install prompt
 - Tutorial video or walkthrough available (optional for attendees who want it)
 ```
 
@@ -210,8 +210,10 @@ I want to install the Evento app on my home screen so I can use it offline
 And see a tutorial on my first open
 So that I know what to do at the event and don't have to figure it out on the day
 Acceptance Criteria:
-- "Install" button uses native PWA install prompt (browsers that support it)
-- Fallback: "Add to home screen" instructions for older browsers
+- Installation is offered in a responsive modal: centered on tablet/desktop and bottom-positioned on small phones
+- "Install Evento" uses the native PWA prompt when supported; otherwise the modal explains the browser's "Add to Home Screen" action
+- Installation is optional after profile save: "Continue without installing" proceeds to the animated completion state
+- Completion detects installed/standalone mode: installed users see "Open app"; others see "Install Evento" plus "Continue in browser"
 - On first app open, auto-show 60-second tutorial: "Scan QR to meet people, check leaderboard, post photos"
 - Tutorial has skip button; re-accessible from settings
 - App is fully functional offline (directory, matches, and profiles load from cache)
@@ -231,9 +233,15 @@ Acceptance Criteria:
 - Attendee enters their email on the sign-up/login screen, and if it matches a
   registered attendee, a single-use signed link (30-minute expiry) is emailed to
   that address; first-time users land on profile setup, returning users land on Home
-- Response is identical whether or not the email matched ("If that email is on the
-  guest list, we've sent a link") — prevents using the login screen to check who is
-  registered
+- If the email does not match, show a clear not-registered message and direct the
+  attendee to retry with the registration email or contact the organizer. For this
+  closed pilot, recovery is prioritized over strict account-enumeration resistance;
+  per-email and per-IP rate limits remain required.
+- Unknown emails return `not_registered` with correction/organizer guidance. This
+  intentionally accepts limited account-enumeration exposure for the invite-only pilot;
+  per-email and per-IP rate limits remain the abuse control
+- Opening Login with a valid attendee session redirects immediately: completed profile
+  → Home, incomplete profile → Onboarding. Returning magic-link verification also lands on Home.
 - Rate limited (~5 sends/hour per email) to prevent inbox spam
 - Email is the only self-serve login channel — no WhatsApp-delivered login link
 - Entering someone else's email cannot grant access to their account — the
@@ -249,12 +257,10 @@ I want to add my LinkedIn profile and my business website to my card
 So that the people I meet can look me up properly instead of only having my phone number
 Acceptance Criteria:
 - Two new optional fields on the attendee record: LinkedIn URL and website URL.
-  Both are optional everywhere they appear — onboarding (US1.3), Edit Profile
-  (F4.5) and CSV import (US1.1). A profile with neither is complete and valid,
-  and nothing in the app gates on them
-- Enterable in three places: profile setup (Screen 1.1), Edit Profile
-  (Screen 2.11a), and optional import column mapping. Neither field is ever
-  required to submit any of those three
+  Both are optional everywhere they appear — Edit Profile (F4.5) and CSV import
+  (US1.1). They are deliberately deferred from current onboarding (US1.3), and
+  a profile with neither remains complete and valid.
+- Enterable through Edit Profile (Screen 2.11a) and optional import column mapping.
 - Validation on save: must be a syntactically valid http/https URL; a bare host
   ("acme.in", "linkedin.com/in/radha") is accepted and normalized to https://.
   LinkedIn additionally must be a linkedin.com host — anything else is rejected
@@ -901,15 +907,21 @@ START: Organizer has pre-registered attendees in CSV
   • Enter registered email → receive single-use magic link → tap to enter
   ↓
 [ATTENDEE: Complete Profile]
-  • Fill form: business category, looking for, offering, goals, optional bio
-  • Form validation: all required fields filled, phone is pre-filled
+  • Step 1: registration details + searchable database-backed City
+  • Step 2: Business Category → dependent searchable Offering multi-select
+  • Step 3: searchable Looking For + Goals multi-selects, optional bio
+  • Profile setup cannot be skipped
   • Submit → "Profile saved!"
   ↓
 [PWA INSTALL PROMPT]
-  • "Install Evento to unlock match suggestions and networking tools"
-  • Attendee can: Install Now | Install Later | Skip
-  • If Install: native PWA installer prompt (or "Add to home screen" instructions)
-  • If Skip: profile is saved; attendee can install later
+  • Responsive install modal; skipped automatically when already installed
+  • Native Install Evento prompt when supported; Add to Home Screen instructions otherwise
+  • Continue without installing remains available because profile setup is already complete
+  ↓
+[PROFILE COMPLETE]
+  • Animated success tick
+  • Installed: Open app
+  • Not installed/dismissed: Install Evento | Continue in browser
   ↓
 [SYSTEM: Pre-compute Matches (Day -3)]
   • For each attendee, calculate "People to Meet" list

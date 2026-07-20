@@ -26,7 +26,11 @@ function loadProfile() {
     lastProfileRevalidatedAt = Date.now();
     profileRequest = fetch("/api/attendees/me", { credentials: "include" })
       .then(async (response) => {
-        if (response.status === 401 || response.status === 403) return "login" as const;
+        if (response.status === 401 || response.status === 403) {
+          profileCache.clear();
+          cachedMenuAttendee = null;
+          return "login" as const;
+        }
         if (!response.ok) return null;
 
         const me = (await response.json()) as MyProfile;

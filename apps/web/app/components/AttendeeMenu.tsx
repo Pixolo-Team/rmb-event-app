@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { withCsrfHeaders } from "../lib/csrf";
 import { PoweredByFooter } from "./PoweredByFooter";
+import { profileCache } from "../lib/profileCache";
 
 export interface MenuAttendee {
   name: string;
@@ -126,6 +127,7 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
     try {
       await fetch("/api/auth/logout", withCsrfHeaders({ method: "POST", credentials: "include" }));
     } finally {
+      profileCache.clear();
       removeMenuHistoryMarker();
       setOpen(false);
       router.replace("/login");
