@@ -1086,7 +1086,9 @@ p.copy {
   to { opacity: 1; transform: translateY(0); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .app-content {
+  .app-content,
+  .full-page-body,
+  .home-dash-body {
     animation: none;
   }
 }
@@ -2376,11 +2378,18 @@ p.copy {
 
 /* F11.1 — attendee personal stats grid on the Settings/Profile screen. */
 .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-.stat-tile { padding: 16px 12px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface-2, var(--surface)); text-align: center; }
+.stat-tile { padding: 16px 12px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface-2, var(--surface)); text-align: center; animation: app-content-in 0.3s ease both; }
+.stat-tile:nth-child(2) { animation-delay: 0.04s; }
+.stat-tile:nth-child(3) { animation-delay: 0.08s; }
 .stat-tile strong { display: block; color: var(--brand-700); font: 800 1.5rem var(--font-display); }
 .stat-tile em { display: block; margin-top: 2px; color: var(--ink-faint); font-style: normal; font-size: .72rem; }
 .stat-tile span { display: block; margin-top: 4px; color: var(--ink-muted); font-size: .72rem; }
 .stat-tile-wide { grid-column: 1 / -1; }
+@media (prefers-reduced-motion: reduce) {
+  .stat-tile {
+    animation: none;
+  }
+}
 .profile-contact { margin: 0; display: grid; gap: 16px; }
 .profile-contact dt { color: var(--ink-faint); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
 .profile-contact dd { margin: 5px 0 0; overflow-wrap: anywhere; line-height: 1.35; }
@@ -2821,6 +2830,7 @@ a.contact-row:active { background: var(--brand-100); }
   display: flex;
   flex-direction: column;
   gap: 14px;
+  animation: app-content-in 0.22s ease;
 }
 @media (min-width: 700px) {
   .full-page-band {
@@ -2852,6 +2862,7 @@ a.contact-row:active { background: var(--brand-100); }
   display: flex;
   flex-direction: column;
   gap: 14px;
+  animation: app-content-in 0.22s ease;
 }
 .home-skeleton-line,
 .home-skeleton-block,
@@ -2948,6 +2959,10 @@ a.contact-row:active { background: var(--brand-100); }
   text-align: left;
   cursor: pointer;
   font: inherit;
+  transition: transform 0.12s ease;
+}
+.checkin-strip:active {
+  transform: scale(0.98);
 }
 .checkin-strip-tick {
   display: grid;
@@ -3053,9 +3068,20 @@ a.contact-row:active { background: var(--brand-100); }
   border-radius: var(--radius-md);
   text-decoration: none;
   color: inherit;
+  transition: background-color 0.15s ease;
 }
 .home-match:hover {
   background: var(--surface-2);
+}
+.home-match-list li {
+  animation: app-content-in 0.3s ease both;
+}
+.home-match-list li:nth-child(2) { animation-delay: 0.04s; }
+.home-match-list li:nth-child(3) { animation-delay: 0.08s; }
+@media (prefers-reduced-motion: reduce) {
+  .home-match-list li {
+    animation: none;
+  }
 }
 .home-match-avatar {
   display: grid;

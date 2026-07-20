@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { withCsrfHeaders, getCsrfToken } from "../../lib/csrf";
 import { profileCache } from "../../lib/profileCache";
 import { RotaryLoader } from "../../components/RotaryLoader";
+import { PoweredByFooter } from "../../components/PoweredByFooter";
 
 export function LoginForm() {
   const router = useRouter();
@@ -109,6 +110,7 @@ export function LoginForm() {
   }
 
   return (
+    <>
     <div className="card">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -176,5 +178,7 @@ export function LoginForm() {
       ) : null}
 
     </div>
+    <PoweredByFooter />
+    </>
   );
 }
