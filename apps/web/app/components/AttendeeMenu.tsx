@@ -26,7 +26,7 @@ const DRAWER_ITEMS: MenuItem[] = [
   { href: "/summary", label: "Event Summary", icon: SummaryIcon, available: true },
   { href: "/feedback", label: "Give Feedback", icon: FeedbackIcon, available: true },
   { href: "/feed", label: "Feed", icon: PhotoIcon, available: true },
-  { href: "/gallery", label: "Gallery", icon: PhotoIcon, available: true },
+  { href: "/gallery", label: "Gallery", icon: GalleryIcon, available: true },
   { href: "/profile?qr=1", label: "Show My QR", icon: QrIcon, available: true },
 ];
 
@@ -309,6 +309,9 @@ function TrophyIcon() {
 
 function PhotoIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h4l1.5-2h5L16 6h4v14H4V6Z" /><circle cx="12" cy="13" r="4" /></svg>;
+}
+function GalleryIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.2" /><rect x="14" y="3" width="7" height="7" rx="1.2" /><rect x="3" y="14" width="7" height="7" rx="1.2" /><rect x="14" y="14" width="7" height="7" rx="1.2" /></svg>;
 }
 function SummaryIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10h4v10M10 20V4h4v16M15 20v-7h4v7M3 20h18" /></svg>; }
 function FeedbackIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" /></svg>; }

@@ -1231,13 +1231,21 @@ p.copy {
   font: 600 0.9rem var(--font-body);
   cursor: pointer;
 }
-.filter-button span {
+.filter-button .filter-count {
   min-width: 22px;
   padding: 2px 6px;
   border-radius: var(--radius-pill);
   background: var(--brand-100);
   color: var(--brand-700);
   font-size: 0.72rem;
+}
+.filter-button-label {
+  display: none;
+}
+@media (min-width: 640px) {
+  .filter-button-label {
+    display: inline;
+  }
 }
 .filter-field select {
   min-height: 48px;
