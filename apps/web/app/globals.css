@@ -1301,6 +1301,18 @@ p.copy {
   border-radius: 18px;
   padding: 18px;
 }
+.photo-card {
+  animation: app-content-in 0.3s ease both;
+}
+.photo-card:nth-child(2) { animation-delay: 0.04s; }
+.photo-card:nth-child(3) { animation-delay: 0.08s; }
+.photo-card:nth-child(4) { animation-delay: 0.12s; }
+.photo-card:nth-child(5) { animation-delay: 0.16s; }
+@media (prefers-reduced-motion: reduce) {
+  .photo-card {
+    animation: none;
+  }
+}
 .person-card {
   display: grid;
   gap: 14px;
@@ -1447,6 +1459,17 @@ p.copy {
   padding: 6px;
   display: flex;
   flex-direction: column;
+  transform-origin: top right;
+  animation: post-menu-in 0.15s ease;
+}
+@keyframes post-menu-in {
+  from { opacity: 0; transform: scale(0.94) translateY(-4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .post-menu-dropdown {
+    animation: none;
+  }
 }
 .post-menu-dropdown button {
   min-height: 36px;
@@ -2977,12 +3000,29 @@ a.contact-row:active { background: var(--brand-100); }
   font-size: 0.86rem;
   font-weight: 700;
   cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 .post-action:hover {
   background: var(--surface-2);
 }
+.post-action:active {
+  transform: scale(0.97);
+}
 .post-action.active {
   color: var(--brand-500);
+}
+.post-action.active svg {
+  animation: like-pulse 0.3s ease;
+}
+@keyframes like-pulse {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .post-action.active svg {
+    animation: none;
+  }
 }
 .post-action:disabled {
   color: var(--ink-faint);
