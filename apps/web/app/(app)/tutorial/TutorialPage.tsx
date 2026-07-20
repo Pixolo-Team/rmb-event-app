@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FeedView } from "./FeedView";
+import { FeedView, PostComposerModal } from "./FeedView";
 import { AttendeeCard } from "./AttendeeCard";
 import { FullProfileModal } from "./FullProfileModal";
 import { ProfileView } from "./ProfileView";
@@ -213,7 +213,7 @@ export function TutorialPage() {
   const [pendingBookmarks, setPendingBookmarks] = useState<string[]>([]);
   const [photos, setPhotos] = useState<FeedPhotoData[]>([]);
   const [openProfileId, setOpenProfileId] = useState<string | null>(null);
-  const [composerRequestKey, setComposerRequestKey] = useState(0);
+  const [composerOpen, setComposerOpen] = useState(false);
   const [profileEditing, setProfileEditing] = useState(false);
 
   useEffect(() => {
@@ -400,7 +400,6 @@ export function TutorialPage() {
             attendee={attendee}
             photos={photos}
             setPhotos={setPhotos}
-            composerRequestKey={composerRequestKey}
           />
         ) : null}
 
@@ -492,10 +491,7 @@ export function TutorialPage() {
         <button
           type="button"
           className="bottom-nav-item bottom-nav-item-create"
-          onClick={() => {
-            setView("posts");
-            setComposerRequestKey((current) => current + 1);
-          }}
+          onClick={() => setComposerOpen(true)}
           aria-label="Create a new post"
         >
           <span className="bottom-nav-create-icon" aria-hidden="true">
@@ -520,6 +516,13 @@ export function TutorialPage() {
           onClose={() => setOpenProfileId(null)}
         />
       ) : null}
+
+      <PostComposerModal
+        attendee={attendee}
+        setPhotos={setPhotos}
+        isOpen={composerOpen}
+        onRequestClose={() => setComposerOpen(false)}
+      />
 
       {tutorialOpen && (
         <div className="tutorial-overlay" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">

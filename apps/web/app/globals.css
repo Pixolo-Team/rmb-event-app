@@ -106,6 +106,11 @@
 }
 html {
   overflow-y: scroll;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+html::-webkit-scrollbar {
+  display: none;
 }
 body {
   margin: 0;
@@ -1482,6 +1487,43 @@ p.copy {
   padding: 20px;
   background: var(--surface);
   border: 1px solid var(--border);
+}
+@keyframes photo-modal-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes photo-modal-overlay-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes photo-modal-card-in {
+  from { transform: translateY(28px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes photo-modal-card-out {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(28px); opacity: 0; }
+}
+.photo-modal-overlay {
+  animation: photo-modal-overlay-in 0.22s ease;
+}
+.photo-modal-overlay.closing {
+  animation: photo-modal-overlay-out 0.2s ease forwards;
+  pointer-events: none;
+}
+.photo-modal-card {
+  animation: photo-modal-card-in 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.photo-modal-overlay.closing .photo-modal-card {
+  animation: photo-modal-card-out 0.2s ease forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .photo-modal-overlay,
+  .photo-modal-overlay.closing,
+  .photo-modal-card,
+  .photo-modal-overlay.closing .photo-modal-card {
+    animation: none;
+  }
 }
 .tutorial-overlay {
   position: fixed;

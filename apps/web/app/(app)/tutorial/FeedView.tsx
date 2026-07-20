@@ -57,17 +57,222 @@ function uploadPhotoWithProgress(
   });
 }
 
+export function PostComposerModal({
+  attendee,
+  setPhotos,
+  isOpen,
+  onRequestClose,
+  demoMode = false,
+}: {
+  attendee: AttendeeMe;
+  setPhotos: Dispatch<SetStateAction<FeedPhotoData[]>>;
+  isOpen: boolean;
+  onRequestClose: () => void;
+  demoMode?: boolean;
+}) {
+  const localMode = TEMP_BYPASS_LOGIN || demoMode;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [caption, setCaption] = useState("");
+  const [composerStatus, setComposerStatus] = useState<"idle" | "uploading" | "error" | "success">("idle");
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [composerError, setComposerError] = useState<string | null>(null);
+  const [closing, setClosing] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [isOpen]);
+
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setSelectedFile(file);
+    setPreviewUrl(file ? URL.createObjectURL(file) : null);
+    setComposerError(null);
+    setComposerStatus("idle");
+  }
+
+  function resetComposer() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setCaption("");
+    setComposerStatus("idle");
+    setUploadProgress(0);
+  }
+
+  function closeComposer() {
+    if (closing || composerStatus === "uploading") return;
+    setClosing(true);
+    window.setTimeout(() => {
+      resetComposer();
+      setClosing(false);
+      onRequestClose();
+    }, 200);
+  }
+
+  async function handlePost() {
+    if (!selectedFile) {
+      setComposerError("Choose a photo first.");
+      return;
+    }
+    setComposerError(null);
+
+    if (localMode) {
+      const newPhoto: FeedPhotoData = {
+        id: `demo-photo-${Date.now()}`,
+        url: URL.createObjectURL(selectedFile),
+        caption: caption.trim() || null,
+        createdAt: new Date().toISOString(),
+        attendeeId: attendee.id,
+        attendeeName: attendee.name,
+        attendeeBusinessName: attendee.businessName,
+        likeCount: 0,
+        commentCount: 0,
+        likedByMe: false,
+        comments: [],
+      };
+      setPhotos((current) => [newPhoto, ...current]);
+      setComposerStatus("success");
+      closeComposer();
+      return;
+    }
+
+    setComposerStatus("uploading");
+    setUploadProgress(0);
+
+    try {
+      const created = await uploadPhotoWithProgress(selectedFile, caption, setUploadProgress);
+      setPhotos((current) => [created, ...current]);
+      setComposerStatus("success");
+      closeComposer();
+    } catch {
+      setComposerStatus("error");
+      setComposerError("Couldn't upload photo. Try again.");
+    }
+  }
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className={`photo-modal-overlay${closing ? " closing" : ""}`}
+      role="dialog"
+      aria-modal="true"
+      onClick={closeComposer}
+    >
+      <div className="photo-modal-card" onClick={(event) => event.stopPropagation()}>
+        <div className="photo-modal-handle" aria-hidden="true" />
+
+        <div className="photo-modal-header">
+          <div>
+            <p className="photo-modal-eyebrow">New post</p>
+            <h1 className="settings-title">Share a photo</h1>
+            <p className="settings-copy">Post a photo from tonight and let others see what&apos;s happening.</p>
+          </div>
+          <button
+            className="photo-modal-close"
+            type="button"
+            onClick={closeComposer}
+            disabled={composerStatus === "uploading"}
+            aria-label="Close share photo modal"
+          >
+            Close
+          </button>
+        </div>
+
+        <div className="field photo-modal-field">
+          <label htmlFor="photo-input" className="photo-modal-label">
+            Photo
+          </label>
+          <label htmlFor="photo-input" className="photo-picker">
+            {previewUrl ? (
+              <img src={previewUrl} alt="Selected preview" />
+            ) : (
+              <span className="photo-picker-placeholder">
+                <span className="photo-picker-icon" aria-hidden="true">
+                  +
+                </span>
+                Add a photo
+              </span>
+            )}
+          </label>
+          <input
+            id="photo-input"
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleFileChange}
+            className="sr-only"
+          />
+        </div>
+
+        <div className="field photo-modal-field">
+          <div className="photo-modal-label-row">
+            <label htmlFor="photo-caption" className="photo-modal-label">
+              Caption
+            </label>
+            <small className="photo-modal-counter">{caption.length}/200</small>
+          </div>
+          <textarea
+            id="photo-caption"
+            maxLength={200}
+            value={caption}
+            onChange={(event) => setCaption(event.target.value)}
+            placeholder="Say something about this moment..."
+            className="photo-modal-textarea"
+          />
+        </div>
+
+        {composerStatus === "uploading" ? (
+          <div className="upload-progress-bar photo-modal-progress">
+            <div className="upload-progress-fill" style={{ width: `${uploadProgress}%` }} />
+          </div>
+        ) : null}
+
+        {composerError ? (
+          <div className="banner warn app-banner photo-modal-banner">
+            <div>
+              <b>Couldn't post</b>
+              {composerError}
+            </div>
+          </div>
+        ) : null}
+
+        <div className="photo-modal-actions">
+          <button className="photo-modal-secondary" type="button" onClick={closeComposer} disabled={composerStatus === "uploading"}>
+            Cancel
+          </button>
+          <button className="btn-primary photo-modal-submit" type="button" disabled={composerStatus === "uploading"} onClick={handlePost}>
+            {composerStatus === "uploading" ? `Uploading... ${uploadProgress}%` : "Post photo"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function FeedView({
   attendee,
   photos,
   setPhotos,
-  composerRequestKey = 0,
   demoMode = false,
 }: {
   attendee: AttendeeMe;
   photos: FeedPhotoData[];
   setPhotos: Dispatch<SetStateAction<FeedPhotoData[]>>;
-  composerRequestKey?: number;
   demoMode?: boolean;
 }) {
   const localMode = TEMP_BYPASS_LOGIN || demoMode;
@@ -78,15 +283,6 @@ export function FeedView({
   const [loadingMore, setLoadingMore] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [caption, setCaption] = useState("");
-  const [composerStatus, setComposerStatus] = useState<"idle" | "uploading" | "error" | "success">("idle");
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [composerError, setComposerError] = useState<string | null>(null);
-
-  const [composerOpen, setComposerOpen] = useState(false);
   const [pendingLikes, setPendingLikes] = useState<string[]>([]);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [enlargedPhotoId, setEnlargedPhotoId] = useState<string | null>(null);
@@ -104,8 +300,7 @@ export function FeedView({
   }, [openMenuId]);
 
   useEffect(() => {
-    const modalOpen = composerOpen || Boolean(enlargedPhotoId);
-    if (!modalOpen) return;
+    if (!enlargedPhotoId) return;
 
     const previousBodyOverflow = document.body.style.overflow;
     const previousHtmlOverflow = document.documentElement.style.overflow;
@@ -116,7 +311,7 @@ export function FeedView({
       document.body.style.overflow = previousBodyOverflow;
       document.documentElement.style.overflow = previousHtmlOverflow;
     };
-  }, [composerOpen, enlargedPhotoId]);
+  }, [enlargedPhotoId]);
 
   useEffect(() => {
     if (localMode) {
@@ -148,79 +343,6 @@ export function FeedView({
       cancelled = true;
     };
   }, [localMode, setPhotos]);
-
-  useEffect(() => {
-    if (composerRequestKey > 0) {
-      setComposerOpen(true);
-    }
-  }, [composerRequestKey]);
-
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0] ?? null;
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setSelectedFile(file);
-    setPreviewUrl(file ? URL.createObjectURL(file) : null);
-    setComposerError(null);
-    setComposerStatus("idle");
-  }
-
-  function resetComposer() {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    setSelectedFile(null);
-    setPreviewUrl(null);
-    setCaption("");
-    setComposerStatus("idle");
-    setUploadProgress(0);
-  }
-
-  function closeComposer() {
-    resetComposer();
-    setComposerOpen(false);
-  }
-
-  async function handlePost() {
-    if (!selectedFile) {
-      setComposerError("Choose a photo first.");
-      return;
-    }
-    setComposerError(null);
-
-    if (localMode) {
-      const newPhoto: FeedPhotoData = {
-        id: `demo-photo-${Date.now()}`,
-        url: URL.createObjectURL(selectedFile),
-        caption: caption.trim() || null,
-        createdAt: new Date().toISOString(),
-        attendeeId: attendee.id,
-        attendeeName: attendee.name,
-        attendeeBusinessName: attendee.businessName,
-        likeCount: 0,
-        commentCount: 0,
-        likedByMe: false,
-        comments: [],
-      };
-      setPhotos((current) => [newPhoto, ...current]);
-      setComposerStatus("success");
-      resetComposer();
-      setComposerOpen(false);
-      return;
-    }
-
-    setComposerStatus("uploading");
-    setUploadProgress(0);
-
-    try {
-      const created = await uploadPhotoWithProgress(selectedFile, caption, setUploadProgress);
-      setPhotos((current) => [created, ...current]);
-      setComposerStatus("success");
-      resetComposer();
-      setComposerOpen(false);
-    } catch {
-      setComposerStatus("error");
-      setComposerError("Couldn't upload photo. Try again.");
-    }
-  }
 
   async function handleToggleLike(photo: FeedPhotoData) {
     if (localMode) {
@@ -416,93 +538,6 @@ export function FeedView({
           </button>
         ) : null}
       </main>
-
-      {composerOpen ? (
-        <div className="photo-modal-overlay" role="dialog" aria-modal="true" onClick={closeComposer}>
-          <div className="photo-modal-card" onClick={(event) => event.stopPropagation()}>
-            <div className="photo-modal-handle" aria-hidden="true" />
-
-            <div className="photo-modal-header">
-              <div>
-                <p className="photo-modal-eyebrow">New post</p>
-                <h1 className="settings-title">Share a photo</h1>
-                <p className="settings-copy">Post a photo from tonight and let others see what&apos;s happening.</p>
-              </div>
-              <button className="photo-modal-close" type="button" onClick={closeComposer} aria-label="Close share photo modal">
-                Close
-              </button>
-            </div>
-
-            <div className="field photo-modal-field">
-              <label htmlFor="photo-input" className="photo-modal-label">
-                Photo
-              </label>
-              <label htmlFor="photo-input" className="photo-picker">
-                {previewUrl ? (
-                  <img src={previewUrl} alt="Selected preview" />
-                ) : (
-                  <span className="photo-picker-placeholder">
-                    <span className="photo-picker-icon" aria-hidden="true">
-                      +
-                    </span>
-                    Add a photo
-                  </span>
-                )}
-              </label>
-              <input
-                id="photo-input"
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handleFileChange}
-                className="sr-only"
-              />
-            </div>
-
-            <div className="field photo-modal-field">
-              <div className="photo-modal-label-row">
-                <label htmlFor="photo-caption" className="photo-modal-label">
-                  Caption
-                </label>
-                <small className="photo-modal-counter">{caption.length}/200</small>
-              </div>
-              <textarea
-                id="photo-caption"
-                maxLength={200}
-                value={caption}
-                onChange={(event) => setCaption(event.target.value)}
-                placeholder="Say something about this moment..."
-                className="photo-modal-textarea"
-              />
-            </div>
-
-            {composerStatus === "uploading" ? (
-              <div className="upload-progress-bar photo-modal-progress">
-                <div className="upload-progress-fill" style={{ width: `${uploadProgress}%` }} />
-              </div>
-            ) : null}
-
-            {composerError ? (
-              <div className="banner warn app-banner photo-modal-banner">
-                <div>
-                  <b>Couldn't post</b>
-                  {composerError}
-                </div>
-              </div>
-            ) : null}
-
-            <div className="photo-modal-actions">
-              <button className="photo-modal-secondary" type="button" onClick={closeComposer} disabled={composerStatus === "uploading"}>
-                Cancel
-              </button>
-              <button className="btn-primary photo-modal-submit" type="button" disabled={composerStatus === "uploading"} onClick={handlePost}>
-                {composerStatus === "uploading" ? `Uploading... ${uploadProgress}%` : "Post photo"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       {enlargedPhoto ? (
         <div className="photo-modal-overlay" role="dialog" aria-modal="true" onClick={() => setEnlargedPhotoId(null)}>
