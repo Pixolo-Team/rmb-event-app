@@ -74,7 +74,7 @@ export type FeedPhotoData = {
 };
 
 const TUTORIAL_STORAGE_KEY = "evento:first-time-tutorial-seen";
-export const TEMP_BYPASS_LOGIN = false;
+export const TEMP_BYPASS_LOGIN = true;
 
 const DEMO_ATTENDEE: AttendeeMe = {
   id: "demo-attendee",
