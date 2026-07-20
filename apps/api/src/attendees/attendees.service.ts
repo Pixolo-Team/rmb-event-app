@@ -240,11 +240,16 @@ export class AttendeesService {
   }
 
   async getProfileOptions() {
-    const [businessCategories, cities, chapters] = await Promise.all([
+    const [businessCategories, offeringOptions, cities, chapters] = await Promise.all([
       this.prisma.businessCategoryOption.findMany({
         where: { active: true },
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
         select: { name: true },
+      }),
+      this.prisma.offeringOption.findMany({
+        where: { active: true, category: { active: true } },
+        orderBy: [{ category: { sortOrder: "asc" } }, { sortOrder: "asc" }, { name: "asc" }],
+        select: { name: true, category: { select: { name: true } } },
       }),
       this.prisma.cityOption.findMany({
         where: { active: true },
@@ -258,8 +263,14 @@ export class AttendeesService {
       }),
     ]);
 
+    const offeringsByCategory = offeringOptions.reduce<Record<string, string[]>>((grouped, option) => {
+      (grouped[option.category.name] ??= []).push(option.name);
+      return grouped;
+    }, {});
+
     return {
       businessCategories: businessCategories.map((option) => option.name),
+      offeringsByCategory,
       cities: cities.map((city) => ({ ...city, value: this.cityValue(city) })),
       chapters: chapters.map((chapter) => chapter.name),
       lookingFor: LOOKING_FOR_TAGS,

@@ -35,11 +35,25 @@ model Chapter {
 }
 
 model BusinessCategoryOption {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  active    Boolean  @default(true)
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
+  id        String           @id @default(uuid())
+  name      String           @unique
+  active    Boolean          @default(true)
+  sortOrder Int              @default(0)
+  createdAt DateTime         @default(now())
+  offerings OfferingOption[]
+}
+
+model OfferingOption {
+  id         String                 @id @default(uuid())
+  name       String
+  category   BusinessCategoryOption @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String
+  active     Boolean                @default(true)
+  sortOrder  Int                    @default(0)
+  createdAt  DateTime               @default(now())
+
+  @@unique([categoryId, name])
+  @@index([categoryId, active, sortOrder])
 }
 
 model CityOption {

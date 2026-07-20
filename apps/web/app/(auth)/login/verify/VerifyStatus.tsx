@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { withCsrfHeaders } from "../../../lib/csrf";
+import { profileCache } from "../../../lib/profileCache";
 
 const inFlightVerifications = new Map<string, Promise<Response>>();
 
@@ -41,11 +42,14 @@ export function VerifyStatus() {
           router.replace("/login?expired=1");
           return;
         }
+        // A magic link may switch attendees on a shared device. Discard cached
+        // identity/Home data before routing under the newly issued session.
+        profileCache.clear();
         if (!body.attendee?.profileCompletedAt) {
           router.replace("/onboarding");
           return;
         }
-        router.replace("/tutorial");
+        router.replace("/home");
       })
       .catch(() => {
         if (!cancelled) router.replace("/login?expired=1");

@@ -14,22 +14,25 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 **Purpose:** Attendee answers questions about themselves to set up a profile before the event
 
 **States:**
-- **Default:** Form displayed with business-category/looking-for/offering/goals/bio/LinkedIn/website empty; name, email, phone, business/profession name, chapter and photo already filled in (read-only) from registration
+- **Responsive shell:** top-anchored, full-height content with safe-area spacing and no card chrome on handheld widths; the bordered card remains vertically centered on desktop
+- **Step 1 — About you:** read-only registration details followed by the required database-backed City field
+- **Step 2 — Your business:** Business Category followed immediately by Offering
+- **Step 3 — Networking goals:** Looking For, Goals and optional Bio, followed by profile save
 - **Loading:** Spinner on "Submit" button; fields disabled while saving
 - **Success:** "Profile saved!" confirmation → auto-redirect to PWA install prompt
 - **Error:** "Something went wrong. Please try again." (with retry button)
 - **Validation Error:** Red border on required fields; message: "This field is required"
 
 **User Interactions:**
-- Tap business category dropdown → open dropdown picker (single select — e.g., Manufacturer, Trader/Distributor, Service Provider, Retailer, Professional)
-- Search/select City from the database-backed `City, State/UT` suggestions (required; pre-filled if the import file provided a valid or preserved legacy value)
-- Tap "Looking for" dropdown → open multi-select checklist overlay (shared business-type taxonomy with Offering — e.g. Real Estate Builders, Interior Designer, Digital Marketing); selected items shown in the closed field
-- Tap "Offering" dropdown → open multi-select checklist overlay (same business-type taxonomy as Looking for); selected items shown in the closed field
-- Tap "Goals" tags → open tag selector (multi-select)
+- Search/select City from the app-styled, keyboard-accessible combobox populated by database-backed `City, State/UT` options (required; pre-filled if the import file provided a valid or preserved legacy value)
+- Tap Continue → validate the current step before advancing; tap Back → return without losing entered values
+- Search/select Business Category in a database-backed single-select combobox (for example, Technology)
+- Offering appears immediately below Business Category. It stays disabled until a category is selected, then shows a searchable multi-checkbox list containing only active offerings mapped to that category. Selected offerings remain visible as removable selections.
+- Tap "Looking for" dropdown → open its searchable multi-select checklist; selected items remain visible in the closed field
+- Tap "Goals" dropdown → open the searchable multi-select checklist
 - Type in "Bio" text field (optional, 200 char max)
-- Type in "LinkedIn URL" and "Website URL" fields — both optional (F4.7), grouped last under an "Add your links (optional)" heading so they never read as blockers on the under-a-minute path; validated on blur/submit, not per keystroke
 - Tap "Submit" button → validate & submit
-- Tap "Skip for now" → move to PWA install prompt without saving; profile stays incomplete, so the attendee is routed back to this form on their next login
+- Profile setup cannot be skipped; the attendee must complete all required steps and save before continuing to the install prompt
 
 **Navigation:**
 - **Comes from:** Login / Get Access Link (2.0) — first-time attendee lands here after their email magic link is verified and no completed profile exists
@@ -37,11 +40,10 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 
 **Data Needed to Display:**
 - Pre-filled and read-only, from registration: name, email, phone, business/profession name, RMB chapter (if any), photo (initials avatar shown if no photo on file)
-- LinkedIn URL and website URL, pre-filled and **editable** if the import file supplied them (F1.1's optional column mapping); empty otherwise
-- Business category options (dropdown list — the only categorization field; no separate "industry" field, to avoid asking the same thing twice)
+- Active business category options from the database, exposed as a searchable single-select (the only categorization field; no separate industry field)
+- Active offering options mapped to the selected business category, exposed directly below it as a searchable multi-checkbox list
 - Active city options from the nationwide database catalogue, displayed as `City, State/UT` with type-ahead/search suggestions
-- "Looking for" dropdown options (multi-select, shared business-type taxonomy with Offering)
-- "Offering" dropdown options (multi-select, same taxonomy as Looking for)
+- "Looking for" options from the matching-interest taxonomy
 - "Goals" tag options (multi-select)
 
 **Edge Cases:**
@@ -52,12 +54,8 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 - Network fails mid-submit → show "Saving..." and retry when online
 - User fills only required fields and submits → save successfully, move forward
 - User fills all fields and submits → save and show success state
+- User changes Business Category after selecting offerings → warn that incompatible offerings will be cleared, then load the new category's offering options after confirmation
 - Registration photo failed to upload / file corrupted → treat as no photo, initials avatar used everywhere; no blocking error shown to attendee
-- LinkedIn/website left blank → valid, submit proceeds; the profile is complete without them and no reminder or nag is shown later
-- Bare host typed ("acme.in", "linkedin.com/in/radha") → accepted, normalized to `https://` on save, no error
-- Malformed URL → inline error on that field only ("Enter a valid link, e.g. https://acme.in"); the rest of the form is retained
-- Non-LinkedIn URL in the LinkedIn field → inline error "That doesn't look like a LinkedIn URL"; the value is not silently moved to the website field
-- Imported LinkedIn/website value is malformed → keep it as the field's starting value and flag on blur, so the attendee can fix the organizer's data rather than being blocked by it
 
 ---
 
@@ -65,6 +63,8 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 
 **Module:** Onboarding  
 **Purpose:** Offer attendee to install the PWA app on their home screen for offline access
+
+**Layout:** Profile save opens installation as a modal over the completed onboarding flow rather than a separate top-aligned page. It is centered on tablet/desktop and presented as a bottom-positioned modal on small phones. The primary Install action uses the standard full-width primary-button treatment; the secondary action is a quiet text button.
 
 **States:**
 - **Default:** "Install Evento" button visible with app icon and description
@@ -90,6 +90,7 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 - Supported browsers list (for manual install instructions)
 
 **Edge Cases:**
+- Attendee with `profileCompletedAt` revisits `/onboarding` → redirect directly to Home; never show the onboarding form or install prompt again
 - Browser doesn't support PWA install → show "Add to home screen" instructions instead
 - App already installed → skip this screen automatically
 - User dismisses install prompt in native dialog → show "Manual instructions" fallback
@@ -104,26 +105,27 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 **Purpose:** Confirm profile completion and set expectations for next steps (before event)
 
 **States:**
-- **Default:** Confirmation message with next steps
+- **Default:** centered confirmation with an animated success tick and design-system primary action
+- **Installed:** primary action is "Open app"
+- **Not installed / install dismissed:** primary action is "Install Evento" with "Continue in browser" as the fallback
 - **Loading:** (N/A)
 
 **User Interactions:**
-- Tap "View my matches" → go to Pre-Event Matches (1.4)
-- Tap "Open app" → launch PWA if installed
-- Tap "Done" → close screen, return to browser home
+- Tap "Open app" → enter the tutorial when running as an installed PWA
+- Tap "Install Evento" → reopen the install modal when the app is not installed
+- Tap "Continue in browser" → enter the tutorial without requiring installation
 
 **Navigation:**
 - **Comes from:** Profile Setup Form (1.1) or PWA Install Prompt (1.2)
-- **Leads to:** Pre-Event Matches Screen (1.4) or closes
+- **Leads to:** First-time Tutorial (2.12), then Home
 
 **Data Needed to Display:**
-- Confirmation message: "Your profile is set up!"
-- Pre-event info: "Matches are ready. See you at the event!"
-- CTA buttons
+- Animated design-system success tick and "Your profile is set up" confirmation
+- Installed state and the corresponding Open App / Install Evento / Continue in browser actions
 
 **Edge Cases:**
-- User hasn't installed app yet → encourage installation with "Open app" button disabled
-- User already has app installed → show "Open app" button active
+- User hasn't installed app or dismissed the native prompt → show an active Install Evento action plus Continue in browser; never leave the attendee at a disabled dead end
+- User already has app installed → skip Screen 1.2 and show "Open app" as the primary completion action
 - User bookmarks this page → remind them to install app later
 
 ---
@@ -195,19 +197,21 @@ Evento has no passwords and no WhatsApp messaging vendor — the group link is t
 
 1. Attendee enters their **email** on this screen.
 2. Server looks up that email against imported/profile records (case-insensitive exact match).
-3. **Regardless of whether it matched**, the UI shows the same neutral message: *"If that email is on the guest list, we've sent you a link."* This is deliberate — it stops someone from using this screen to discover who is or isn't registered for the event (email/phone enumeration).
+3. If the email does not match, the UI says: *"We couldn't find this email. Try the email used during registration, or contact the event organizer."* **Pilot decision (2026-07-20):** this intentionally trades strict account-enumeration resistance for recovery and clarity in the closed, invite-only attendee flow. Per-email and per-IP rate limits remain in place to constrain automated probing.
 4. If it matched, the server issues a **single-use, signed token good for 30 minutes** and emails a link containing it.
 5. Attendee opens the email, taps the link, and lands in the app already authenticated — the token is exchanged for a normal session and then immediately invalidated (can't be reused or forwarded). **Routing after auth:** no completed profile → Profile Setup (1.1, first-time onboarding); completed profile → Home (2.1).
 
-**This is also the answer to "what if someone enters another attendee's email":** it doesn't get *them* in. The link is only ever delivered to the inbox on file for that record — typing in someone else's email just sends *that person* a link, it never grants the person typing it any access. Combined with the neutral response in step 3 and rate limiting (see below), this closes both the impersonation and the enumeration concern with the same mechanism.
+**This is also the answer to "what if someone enters another attendee's email":** it doesn't get *them* in. The link is only ever delivered to the inbox on file for that record — typing in someone else's email just sends *that person* a link, it never grants the person typing it any access. Rate limiting constrains repeated lookup attempts; the pilot accepts that the explicit unknown-email response can reveal whether one address is registered.
 
 **States:**
+- **Existing valid session:** completed profile → redirect to Home; incomplete profile → redirect to onboarding without showing the login form
 - **Default:** Email input + "Send me a link" button
 - **Sending:** Button shows spinner, disabled
-- **Sent (always shown on submit, match or not):** "Check your email — if that address is on the guest list, a link is on its way." + "Didn't get it? Resend in 60s" (countdown, then re-enabled)
+- **Not registered:** "We couldn't find this email. Try the email used during registration, or contact the event organizer." The email remains editable for immediate retry.
+- **Sent:** "Check your email — a link is on its way." + "Didn't get it? Resend in 60s" (countdown, then re-enabled)
 - **Rate-limited:** "Too many attempts. Try again in [X] minutes." (max ~5 sends/hour per email, ~3/hour per requesting device)
 - **Link expired or already used:** On landing from an old/reused link → "This link has expired. Request a new one." → back to default state
-- **No email on file:** Not a distinct state (would leak registration status) — falls under the same neutral "sent" message
+- **No email on file:** handled by the explicit Not registered state with retry and organizer guidance
 
 **User Interactions:**
 - Type email → tap "Send me a link"
@@ -223,7 +227,7 @@ Evento has no passwords and no WhatsApp messaging vendor — the group link is t
 
 **Edge Cases:**
 - Attendee's registered email has a typo from the registration form itself (not catchable by Evento) → staff-assisted lookup is the only recourse (see Check-In Management, 3.4)
-- Attendee fat-fingers their email at login → neutral "sent" message either way; no error state that confirms a typo vs. non-registration, by design
+- Attendee fat-fingers their email at login → explicit not-registered message prompts an immediate correction or organizer contact
 - Attendee spams the resend button → rate limit kicks in with a clear cooldown message, not a silent failure
 - Link opened on a different device than it was requested from → still works; the token isn't bound to a device, only to the attendee record and a 30-minute window
 - Import's two raw "Email Address" columns from the registration form (Google-account-captured vs. the form question) disagree → admin import flags the row for manual review rather than silently picking one (see Screen 3.3)
@@ -259,6 +263,7 @@ centered and width-capped on tablets, never boxed in a bordered card. Same struc
 phone to iPad; only the band padding and heading size grow at wider viewports.
 
 **States:**
+- **Initial uncached load:** dashboard-shaped skeleton matching the greeting, status, primary action, progress and people sections; no generic Loading label or map-pin illustration
 - **Locating:** Full-page blue band, "Finding the venue…" — brief (up to 5s), not a bare spinner floating alone
 - **Arrived (not yet confirmed):** Full-page green band, "You've arrived", body has a "Check in" button — check-in is deliberately **not** automatic; the attendee taps to confirm. (Revised from the original silent-auto-checkin design — see Edge Cases.)
 - **Checked In:** Full-page green band, "Checked in at 9:15 AM", body shows name/company and "Show this screen at the registration counter" — this is the proof-of-check-in screen, by design (no QR here; that's a different feature, F4's own-QR display)
@@ -844,14 +849,15 @@ and keeps the whole check-in experience on one URL.
 **Module:** Settings  
 **Purpose:** Let the attendee edit their own card on a dedicated form page, reached from the Edit Profile button on 2.11.
 
-**Editable vs read-only:** editable fields are **exactly the ones onboarding collects** (Screen 1.1) plus photo. Since onboarding now collects LinkedIn and website (US1.6), those two are editable here by the same rule rather than as exceptions to it. Registered details are read-only — changing them is an organizer action, because CSV import dedups on phone+email.
+**Editable vs read-only:** editable fields include the fields onboarding collects plus photo. LinkedIn and website are F4.7 additions to this edit screen and are not part of the current onboarding flow. Registered details are read-only — changing them is an organizer action, because CSV import dedups on phone+email.
 
 | Field | Editable? |
 |---|---|
 | Photo | ✅ upload / replace / remove (F4.6) |
 | Business category | ✅ dropdown, validated against active reference data (PF8) |
 | City | ✅ searchable, validated against active reference data (PF8) |
-| Looking for / Offering | ✅ multi-select, shared taxonomy |
+| Looking for | ✅ searchable multi-select from the matching-interest taxonomy |
+| Offering | ✅ searchable multi-select constrained by Business Category |
 | Networking goals | ✅ |
 | Bio | ✅ optional, character-capped |
 | LinkedIn URL | ✅ optional, URL-validated, linkedin.com host enforced, clearable (F4.7) |
