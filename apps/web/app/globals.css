@@ -558,6 +558,10 @@ p.copy {
   height: 88px;
   font-size: 2rem;
 }
+.ring.info.lg {
+  width: 54px;
+  height: 54px;
+}
 .center-state h2 {
   font-family: var(--font-display);
   font-weight: 800;
