@@ -1006,7 +1006,7 @@ p.copy {
   margin-top: auto;
 }
 .menu-bottom .powered-by-footer {
-  padding: 12px 12px 4px;
+  padding: 12px;
 }
 .menu-account {
   padding: 16px 12px max(16px, env(safe-area-inset-bottom));
@@ -1159,6 +1159,9 @@ p.copy {
   margin: 8px 0 0;
   color: var(--ink-muted);
   font-size: 0.92rem;
+}
+.page-heading {
+  padding: 4px 2px 0;
 }
 .status-grid {
   display: grid;
@@ -2723,7 +2726,7 @@ a.contact-row:active { background: var(--brand-100); }
 .matches-summary { display: flex; flex-wrap: wrap; gap: 5px; margin: 0 0 16px; color: var(--ink-faint); font-size: .76rem; }
 .matches-summary span + span::before { content: "·"; margin-right: 5px; }
 .matches-summary b { color: var(--ink); }
-.matches-list { display: grid; gap: 14px; }
+.matches-list { display: grid; gap: 20px; }
 .match-card { position: relative; padding: 18px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); box-shadow: 0 3px 14px rgba(22,50,84,.07); }
 .match-card.is-bookmarked { border-color: var(--brand-500); box-shadow: inset 4px 0 0 var(--brand-500), 0 4px 18px rgba(31,91,160,.14); }
 .match-rank { position: absolute; top: 0; left: 18px; transform: translateY(-50%); padding: 3px 9px; border-radius: var(--radius-pill); background: var(--brand-700); color: #fff; font-size: .72rem; font-weight: 800; }
@@ -3101,7 +3104,7 @@ a.contact-row:active { background: var(--brand-100); }
   line-height: 1.4;
 }
 .comment-bubble strong {
-  color: var(--brand-700);
+  color: var(--brand-400);
 }
 .icon-btn {
   display: inline-flex;
