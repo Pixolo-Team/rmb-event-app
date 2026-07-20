@@ -117,19 +117,20 @@ export function AttendeePageShell({ children }: { children: ReactNode }) {
   return (
     <div className="attendee-shell">
       <header className="full-page-header">
-        <div className="wordmark"><span className="dot" />RMBF Evento</div>
-        <div className="full-page-header-right">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/images/rmb-fellowship-logo.png"
-            alt="Rotary Means Business Fellowship"
-            className="app-topbar-brand"
-          />
-          <AttendeeMenu attendee={attendee} />
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/images/rmb-fellowship-logo.png"
+          alt="Rotary Means Business Fellowship"
+          className="app-topbar-brand"
+          width={50}
+          height={50}
+        />
+        <AttendeeMenu attendee={attendee} />
       </header>
-      {children}
-      <PoweredByFooter />
+      <div className="attendee-shell-content">
+        {children}
+        <PoweredByFooter />
+      </div>
       <AttendeeBottomTabs />
     </div>
   );

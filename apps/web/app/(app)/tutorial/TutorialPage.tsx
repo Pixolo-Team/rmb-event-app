@@ -380,8 +380,6 @@ export function TutorialPage() {
             </div>
             <p className="app-kicker">
               {view === "posts" && "Posts"}
-              {view === "people" && "People"}
-              {view === "wantToMeet" && "Want to Meet"}
               {view === "profile" && "Profile"}
             </p>
           </div>
@@ -390,6 +388,8 @@ export function TutorialPage() {
             src="/images/rmb-fellowship-logo.png"
             alt="Rotary Means Business Fellowship"
             className="app-topbar-brand"
+            width={50}
+            height={50}
           />
         </header> : null}
 
@@ -403,28 +403,31 @@ export function TutorialPage() {
         ) : null}
 
         {view === "posts" ? (
-          <FeedView
-            attendee={attendee}
-            photos={photos}
-            setPhotos={setPhotos}
-          />
+          <>
+            <FeedView
+              attendee={attendee}
+              photos={photos}
+              setPhotos={setPhotos}
+            />
+            <PoweredByFooter />
+          </>
         ) : null}
 
         {view === "people" ? (
           <main className="app-content">
-            <section className="settings-card">
+            <section className="page-heading">
               <h1 className="settings-title">People</h1>
               <p className="settings-copy">Browse attendees, bookmark, and connect.</p>
-              <div className="field" style={{ marginTop: 16 }}>
-                <label htmlFor="directory-search">Search attendees</label>
-                <input
-                  id="directory-search"
-                  placeholder="Name, city, company, chapter"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                />
-              </div>
             </section>
+            <div className="field">
+              <label htmlFor="directory-search">Search attendees</label>
+              <input
+                id="directory-search"
+                placeholder="Name, city, company, chapter"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </div>
 
             {filteredDirectory.length === 0 ? (
               <section className="feature-card">
@@ -449,7 +452,7 @@ export function TutorialPage() {
 
         {view === "wantToMeet" ? (
           <main className="app-content">
-            <section className="settings-card">
+            <section className="page-heading">
               <h1 className="settings-title">Want to Meet</h1>
               <p className="settings-copy">Your bookmarked attendees appear here.</p>
             </section>

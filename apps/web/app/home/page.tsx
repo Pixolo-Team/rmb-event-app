@@ -691,6 +691,7 @@ function DashboardMode({
 
         <PoweredByFooter />
       </main>
+      <AttendeeBottomTabs />
     </div>
   );
 }
@@ -766,6 +767,7 @@ function PreEventMode({
 
         <PoweredByFooter />
       </main>
+      <AttendeeBottomTabs />
     </div>
   );
 }
@@ -780,7 +782,7 @@ function EndedMode({
   online: boolean;
 }) {
   return (
-    <div className="full-page">
+    <div className="full-page attendee-tabbed-page">
       <PageHeader attendee={attendee} />
       <div className="full-page-band tone-success">
         <span className="ring ok lg">🎉</span>
@@ -805,6 +807,7 @@ function EndedMode({
 
         <PoweredByFooter />
       </div>
+      <AttendeeBottomTabs />
     </div>
   );
 }
@@ -824,19 +827,15 @@ function StatTile({ value, label, sub }: { value: React.ReactNode; label: string
 function PageHeader({ attendee }: { attendee: Attendee | null }) {
   return (
     <div className="full-page-header">
-      <div className="wordmark">
-        <span className="dot" />
-        RMBF Evento
-      </div>
-      <div className="full-page-header-right">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/images/rmb-fellowship-logo.png"
-          alt="Rotary Means Business Fellowship"
-          className="app-topbar-brand"
-        />
-        {attendee && <AttendeeMenu attendee={attendee} />}
-      </div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/images/rmb-fellowship-logo.png"
+        alt="Rotary Means Business Fellowship"
+        className="app-topbar-brand"
+        width={50}
+        height={50}
+      />
+      {attendee && <AttendeeMenu attendee={attendee} />}
     </div>
   );
 }

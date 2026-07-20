@@ -125,8 +125,8 @@ export default function DirectoryPage() {
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name or company" />
             {query && <button type="button" aria-label="Clear search" onClick={() => setQuery("")}>x</button>}
           </label>
-          <button className="filter-button" type="button" onClick={() => setFilterOpen(true)}>
-            <FilterIcon /> Filters {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
+          <button className="filter-button" type="button" onClick={() => setFilterOpen(true)} aria-label="Filters">
+            <FilterIcon /> <span className="filter-button-label">Filters</span> {activeFilterCount > 0 && <span className="filter-count">{activeFilterCount}</span>}
           </button>
         </div>
 
