@@ -17,6 +17,7 @@ interface AttendeePrefill {
   chapterName: string | null;
   city: string | null;
   businessCategory: string | null;
+  websiteUrl?: string | null;
   profileCompletedAt: string | null;
 }
 
@@ -34,6 +35,19 @@ function toggle(list: string[], value: string): string[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 }
 
+function normalizeWebsiteUrl(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const url = new URL(withProtocol);
+    if (!["http:", "https:"].includes(url.protocol) || !url.hostname.includes(".")) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 export function OnboardingFlow() {
   const router = useRouter();
   const { canInstall, isInstalled, promptInstall } = usePwaInstall();
@@ -49,6 +63,7 @@ export function OnboardingFlow() {
   const [offering, setOffering] = useState<string[]>([]);
   const [goals, setGoals] = useState<string[]>([]);
   const [bio, setBio] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -71,6 +86,7 @@ export function OnboardingFlow() {
         setAttendee(me);
         if (me.city) setCity(me.city);
         if (me.businessCategory) setBusinessCategory(me.businessCategory);
+        if (me.websiteUrl) setWebsiteUrl(me.websiteUrl);
         setOptions(await optionsRes.json());
         setStep("form");
       })
@@ -82,6 +98,10 @@ export function OnboardingFlow() {
     if (!businessCategory) errors.businessCategory = "Choose your business category";
     if (!city.trim() || !options?.cities.some((option) => option.value === city.trim())) {
       errors.city = "Choose a city from the list";
+    }
+    const normalizedWebsiteUrl = normalizeWebsiteUrl(websiteUrl);
+    if (websiteUrl.trim() && !normalizedWebsiteUrl) {
+      errors.websiteUrl = "Enter a valid website link";
     }
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
@@ -100,6 +120,7 @@ export function OnboardingFlow() {
           offering,
           goals,
           bio: bio || undefined,
+          websiteUrl: normalizedWebsiteUrl || undefined,
         }),
       }));
       if (!res.ok) {
@@ -330,6 +351,20 @@ export function OnboardingFlow() {
             <label htmlFor="bio">Bio (optional)</label>
             <textarea id="bio" maxLength={200} rows={3} value={bio} onChange={(e) => setBio(e.target.value)} />
           </div>
+          <div className="field">
+            <label htmlFor="websiteUrl">Website link (optional)</label>
+            <input
+              id="websiteUrl"
+              type="url"
+              value={websiteUrl}
+              onChange={(e) => {
+                setWebsiteUrl(e.target.value);
+                setFieldErrors(({ websiteUrl: _drop, ...rest }) => rest);
+              }}
+              placeholder="https://yourwebsite.com"
+            />
+            {fieldErrors.websiteUrl && <div className="hint err">{fieldErrors.websiteUrl}</div>}
+          </div>
         </section>
       )}
 
@@ -385,12 +420,11 @@ function CityCombobox({
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const normalizedQuery = value.trim().toLowerCase();
-  const visibleOptions = options
-    .filter((option) => {
-      if (!normalizedQuery || options.some((candidate) => candidate.value === value)) return true;
-      return `${option.name} ${option.stateOrUt}`.toLowerCase().includes(normalizedQuery);
-    })
-    .slice(0, 12);
+  const selectedKnownCity = options.some((candidate) => candidate.value === value);
+  const visibleOptions = options.filter((option) => {
+    if (!normalizedQuery || selectedKnownCity) return true;
+    return `${option.name} ${option.stateOrUt}`.toLowerCase().includes(normalizedQuery);
+  });
 
   function chooseCity(nextValue: string) {
     onChange(nextValue);

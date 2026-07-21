@@ -13,6 +13,7 @@ type PublicProfileData = {
   phone: string;
   photoUrl: string | null;
   linkedInUrl: string | null;
+  websiteUrl?: string | null;
 };
 
 function getInitials(name: string) {
@@ -116,6 +117,11 @@ export function PublicProfile({ id }: { id: string }) {
           <a className="btn-primary" href={`tel:${profile.phone}`} style={{ marginTop: 0 }}>
             Call {profile.phone}
           </a>
+          {profile.websiteUrl ? (
+            <a className="btn-secondary" href={profile.websiteUrl} target="_blank" rel="noopener noreferrer">
+              Visit Website
+            </a>
+          ) : null}
           {profile.linkedInUrl ? (
             <a className="btn-secondary" href={profile.linkedInUrl} target="_blank" rel="noopener noreferrer">
               View LinkedIn
