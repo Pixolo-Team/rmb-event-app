@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Html5Qrcode } from "html5-qrcode";
 import { AttendeePageShell } from "../components/AttendeePageShell";
+import { PoweredByFooter } from "../components/PoweredByFooter";
 import { enqueueWrite, useOfflineSync } from "../lib/offlineQueue";
 import { withCsrfHeaders } from "../lib/csrf";
+import { trackEvent } from "../lib/gtag";
 
 type ScanApiResult =
   | { status: "not_found" }
@@ -52,6 +54,18 @@ export default function ScanPage() {
         }));
         if (!res.ok) throw new Error("scan failed");
         const data = (await res.json()) as ScanApiResult;
+        trackEvent("qr_scan_success", {
+          feature: "qr_scanner",
+          target_type: "attendee_qr",
+          success: data.status === "met" || data.status === "already_met",
+        });
+        if (data.status === "met") {
+          trackEvent("meeting_created", {
+            feature: "qr_scanner",
+            target_type: "meeting",
+            success: true,
+          });
+        }
         if (data.status === "self") showResult({ kind: "self" });
         else if (data.status === "not_found") showResult({ kind: "not_found" });
         else showResult({ kind: data.status, id: data.attendee.id, name: data.attendee.name, businessName: data.attendee.businessName });
@@ -83,7 +97,21 @@ export default function ScanPage() {
             // per-frame "no QR in view" — expected, not surfaced
           },
         )
-        .catch(() => setCameraError(true));
+        .then(() => {
+          trackEvent("qr_scan_started", {
+            feature: "qr_scanner",
+            target_type: "attendee_qr",
+            success: true,
+          });
+        })
+        .catch(() => {
+          trackEvent("qr_scan_started", {
+            feature: "qr_scanner",
+            target_type: "attendee_qr",
+            success: false,
+          });
+          setCameraError(true);
+        });
     });
 
     return () => {
@@ -102,7 +130,7 @@ export default function ScanPage() {
   }
 
   return (
-    <AttendeePageShell>
+    <AttendeePageShell showFooter={false}>
       <main className="attendee-page scan-page">
         <div className="scan-intro">
           <p className="copy">Point your camera at another attendee&rsquo;s QR to swap cards and log that you met.</p>
@@ -122,6 +150,8 @@ export default function ScanPage() {
 
           {outcome && <ResultCard outcome={outcome} onScanNext={scanNext} />}
         </div>
+
+        <PoweredByFooter />
       </main>
     </AttendeePageShell>
   );

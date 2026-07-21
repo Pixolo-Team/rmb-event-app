@@ -9,7 +9,7 @@ export interface HomeCacheAttendee {
 export interface HomeCacheCheckin {
   checkedIn: boolean;
   checkedInAt: string | null;
-  method: "GEOLOCATION" | "MANUAL" | "STAFF_QR" | null;
+  method: "GEOLOCATION" | "MANUAL" | "STAFF_QR" | "VENUE_QR" | null;
 }
 
 export interface HomeCacheEvent {

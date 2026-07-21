@@ -1,4 +1,5 @@
 import { AttendeeShellSkeleton } from "../components/AttendeeShellSkeleton";
+import { PageIntro } from "../components/PageIntro";
 import { MatchesSkeleton } from "./MatchesSkeleton";
 
 // Route-level loading boundary: Next renders this the instant the "Want to Meet"
@@ -8,7 +9,7 @@ export default function MatchesLoading() {
   return (
     <AttendeeShellSkeleton title="Want to Meet">
       <main className="attendee-page matches-page">
-        <p className="page-intro">Recommendations based on what you need and what others offer.</p>
+        <PageIntro>Recommendations based on what you need and what others offer.</PageIntro>
         <MatchesSkeleton />
       </main>
     </AttendeeShellSkeleton>

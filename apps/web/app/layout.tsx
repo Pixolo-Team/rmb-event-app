@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { RegisterServiceWorker } from "./RegisterServiceWorker";
+import { GoogleAnalytics } from "./components/GoogleAnalytics";
 
 export const metadata: Metadata = {
   title: "Evento",
@@ -21,6 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <GoogleAnalytics />
         <RegisterServiceWorker />
         {children}
       </body>

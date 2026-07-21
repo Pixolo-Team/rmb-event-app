@@ -6,6 +6,8 @@ import { CommentIcon } from "./icons";
 import { PoweredByFooter } from "./PoweredByFooter";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { getCsrfToken, withCsrfHeaders } from "../../lib/csrf";
+import { trackEvent } from "../../lib/gtag";
+import { compressFeedImage } from "../../lib/imageCompression";
 type FeedPageResponse = {
   photos: FeedPhotoData[];
   nextCursor: string | null;
@@ -81,7 +83,7 @@ export function PostComposerModal({
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [caption, setCaption] = useState("");
-  const [composerStatus, setComposerStatus] = useState<"idle" | "uploading" | "error" | "success">("idle");
+  const [composerStatus, setComposerStatus] = useState<"idle" | "compressing" | "uploading" | "error" | "success">("idle");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [composerError, setComposerError] = useState<string | null>(null);
   const [closing, setClosing] = useState(false);
@@ -122,7 +124,7 @@ export function PostComposerModal({
   }
 
   function closeComposer() {
-    if (closing || composerStatus === "uploading") return;
+    if (closing || composerStatus === "compressing" || composerStatus === "uploading") return;
     setClosing(true);
     window.setTimeout(() => {
       resetComposer();
@@ -157,21 +159,38 @@ export function PostComposerModal({
       };
       setPhotos((current) => [newPhoto, ...current]);
       setComposerStatus("success");
+      trackEvent("photo_uploaded", {
+        feature: "feed",
+        target_type: "photo_post",
+        success: true,
+      });
       closeComposer();
       return;
     }
 
-    setComposerStatus("uploading");
+    setComposerStatus("compressing");
     setUploadProgress(0);
 
     try {
-      const created = await uploadPhotoWithProgress(selectedFiles, caption, setUploadProgress);
+      const compressedFiles = await Promise.all(selectedFiles.map((file) => compressFeedImage(file)));
+      setComposerStatus("uploading");
+      const created = await uploadPhotoWithProgress(compressedFiles, caption, setUploadProgress);
       setPhotos((current) => [created, ...current]);
       setComposerStatus("success");
+      trackEvent("photo_uploaded", {
+        feature: "feed",
+        target_type: "photo_post",
+        success: true,
+      });
       closeComposer();
     } catch {
       setComposerStatus("error");
       setComposerError("Couldn't upload the selected photos. Try again.");
+      trackEvent("photo_uploaded", {
+        feature: "feed",
+        target_type: "photo_post",
+        success: false,
+      });
     }
   }
 
@@ -179,12 +198,12 @@ export function PostComposerModal({
 
   return (
     <div
-      className={`photo-modal-overlay${closing ? " closing" : ""}`}
+      className={`photo-modal-overlay feed-composer-overlay${closing ? " closing" : ""}`}
       role="dialog"
       aria-modal="true"
       onClick={closeComposer}
     >
-      <div className="photo-modal-card" onClick={(event) => event.stopPropagation()}>
+      <div className="photo-modal-card feed-composer-card" onClick={(event) => event.stopPropagation()}>
         <div className="photo-modal-handle" aria-hidden="true" />
 
         <div className="photo-modal-header">
@@ -197,7 +216,7 @@ export function PostComposerModal({
             className="photo-modal-close"
             type="button"
             onClick={closeComposer}
-            disabled={composerStatus === "uploading"}
+            disabled={composerStatus === "compressing" || composerStatus === "uploading"}
             aria-label="Close share photos modal"
           >
             Close
@@ -265,12 +284,14 @@ export function PostComposerModal({
           </div>
         ) : null}
 
-        <div className="photo-modal-actions">
-          <button className="photo-modal-secondary" type="button" onClick={closeComposer} disabled={composerStatus === "uploading"}>
+        <div className="photo-modal-actions feed-composer-actions">
+          <button className="photo-modal-secondary" type="button" onClick={closeComposer} disabled={composerStatus === "compressing" || composerStatus === "uploading"}>
             Cancel
           </button>
-          <button className="btn-primary photo-modal-submit" type="button" disabled={composerStatus === "uploading"} onClick={handlePost}>
-            {composerStatus === "uploading"
+          <button className="btn-primary photo-modal-submit" type="button" disabled={composerStatus === "compressing" || composerStatus === "uploading"} onClick={handlePost}>
+            {composerStatus === "compressing"
+              ? "Preparing photos..."
+              : composerStatus === "uploading"
               ? `Uploading... ${uploadProgress}%`
               : selectedFiles.length > 0
                 ? `Post ${selectedFiles.length} photo${selectedFiles.length === 1 ? "" : "s"}`
@@ -596,14 +617,14 @@ export function FeedView({
 
       {enlargedPhoto ? (
         <div
-          className={`photo-modal-overlay${enlargedClosing ? " closing" : ""}`}
+          className={`photo-modal-overlay feed-preview-overlay${enlargedClosing ? " closing" : ""}`}
           role="dialog"
           aria-modal="true"
           onClick={closeEnlarged}
         >
-          <div className="photo-modal-card" onClick={(event) => event.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-              <button className="icon-action" type="button" onClick={closeEnlarged}>
+          <div className="photo-modal-card feed-preview-card" onClick={(event) => event.stopPropagation()}>
+            <div className="feed-preview-close-row">
+              <button className="icon-action feed-preview-close" type="button" onClick={closeEnlarged}>
                 Close
               </button>
             </div>
@@ -618,13 +639,13 @@ export function FeedView({
               )}
             </div>
 
-            <p className="person-name" style={{ marginTop: 12 }}>
-              {enlargedPhoto.attendeeName}
-            </p>
-            {enlargedPhoto.caption ? <p className="person-bio">{enlargedPhoto.caption}</p> : null}
-            <p className="person-line muted">{formatTimestamp(enlargedPhoto.createdAt)}</p>
+            <div className="feed-preview-meta">
+              <p className="person-name">{enlargedPhoto.attendeeName}</p>
+              {enlargedPhoto.caption ? <p className="person-bio">{enlargedPhoto.caption}</p> : null}
+              <p className="person-line muted">{formatTimestamp(enlargedPhoto.createdAt)}</p>
+            </div>
 
-            <div className="comment-list" style={{ marginTop: 16 }}>
+            <div className="comment-list feed-preview-comments">
               {enlargedPhoto.comments.map((comment) => (
                 <div key={comment.id} className="comment-item">
                   <strong>{comment.name}</strong> {comment.message}

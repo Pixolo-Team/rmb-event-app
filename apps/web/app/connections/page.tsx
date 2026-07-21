@@ -4,18 +4,13 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { DirectoryAvatar } from "../components/DirectoryAvatar";
+import { PageIntro } from "../components/PageIntro";
 import { BookmarkConnection, Connection, ConnectionsResponse, connectionsCache } from "../lib/connectionsCache";
 import { SaveContactButton } from "../components/SaveContactButton";
 import { BookmarkButton } from "../components/BookmarkButton";
 import { withCsrfHeaders } from "../lib/csrf";
 
 type SortOption = "recent" | "name";
-
-const PREVIEW_DATA: ConnectionsResponse = { connections: [
-  { id: "preview-1", name: "Aarav Mehta", phone: "+919810012345", email: "aarav@example.com", businessName: "Mehta Packaging Solutions", businessCategory: "Manufacturing", bio: "Helping growing brands switch to sustainable packaging without increasing production costs.", tableNumber: "12", photoUrl: null, linkedInUrl: "https://www.linkedin.com/in/aarav-mehta", met: true, metAt: "2026-07-16T09:42:00.000Z", note: "Interested in eco-friendly packaging. Follow up next week." },
-  { id: "preview-2", name: "Neha Kapoor", phone: "+919820067890", email: "neha@example.com", businessName: "Kapoor Digital", businessCategory: "Marketing & Advertising", bio: "Performance marketing and brand strategy for founder-led businesses.", tableNumber: "7", photoUrl: null, linkedInUrl: null, met: true, metAt: "2026-07-16T08:25:00.000Z", note: "" },
-  { id: "preview-3", name: "Vikram Shah", phone: "+919930054321", email: "vikram@example.com", businessName: "Shah Industrial Systems", businessCategory: "Engineering", bio: null, tableNumber: "18", photoUrl: null, linkedInUrl: null, met: true, metAt: "2026-07-16T07:50:00.000Z", note: "Met near registration desk." },
-], bookmarks: [{ id: "preview-4", name: "Priya Nair", phone: "+919840011223", email: "priya@example.com", businessName: "Nair Advisory", businessCategory: "Consulting", bio: "Growth and operations advisor for family businesses.", tableNumber: "5", photoUrl: null, linkedInUrl: "https://www.linkedin.com/in/priya-nair", met: false, bookmarkedAt: "2026-07-16T09:55:00.000Z", bookmarked: true, chapterName: "Mumbai Central", city: "Mumbai" }] };
 
 export default function ConnectionsPage() {
   const [data, setData] = useState<ConnectionsResponse | null>(null);
@@ -26,12 +21,6 @@ export default function ConnectionsPage() {
   const [tab, setTab] = useState<"met" | "want">("met");
 
   useEffect(() => {
-    const preview = process.env.NODE_ENV !== "production" && new URLSearchParams(window.location.search).get("preview") === "1";
-    if (preview) {
-      setData(PREVIEW_DATA);
-      setLoading(false);
-      return;
-    }
     const cached = connectionsCache.get();
     if (cached) {
       setData(cached);
@@ -74,7 +63,7 @@ export default function ConnectionsPage() {
     <AttendeePageShell>
       <main className="attendee-page connections-page">
         <div className="page-context-row">
-          <p className="page-intro">People whose QR code you’ve scanned.</p>
+          <PageIntro>People whose QR code you’ve scanned.</PageIntro>
           <span className="connections-count">{tab === "met" ? connections.length : bookmarks.length}</span>
         </div>
 

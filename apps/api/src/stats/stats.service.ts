@@ -33,7 +33,7 @@ type AdminOverview = {
     feedbackResponses: number;
     feedbackAverage: number;
   };
-  breakdown: Record<"GEOLOCATION" | "MANUAL" | "STAFF_QR", number>;
+  breakdown: Record<"GEOLOCATION" | "MANUAL" | "STAFF_QR" | "VENUE_QR", number>;
   topConnectors: {
     id: string;
     rank: number;
@@ -117,7 +117,7 @@ export class StatsService {
 
     const checkedInCount = checkedIns.length;
     const checkedInIds = new Set(checkedIns.map((checkIn) => checkIn.attendeeId));
-    const breakdown = { GEOLOCATION: 0, MANUAL: 0, STAFF_QR: 0 } as Record<"GEOLOCATION" | "MANUAL" | "STAFF_QR", number>;
+    const breakdown = { GEOLOCATION: 0, MANUAL: 0, STAFF_QR: 0, VENUE_QR: 0 } as Record<"GEOLOCATION" | "MANUAL" | "STAFF_QR" | "VENUE_QR", number>;
     for (const checkIn of checkedIns) breakdown[checkIn.method]++;
 
     const engagedCheckedIn = new Set<string>();

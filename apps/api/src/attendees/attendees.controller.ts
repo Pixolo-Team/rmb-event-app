@@ -19,6 +19,7 @@ import type { Express, Response } from "express";
 import { AttendeesService } from "./attendees.service";
 import { ResolveOnboardingDto } from "./dto/resolve-onboarding.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
+import { UpdateLinksDto } from "./dto/update-links.dto";
 import { SessionService } from "../session/session.service";
 import { SessionGuard, RequestWithAttendee } from "../session/session.guard";
 import { avatarUploadOptions } from "./avatar-upload.config";
@@ -76,6 +77,7 @@ export class AttendeesController {
       goals: attendee.goals,
       bio: attendee.bio,
       linkedInUrl: attendee.linkedInUrl,
+      websiteUrl: attendee.websiteUrl,
       // The caller's OWN signed QR token, for rendering their business-card QR
       // (F4.1, Screen 2.11). Only ever returned for `me` — getDirectoryProfile
       // strips qrToken so it is never exposed for other attendees.
@@ -112,6 +114,15 @@ export class AttendeesController {
   async updateProfile(@Req() req: RequestWithAttendee, @Body() dto: UpdateProfileDto) {
     const attendee = await this.attendees.updateProfile(req.attendeeId, dto);
     return { status: "ok", profileCompletedAt: attendee.profileCompletedAt };
+  }
+
+  // Partial edit of the optional profile links (e.g. the /profile website editor),
+  // without re-sending the full onboarding profile.
+  @Patch("me/links")
+  @UseGuards(SessionGuard)
+  async updateLinks(@Req() req: RequestWithAttendee, @Body() dto: UpdateLinksDto) {
+    const links = await this.attendees.updateLinks(req.attendeeId, dto);
+    return { status: "ok", ...links };
   }
 
   @Get()

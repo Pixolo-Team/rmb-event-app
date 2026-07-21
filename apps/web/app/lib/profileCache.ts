@@ -14,6 +14,7 @@ export interface MyProfile {
   photoUrl: string | null;
   city: string | null;
   businessCategory: string | null;
+  websiteUrl?: string | null;
   tableNumber: string | null;
   lookingFor: string[];
   offering: string[];

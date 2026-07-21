@@ -64,6 +64,7 @@ export class MatchCacheService {
         chapterName: candidate.chapter?.name ?? null, tableNumber: candidate.tableNumber,
         photoUrl: candidate.photoUrl, checkedIn: Boolean(candidate.checkIn),
         phone: candidate.phone, linkedInUrl: candidate.linkedInUrl,
+        websiteUrl: candidate.websiteUrl,
         bookmarked: candidate.bookmarksOnMe.length > 0,
         met: metIds.has(candidate.id),
         score: match.score, reasons: match.reasons, headline: match.headline,

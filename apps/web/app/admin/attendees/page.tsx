@@ -16,7 +16,7 @@ type AdminAttendee = {
   profileCompletedAt: string | null;
   deletedAt: string | null;
   checkedInAt: string | null;
-  checkInMethod: "GEOLOCATION" | "MANUAL" | "STAFF_QR" | null;
+  checkInMethod: "GEOLOCATION" | "MANUAL" | "STAFF_QR" | "VENUE_QR" | null;
 };
 
 type LoadState = "loading" | "ready" | "error";

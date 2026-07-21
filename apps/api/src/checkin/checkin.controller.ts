@@ -2,6 +2,7 @@ import { Body, Controller, Get, Post, Req, UseGuards } from "@nestjs/common";
 import { CheckinService } from "./checkin.service";
 import { GeolocationCheckinDto } from "./dto/geolocation-checkin.dto";
 import { QrScanCheckinDto } from "./dto/qr-scan-checkin.dto";
+import { VenueCheckinDto } from "./dto/venue-checkin.dto";
 import { SessionGuard, RequestWithAttendee } from "../session/session.guard";
 import { AdminGuard } from "../admin-auth/admin.guard";
 import { RateLimit } from "../common/rate-limit/rate-limit.decorator";
@@ -23,6 +24,13 @@ export class CheckinController {
   @RateLimit(20)
   async manual(@Req() req: RequestWithAttendee) {
     return this.checkin.checkInManual(req.attendeeId);
+  }
+
+  @Post("checkin/venue-qr")
+  @UseGuards(SessionGuard, RateLimitGuard)
+  @RateLimit(20)
+  async venueQr(@Req() req: RequestWithAttendee, @Body() dto: VenueCheckinDto) {
+    return this.checkin.checkInByVenueQr(req.attendeeId, dto.token);
   }
 
   @Get("checkin/me")

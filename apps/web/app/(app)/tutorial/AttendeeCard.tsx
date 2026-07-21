@@ -1,7 +1,7 @@
 "use client";
 
 import type { DirectoryAttendee } from "./TutorialPage";
-import { BookmarkIcon, CheckIcon, LinkedInIcon, PhoneIcon, ShareIcon } from "./icons";
+import { BookmarkIcon, CheckIcon, LinkedInIcon, PhoneIcon, ShareIcon, WebsiteIcon } from "./icons";
 
 export function getInitials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -70,6 +70,22 @@ export function AttendeeActions({
           <LinkedInIcon />
         </a>
       ) : null}
+      {person.websiteUrl ? (
+        <a
+          className="icon-btn"
+          href={person.websiteUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Website"
+          title="Website"
+        >
+          <WebsiteIcon />
+        </a>
+      ) : (
+        <button className="icon-btn" type="button" disabled aria-label="No website" title="No website">
+          <WebsiteIcon />
+        </button>
+      )}
       <button
         className="icon-btn"
         type="button"
