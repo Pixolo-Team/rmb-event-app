@@ -7,6 +7,7 @@ import { BookmarkButton } from "../components/BookmarkButton";
 import { DirectoryAvatar } from "../components/DirectoryAvatar";
 import { PageIntro } from "../components/PageIntro";
 import { type BookmarkConnection, connectionsCache } from "../lib/connectionsCache";
+import { trackEvent } from "../lib/gtag";
 import { matchesCache, type MatchesResponse, type MatchSuggestion } from "../lib/matchesCache";
 import { MatchesSkeleton } from "./MatchesSkeleton";
 
@@ -149,7 +150,7 @@ function BookmarkMatchCard({ person, onBookmark }: { person: BookmarkConnection;
   return (
     <article className="match-card is-bookmarked">
       <span className="match-saved-label">Saved</span>
-      <Link className="match-person" href={`/attendees/${person.id}`}>
+      <Link className="match-person" href={`/attendees/${person.id}`} onClick={() => trackMatchOpen("saved")}>
         <DirectoryAvatar name={person.name} photoUrl={person.photoUrl} />
         <div>
           <h2>{person.name}{person.met && <span className="met-badge">Met</span>}</h2>
@@ -163,7 +164,7 @@ function BookmarkMatchCard({ person, onBookmark }: { person: BookmarkConnection;
         {person.linkedInUrl && <a className="icon-btn" href={person.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${person.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /></a>}
       </div>
       <div className="match-explanation"><span className="match-spark">✦</span><div><b>Saved to Want to Meet</b><p>Keep this attendee handy so you can reconnect during the event.</p></div></div>
-      <div className="match-card-footer"><span>Saved {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(person.bookmarkedAt))}</span>{person.tableNumber && <span>Table {person.tableNumber}</span>}<Link href={`/attendees/${person.id}`}>View profile →</Link></div>
+      <div className="match-card-footer"><span>Saved {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(person.bookmarkedAt))}</span>{person.tableNumber && <span>Table {person.tableNumber}</span>}<Link href={`/attendees/${person.id}`} onClick={() => trackMatchOpen("saved")}>View profile →</Link></div>
     </article>
   );
 }
@@ -181,7 +182,7 @@ function MatchCard({ match, rank, onBookmark }: { match: MatchSuggestion; rank: 
   return (
     <article className={`match-card${match.bookmarked ? " is-bookmarked" : ""}`}>
       <div className="match-rank">#{rank}</div>
-      <Link className="match-person" href={`/attendees/${match.id}`}>
+      <Link className="match-person" href={`/attendees/${match.id}`} onClick={() => trackMatchOpen("recommendation")}>
         <DirectoryAvatar name={match.name} photoUrl={match.photoUrl} />
         <div>
           <h2>{match.name}{match.met && <span className="met-badge">Met</span>}</h2>
@@ -197,9 +198,17 @@ function MatchCard({ match, rank, onBookmark }: { match: MatchSuggestion; rank: 
         <button className="icon-btn" type="button" onClick={shareMatch} aria-label={`Share ${match.name}`} title="Share"><ShareIcon /></button>
       </div>
       <div className="match-explanation"><span className="match-spark">✦</span><div><b>Why you should meet</b><p>{match.headline}</p></div></div>
-      <div className="match-card-footer">{match.checkedIn ? <span className="match-present">At the event</span> : <span>Not checked in yet</span>}{match.tableNumber && <span>Table {match.tableNumber}</span>}<Link href={`/attendees/${match.id}`}>View profile →</Link></div>
+      <div className="match-card-footer">{match.checkedIn ? <span className="match-present">At the event</span> : <span>Not checked in yet</span>}{match.tableNumber && <span>Table {match.tableNumber}</span>}<Link href={`/attendees/${match.id}`} onClick={() => trackMatchOpen("recommendation")}>View profile →</Link></div>
     </article>
   );
+}
+
+function trackMatchOpen(source: "recommendation" | "saved") {
+  trackEvent("match_opened", {
+    feature: "matches",
+    target_type: source,
+    success: true,
+  });
 }
 
 function MatchState({ title, body, profileAction, directoryAction }: { title: string; body: string; profileAction?: boolean; directoryAction?: boolean }) {
