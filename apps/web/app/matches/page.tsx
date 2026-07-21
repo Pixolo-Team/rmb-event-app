@@ -165,20 +165,41 @@ function PersonRow({
 }) {
   return (
     <li className="wtm-row">
-      <Link className="wtm-row-main" href={`/attendees/${id}`} onClick={() => trackMatchOpen(source)}>
-        <DirectoryAvatar name={name} photoUrl={photoUrl} />
-        <span className="wtm-row-text">
-          <span className="wtm-row-name">
-            {name}
-            {met && <span className="met-badge">Met</span>}
-            {checkedIn && <span className="wtm-here">Here</span>}
+      <div className="wtm-row-top">
+        <Link className="wtm-row-main" href={`/attendees/${id}`} onClick={() => trackMatchOpen(source)}>
+          <DirectoryAvatar name={name} photoUrl={photoUrl} />
+          <span className="wtm-row-text">
+            <span className="wtm-row-name">
+              {name}
+              {met && <span className="met-badge">Met</span>}
+              {checkedIn && <span className="wtm-here">Here</span>}
+            </span>
+            {sub && <span className="wtm-row-sub">{sub}</span>}
           </span>
-          {sub && <span className="wtm-row-sub">{sub}</span>}
-          {reason && <span className="wtm-row-reason"><span className="match-spark" aria-hidden="true">✦</span> {reason}</span>}
-        </span>
-      </Link>
-      <BookmarkButton attendeeId={id} initialBookmarked={initialBookmarked} compact onChange={onBookmark} />
+        </Link>
+        <BookmarkButton attendeeId={id} initialBookmarked={initialBookmarked} compact onChange={onBookmark} />
+      </div>
+      {reason && (
+        <div className="wtm-row-reason">
+          <span className="match-spark" aria-hidden="true">✦</span>
+          <span><ReasonText text={reason} /></span>
+        </div>
+      )}
     </li>
+  );
+}
+
+// Bolds the leading "Offers:" / "Looking for:" label (matching.service.ts's
+// buildHeadline always puts one of these at the start when present) so it reads
+// as a label, not just more sentence text.
+function ReasonText({ text }: { text: string }) {
+  const match = text.match(/^(Offers|Looking for):\s*/);
+  if (!match) return <>{text}</>;
+  return (
+    <>
+      <strong>{match[0]}</strong>
+      {text.slice(match[0].length)}
+    </>
   );
 }
 

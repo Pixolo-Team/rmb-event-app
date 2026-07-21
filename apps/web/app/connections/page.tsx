@@ -123,7 +123,6 @@ function ConnectionCard({ connection, offline, onNote, onRemove }: { connection:
     </Link>
     <div className="connection-details">
       {connection.businessCategory && <span>{connection.businessCategory}</span>}
-      {connection.bio && <p>{connection.bio}</p>}
     </div>
     {connection.note && !editing && <div className="connection-note"><div><b>Private note</b><button type="button" disabled={offline} onClick={() => setEditing(true)}>Edit</button></div><p>{connection.note}</p></div>}
     {!connection.note && !editing && <button className="connection-add-note" type="button" disabled={offline} onClick={() => setEditing(true)}>+ Add private note</button>}

@@ -7,9 +7,7 @@ import { AttendeeBottomTabs, AttendeeMenu, type MenuAttendee } from "./AttendeeM
 import { InstallBanner } from "./InstallBanner";
 import { PoweredByFooter } from "./PoweredByFooter";
 import { RotaryLoader } from "./RotaryLoader";
-import { profileCache, type MyProfile } from "../lib/profileCache";
-
-const PROFILE_REVALIDATE_MS = 60_000;
+import { loadMyProfile, profileCache, type MyProfile } from "../lib/profileCache";
 
 const PAGE_TITLES: Record<string, string> = {
   "/home": "Home",
@@ -32,8 +30,6 @@ function pageTitle(pathname: string) {
 }
 
 let cachedMenuAttendee: MenuAttendee | null = null;
-let lastProfileRevalidatedAt = 0;
-let profileRequest: Promise<MyProfile | "login" | "onboarding" | null> | null = null;
 
 function toMenuAttendee(profile: MyProfile): MenuAttendee {
   return {
@@ -42,32 +38,6 @@ function toMenuAttendee(profile: MyProfile): MenuAttendee {
     chapterName: profile.chapterName,
     photoUrl: profile.photoUrl,
   };
-}
-
-function loadProfile() {
-  if (!profileRequest) {
-    lastProfileRevalidatedAt = Date.now();
-    profileRequest = fetch("/api/attendees/me", { credentials: "include" })
-      .then(async (response) => {
-        if (response.status === 401 || response.status === 403) {
-          profileCache.clear();
-          cachedMenuAttendee = null;
-          return "login" as const;
-        }
-        if (!response.ok) return null;
-
-        const me = (await response.json()) as MyProfile;
-        profileCache.set(me);
-        cachedMenuAttendee = me.profileCompletedAt ? toMenuAttendee(me) : null;
-        return me.profileCompletedAt ? me : "onboarding";
-      })
-      .catch(() => null)
-      .finally(() => {
-        profileRequest = null;
-      });
-  }
-
-  return profileRequest;
 }
 
 export function AttendeePageShell({
@@ -100,26 +70,30 @@ export function AttendeePageShell({
       setAttendee(cachedAttendee);
     }
 
-    const recentlyChecked = cachedAttendee && Date.now() - lastProfileRevalidatedAt < PROFILE_REVALIDATE_MS;
-    if (recentlyChecked) return;
-
     // Cache-first keeps tab navigation instant, while the background check still
-    // catches real sign-outs or onboarding redirects.
-    loadProfile().then((result) => {
+    // catches real sign-outs or onboarding redirects. loadMyProfile is shared
+    // with pages that need the full profile (Profile, Feed) — its own
+    // dedup/throttle means this resolves with zero network calls when another
+    // consumer already fetched within the last minute, instead of every
+    // consumer firing its own request.
+    loadMyProfile().then(({ status, profile }) => {
       if (cancelled) return;
 
-      if (result === "login") {
+      if (status === 401 || status === 403) {
+        profileCache.clear();
+        cachedMenuAttendee = null;
         router.replace("/login");
         return;
       }
 
-      if (result === "onboarding") {
-        router.replace("/onboarding");
-        return;
-      }
-
-      if (result) {
-        setAttendee(toMenuAttendee(result));
+      if (profile) {
+        if (!profile.profileCompletedAt) {
+          router.replace("/onboarding");
+          return;
+        }
+        const nextAttendee = toMenuAttendee(profile);
+        cachedMenuAttendee = nextAttendee;
+        setAttendee(nextAttendee);
         return;
       }
 
