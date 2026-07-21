@@ -574,6 +574,9 @@ function PreEventTop({ event, startMs }: { event: CachedVenueConfig | null; star
       <h2 className="home-preevent-name">{name}</h2>
       {event?.startAt && <p className="home-preevent-date">{formatEventDate(event.startAt)}</p>}
       {withinCountdown && startMs !== null && <Countdown ms={Math.max(0, startMs - now)} />}
+      <Link className="home-preevent-details-link" href="/event">
+        View event details
+      </Link>
     </section>
   );
 }

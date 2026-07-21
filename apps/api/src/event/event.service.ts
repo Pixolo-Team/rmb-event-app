@@ -61,7 +61,10 @@ export class EventService {
         ...(dto.endAt !== undefined && { endAt: nextEndAt }),
         ...(dto.venueLat !== undefined && { venueLat: dto.venueLat }),
         ...(dto.venueLng !== undefined && { venueLng: dto.venueLng }),
+        ...(dto.venueAddress !== undefined && { venueAddress: dto.venueAddress?.trim() || null }),
         ...(dto.checkinRadiusM !== undefined && { checkinRadiusM: dto.checkinRadiusM }),
+        ...(dto.contactName !== undefined && { contactName: dto.contactName?.trim() || null }),
+        ...(dto.contactPhone !== undefined && { contactPhone: dto.contactPhone?.trim() || null }),
       },
     });
   }

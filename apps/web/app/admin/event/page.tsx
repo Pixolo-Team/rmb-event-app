@@ -14,7 +14,10 @@ interface EventSettings {
   endAt: string | null;
   venueLat: number | null;
   venueLng: number | null;
+  venueAddress: string | null;
   checkinRadiusM: number;
+  contactName: string | null;
+  contactPhone: string | null;
 }
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -26,7 +29,10 @@ export default function AdminEventSettingsPage() {
   const [endAt, setEndAt] = useState("");
   const [venueLat, setVenueLat] = useState("");
   const [venueLng, setVenueLng] = useState("");
+  const [venueAddress, setVenueAddress] = useState("");
   const [checkinRadiusM, setCheckinRadiusM] = useState(500);
+  const [contactName, setContactName] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [testResult, setTestResult] = useState<string | null>(null);
@@ -41,7 +47,10 @@ export default function AdminEventSettingsPage() {
         setEndAt(toDatetimeLocalValue(data.endAt));
         setVenueLat(data.venueLat?.toString() ?? "");
         setVenueLng(data.venueLng?.toString() ?? "");
+        setVenueAddress(data.venueAddress ?? "");
         setCheckinRadiusM(data.checkinRadiusM);
+        setContactName(data.contactName ?? "");
+        setContactPhone(data.contactPhone ?? "");
       });
   }, []);
 
@@ -67,7 +76,10 @@ export default function AdminEventSettingsPage() {
       setEndAt(toDatetimeLocalValue(data.endAt));
       setVenueLat(data.venueLat?.toString() ?? "");
       setVenueLng(data.venueLng?.toString() ?? "");
+      setVenueAddress(data.venueAddress ?? "");
       setCheckinRadiusM(data.checkinRadiusM);
+      setContactName(data.contactName ?? "");
+      setContactPhone(data.contactPhone ?? "");
       setSaveState("saved");
       setTimeout(() => setSaveState("idle"), 2500);
     } catch {
@@ -101,7 +113,10 @@ export default function AdminEventSettingsPage() {
       endAt: toIsoValue(endAt),
       venueLat: lat,
       venueLng: lng,
+      venueAddress: venueAddress.trim() || null,
       checkinRadiusM,
+      contactName: contactName.trim() || null,
+      contactPhone: contactPhone.trim() || null,
     });
   }
 
@@ -205,6 +220,39 @@ export default function AdminEventSettingsPage() {
           value={venueLng}
           onChange={(e) => setVenueLng(e.target.value)}
         />
+      </div>
+
+      <div className="field">
+        <label htmlFor="venueAddress">Venue address</label>
+        <input
+          id="venueAddress"
+          placeholder="e.g. Taj Palace, 2 Sardar Patel Marg, New Delhi"
+          value={venueAddress}
+          onChange={(e) => setVenueAddress(e.target.value)}
+        />
+        <div className="hint">Shown to attendees on the Event Details page.</div>
+      </div>
+
+      <div className="field">
+        <label htmlFor="contactName">Contact person name</label>
+        <input
+          id="contactName"
+          placeholder="e.g. Priya Sharma"
+          value={contactName}
+          onChange={(e) => setContactName(e.target.value)}
+        />
+      </div>
+
+      <div className="field">
+        <label htmlFor="contactPhone">Contact person phone</label>
+        <input
+          id="contactPhone"
+          type="tel"
+          placeholder="e.g. +91 98765 43210"
+          value={contactPhone}
+          onChange={(e) => setContactPhone(e.target.value)}
+        />
+        <div className="hint">Attendees can tap to call this number from the Event Details page.</div>
       </div>
 
       <div className="field">
