@@ -41,11 +41,40 @@ export default function AttendeeProfilePage({ params }: { params: { id: string }
       <main className="attendee-page profile-page">
         <Link className="back-link" href="/directory">← Back to directory</Link>
         {offlineResult && <div className="banner info"><div><b>Showing saved profile</b>You’re offline. Details may be slightly out of date.</div></div>}
-        {loading && <div className="profile-skeleton" role="status">Loading profile…</div>}
+        {loading && <ProfileSkeleton />}
         {!loading && error && !profile && <div className="directory-state"><h1>Can’t load profile</h1><p>Check your connection and try again.</p></div>}
         {profile && <ProfileContent profile={profile} />}
       </main>
     </AttendeePageShell>
+  );
+}
+
+function ProfileSkeleton() {
+  return (
+    <div className="profile-skeleton" role="status" aria-label="Loading profile" aria-busy="true">
+      <section className="profile-hero">
+        <span className="skeleton-block profile-skeleton-avatar" />
+        <div className="profile-skeleton-hero-lines">
+          <span className="skeleton-block profile-skeleton-title" />
+          <span className="skeleton-block profile-skeleton-line" />
+          <span className="skeleton-block profile-skeleton-line short" />
+        </div>
+      </section>
+      <div className="profile-actions">
+        <span className="skeleton-block profile-skeleton-action" />
+        <span className="skeleton-block profile-skeleton-action" />
+        <span className="skeleton-block profile-skeleton-action" />
+      </div>
+      <div className="profile-details-grid">
+        {[0, 1, 2, 3].map((item) => (
+          <section className="profile-section" key={item}>
+            <span className="skeleton-block profile-skeleton-heading" />
+            <span className="skeleton-block profile-skeleton-line" />
+            <span className="skeleton-block profile-skeleton-line short" />
+          </section>
+        ))}
+      </div>
+    </div>
   );
 }
 

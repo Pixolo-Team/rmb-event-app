@@ -11,7 +11,7 @@ export class MatchCacheService {
 
   async recomputeFor(viewerId: string) {
     const rows = await this.prisma.attendee.findMany({
-      where: { profileCompletedAt: { not: null } },
+      where: { profileCompletedAt: { not: null }, deletedAt: null },
       include: { chapter: { select: { name: true } } },
     });
     const viewer = rows.find((row) => row.id === viewerId);
@@ -39,18 +39,18 @@ export class MatchCacheService {
     if (force || !newest || Date.now() - newest.computedAt.getTime() > CACHE_MAX_AGE_MS) await this.recomputeFor(viewerId);
 
     const [viewer, matches, totalAttendees, meetings] = await Promise.all([
-      this.prisma.attendee.findUnique({ where: { id: viewerId }, select: { profileCompletedAt: true } }),
+      this.prisma.attendee.findUnique({ where: { id: viewerId }, select: { profileCompletedAt: true, deletedAt: true } }),
       this.prisma.matchCache.findMany({
-        where: { viewerId }, orderBy: [{ score: "desc" }, { candidate: { name: "asc" } }], take: 10,
+        where: { viewerId, candidate: { deletedAt: null } }, orderBy: [{ score: "desc" }, { candidate: { name: "asc" } }], take: 10,
         include: { candidate: { include: { chapter: { select: { name: true } }, checkIn: { select: { createdAt: true } }, bookmarksOnMe: { where: { attendeeId: viewerId }, select: { targetId: true } } } } },
       }),
-      this.prisma.attendee.count({ where: { id: { not: viewerId }, profileCompletedAt: { not: null } } }),
+      this.prisma.attendee.count({ where: { id: { not: viewerId }, profileCompletedAt: { not: null }, deletedAt: null } }),
       this.prisma.meeting.findMany({
         where: { OR: [{ attendeeAId: viewerId }, { attendeeBId: viewerId }] },
         select: { attendeeAId: true, attendeeBId: true },
       }),
     ]);
-    if (!viewer) throw new NotFoundException("Attendee not found");
+    if (!viewer || viewer.deletedAt) throw new NotFoundException("Attendee not found");
     const metIds = new Set(
       meetings.map((meeting) => (meeting.attendeeAId === viewerId ? meeting.attendeeBId : meeting.attendeeAId)),
     );

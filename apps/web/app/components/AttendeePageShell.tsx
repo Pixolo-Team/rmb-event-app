@@ -2,11 +2,32 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { AttendeeBottomTabs, AttendeeMenu, type MenuAttendee } from "./AttendeeMenu";
 import { PoweredByFooter } from "./PoweredByFooter";
+import { RotaryLoader } from "./RotaryLoader";
 import { profileCache, type MyProfile } from "../lib/profileCache";
 
 const PROFILE_REVALIDATE_MS = 60_000;
+
+const PAGE_TITLES: Record<string, string> = {
+  "/home": "Home",
+  "/directory": "People",
+  "/matches": "Want to Meet",
+  "/profile": "Profile",
+  "/scan": "Scan",
+  "/connections": "My Connections",
+  "/feed": "Feed",
+  "/gallery": "Gallery",
+  "/leaderboard": "Leaderboard",
+  "/summary": "Event Summary",
+  "/feedback": "Feedback",
+};
+
+function pageTitle(pathname: string) {
+  if (pathname.startsWith("/attendees/")) return "Attendee Profile";
+  return PAGE_TITLES[pathname] ?? "Evento";
+}
 
 let cachedMenuAttendee: MenuAttendee | null = null;
 let lastProfileRevalidatedAt = 0;
@@ -26,7 +47,11 @@ function loadProfile() {
     lastProfileRevalidatedAt = Date.now();
     profileRequest = fetch("/api/attendees/me", { credentials: "include" })
       .then(async (response) => {
-        if (response.status === 401 || response.status === 403) return "login" as const;
+        if (response.status === 401 || response.status === 403) {
+          profileCache.clear();
+          cachedMenuAttendee = null;
+          return "login" as const;
+        }
         if (!response.ok) return null;
 
         const me = (await response.json()) as MyProfile;
@@ -45,7 +70,12 @@ function loadProfile() {
 
 export function AttendeePageShell({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const [attendee, setAttendee] = useState<MenuAttendee | null>(null);
+  const pathname = usePathname();
+  // Seed from the module-level cache so tab-to-tab navigation renders the shell
+  // (and the page's own skeleton) immediately instead of flashing the full-page
+  // loader. Safe against hydration mismatch: this cache is null on the server and
+  // on first hydration, and is only populated after a prior client-side mount.
+  const [attendee, setAttendee] = useState<MenuAttendee | null>(() => cachedMenuAttendee);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "production" && new URLSearchParams(window.location.search).get("preview") === "1") {
@@ -105,27 +135,32 @@ export function AttendeePageShell({ children }: { children: ReactNode }) {
   if (!attendee) {
     return (
       <main className="attendee-page">
-        <div className="directory-loading" role="status">Loading...</div>
+        <div className="directory-loading" role="status">
+          <RotaryLoader />
+          Loading...
+        </div>
       </main>
     );
   }
 
   return (
     <div className="attendee-shell">
-      <header className="full-page-header">
-        <div className="wordmark"><span className="dot" />RMBF Evento</div>
-        <div className="full-page-header-right">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/images/rmb-fellowship-logo.png"
-            alt="Rotary Means Business Fellowship"
-            className="app-topbar-brand"
-          />
-          <AttendeeMenu attendee={attendee} />
-        </div>
+      <header className="full-page-header attendee-app-header">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/images/rmb-fellowship-logo.png"
+          alt="Rotary Means Business Fellowship"
+          className="app-topbar-brand"
+          width={50}
+          height={50}
+        />
+        <h1 className="app-header-title">{pageTitle(pathname)}</h1>
+        <AttendeeMenu attendee={attendee} />
       </header>
-      {children}
-      <PoweredByFooter />
+      <div className="attendee-shell-content">
+        {children}
+        <PoweredByFooter />
+      </div>
       <AttendeeBottomTabs />
     </div>
   );

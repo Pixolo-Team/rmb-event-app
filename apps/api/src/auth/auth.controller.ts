@@ -35,6 +35,15 @@ export class AuthController {
       return { status: "rate_limited", retryAfterSeconds: result.retryAfterSeconds };
     }
 
+    if (result.kind === "not_registered") {
+      res.status(HttpStatus.NOT_FOUND);
+      return {
+        status: "not_registered",
+        message:
+          "We couldn't find this email. Try the email used during registration, or contact the event organizer.",
+      };
+    }
+
     return { status: "sent", devLink: result.devLink };
   }
 

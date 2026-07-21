@@ -105,8 +105,6 @@ export default function ScanPage() {
     <AttendeePageShell>
       <main className="attendee-page scan-page">
         <div className="scan-intro">
-          <p className="eyebrow">Networking</p>
-          <h1>Scan to connect</h1>
           <p className="copy">Point your camera at another attendee&rsquo;s QR to swap cards and log that you met.</p>
         </div>
 

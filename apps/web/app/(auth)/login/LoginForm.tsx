@@ -1,11 +1,19 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { withCsrfHeaders, getCsrfToken } from "../../lib/csrf";
+import { profileCache } from "../../lib/profileCache";
+import { RotaryLoader } from "../../components/RotaryLoader";
+import { PoweredByFooter } from "../../components/PoweredByFooter";
 
 export function LoginForm() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
-  const [state, setState] = useState<"idle" | "sending" | "sent" | "rate-limited" | "error">("idle");
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [state, setState] = useState<
+    "idle" | "sending" | "sent" | "not-registered" | "rate-limited" | "error"
+  >("idle");
 
   // Ensure the CSRF cookie exists before the user's first POST.
   // The cookie is set by API middleware, so we need at least one API round-trip.
@@ -14,6 +22,35 @@ export function LoginForm() {
       fetch("/api/attendees/profile-options").catch(() => {});
     }
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const cachedProfile = profileCache.get();
+    if (cachedProfile) {
+      router.replace(cachedProfile.profileCompletedAt ? "/home" : "/onboarding");
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    // With no local hint, show Login immediately and verify any cookie session
+    // in the background. The server remains authoritative for authentication.
+    setCheckingSession(false);
+    fetch("/api/attendees/me", { credentials: "include" })
+      .then(async (response) => {
+        if (cancelled) return;
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) profileCache.clear();
+          return;
+        }
+        const attendee: { profileCompletedAt?: string | null } = await response.json();
+        router.replace(attendee.profileCompletedAt ? "/home" : "/onboarding");
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
   const [message, setMessage] = useState<string | null>(null);
   const [devLink, setDevLink] = useState<string | null>(null);
 
@@ -39,6 +76,15 @@ export function LoginForm() {
         return;
       }
 
+      if (response.status === 404 && body.status === "not_registered") {
+        setState("not-registered");
+        setMessage(
+          bodyMessage ??
+            "We couldn't find this email. Try the email used during registration, or contact the event organizer.",
+        );
+        return;
+      }
+
       if (!response.ok) {
         setState("error");
         setMessage(bodyMessage ?? "Something went wrong. Please try again.");
@@ -54,11 +100,29 @@ export function LoginForm() {
     }
   }
 
+  if (checkingSession) {
+    return (
+      <div className="center-state">
+        <RotaryLoader />
+        <p>Checking your session&hellip;</p>
+      </div>
+    );
+  }
+
   return (
+    <>
     <div className="card">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/images/rmb-fellowship-logo.png"
+        alt="Rotary Means Business Fellowship"
+        className="login-brand"
+        width={72}
+        height={72}
+      />
       <div className="wordmark">
         <span className="dot" />
-        Evento
+        RMBF Evento
       </div>
       <h1 className="title">Get your access link</h1>
       <p className="copy">Enter the email you registered with. We&apos;ll send you a secure magic link.</p>
@@ -91,7 +155,15 @@ export function LoginForm() {
       {message ? (
         <div className={`banner ${state === "sent" ? "ok" : "warn"}`} style={{ marginTop: 18, marginBottom: 0 }}>
           <div>
-            <b>{state === "rate-limited" ? "Slow down" : state === "error" ? "Couldn't send it" : "Check your email"}</b>
+            <b>
+              {state === "rate-limited"
+                ? "Slow down"
+                : state === "not-registered"
+                  ? "Email not registered"
+                  : state === "error"
+                    ? "Couldn't send it"
+                    : "Check your email"}
+            </b>
             {message}
             {devLink ? (
               <>
@@ -104,6 +176,9 @@ export function LoginForm() {
           </div>
         </div>
       ) : null}
+
     </div>
+    <PoweredByFooter />
+    </>
   );
 }

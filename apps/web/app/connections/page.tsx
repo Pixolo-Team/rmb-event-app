@@ -73,8 +73,8 @@ export default function ConnectionsPage() {
   return (
     <AttendeePageShell>
       <main className="attendee-page connections-page">
-        <div className="page-heading-row">
-          <div><p className="eyebrow">Networking</p><h1>My Connections</h1><p>People whose QR code you’ve scanned.</p></div>
+        <div className="page-context-row">
+          <p className="page-intro">People whose QR code you’ve scanned.</p>
           <span className="connections-count">{tab === "met" ? connections.length : bookmarks.length}</span>
         </div>
 

@@ -37,7 +37,7 @@ export default function LeaderboardPage() {
   useEffect(() => { load(); const timer = window.setInterval(() => load(true), 10000); return () => window.clearInterval(timer); }, [load]);
 
   return <AttendeePageShell><main className="attendee-page leaderboard-page">
-    <div className="page-heading-row"><div><p className="eyebrow">Live rankings</p><h1>Leaderboard</h1><p>Every confirmed connection earns one point.</p></div><button className="leaderboard-refresh" type="button" onClick={() => load()} disabled={loading}>↻ Refresh</button></div>
+    <div className="page-context-row"><p className="page-intro">Every confirmed connection earns one point.</p><button className="leaderboard-refresh" type="button" onClick={() => load()} disabled={loading}>↻ Refresh</button></div>
     {offline && data && <div className="banner info"><div><b>Showing saved leaderboard</b>Last updated {formatTime(data.updatedAt)}.</div></div>}
     {data?.me && <section className="leaderboard-my-stat"><div><span>Your rank</span><strong>#{data.me.rank}</strong></div><div><span>People met</span><strong>{data.me.metCount}</strong></div><div><span>Attendees</span><strong>{data.totalAttendees}</strong></div></section>}
     {loading && !data && <div className="leaderboard-skeleton" role="status">Loading live rankings…</div>}

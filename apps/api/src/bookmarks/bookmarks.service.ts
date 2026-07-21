@@ -8,7 +8,7 @@ export class BookmarksService {
   async listForAttendee(attendeeId: string) {
     const [bookmarks, meetings] = await Promise.all([
       this.prisma.bookmark.findMany({
-        where: { attendeeId },
+        where: { attendeeId, target: { deletedAt: null } },
         orderBy: { createdAt: "desc" },
         include: {
           target: {
@@ -52,9 +52,9 @@ export class BookmarksService {
 
     const target = await this.prisma.attendee.findUnique({
       where: { id: targetId },
-      select: { id: true },
+      select: { id: true, deletedAt: true },
     });
-    if (!target) throw new NotFoundException("Attendee not found");
+    if (!target || target.deletedAt) throw new NotFoundException("Attendee not found");
 
     const existing = await this.prisma.bookmark.findUnique({
       where: {
@@ -88,8 +88,8 @@ export class BookmarksService {
 
   async set(attendeeId: string, targetId: string, bookmarked: boolean) {
     if (attendeeId === targetId) throw new BadRequestException("You can't bookmark yourself.");
-    const target = await this.prisma.attendee.findUnique({ where: { id: targetId }, select: { id: true } });
-    if (!target) throw new NotFoundException("Attendee not found");
+    const target = await this.prisma.attendee.findUnique({ where: { id: targetId }, select: { id: true, deletedAt: true } });
+    if (!target || target.deletedAt) throw new NotFoundException("Attendee not found");
 
     if (bookmarked) {
       await this.prisma.bookmark.upsert({

@@ -194,26 +194,28 @@ I want to tap the group link, sign in with my email, and answer a few quick ques
 So that I can get personalized match suggestions and not have to install an app first
 Acceptance Criteria:
 - Profile form opens in a mobile web view (does not require app install yet)
-- Fields: business category (database-backed dropdown — e.g., Manufacturer, Trader/Distributor, Service Provider, Retailer, Professional), city (searchable database-backed picker using `City, State/UT`), looking for (multi-select dropdown, shared business-type taxonomy — e.g. Real Estate Builders, Interior Designer, Digital Marketing), offering (multi-select dropdown, same taxonomy as looking for), goals (multi-select), optional free-text bio, optional LinkedIn URL, optional website URL (see US1.6). No separate "industry" field — business category is the only categorization field, and looking-for/offering tags carry the business-type detail so nothing is asked twice.
-- Form is under a minute to complete — 5–6 required-path fields plus up to three optional ones (bio, LinkedIn, website), which an attendee can leave untouched and submit past. Name, email, phone, business/profession name, chapter and photo are already known from registration and are pre-filled/read-only, not re-asked. City, business category, LinkedIn and website are asked here because the registration form does not capture them (if a future import file includes City/Category/LinkedIn/Website columns, they are imported and pre-filled instead)
-- The optional link fields are visually subordinate to the required ones (grouped last, under a "Add your links (optional)" heading) so they never read as blockers on the under-a-minute path
-- Validation: phone number and email already in system (auto-filled), name is required
-- After completion, user sees: "Great! Get suggestions by installing the app" → PWA install prompt
+- The form is a three-step flow with progress retained when moving Back/Continue: (1) About You — read-only registration details and database-backed City; (2) Your Business — Business Category followed immediately by its Offering multi-select; (3) Networking Goals — searchable multi-select dropdowns for Looking For and Goals, followed by optional Bio. Offering is disabled until a category is selected. Changing category after selecting offerings requires confirmation before incompatible selections are cleared. Back is presented as a left-arrow icon with a visible text label.
+- Form is under a minute to complete. Name, email, phone, business/profession name, chapter and photo are already known from registration and remain read-only. City and business category are required; offering, looking-for, goals and bio enrich matching. LinkedIn and website remain deferred to F4.7 rather than appearing in the current onboarding form.
+- Validation happens per step: City must match an active database option; Business Category must be active; Offering options come only from that category's active `OfferingOption` records.
+- After completion, profile save opens the PWA install modal unless the app is already running as an installed PWA
 - Profile is saved even if attendee doesn't install PWA
-- Tutorial video or walkthrough available (optional for attendees who want it)
+- Profile setup itself cannot be skipped; all required onboarding fields must be valid before the attendee can continue to the install prompt
+- Tutorial/walkthrough is deferred pending UX replanning; the current experience proceeds directly to Home
 ```
 
 **US1.4 - PWA install & first-time experience**
 ```
 As Radha (attendee)
 I want to install the Evento app on my home screen so I can use it offline
-And see a tutorial on my first open
-So that I know what to do at the event and don't have to figure it out on the day
+And enter the app directly after setup
+So that I can start using the event experience without an interim walkthrough
 Acceptance Criteria:
-- "Install" button uses native PWA install prompt (browsers that support it)
-- Fallback: "Add to home screen" instructions for older browsers
-- On first app open, auto-show 60-second tutorial: "Scan QR to meet people, check leaderboard, post photos"
-- Tutorial has skip button; re-accessible from settings
+- Installation is offered in a responsive modal: centered on tablet/desktop and bottom-positioned on small phones
+- "Install Evento" uses the native PWA prompt when supported; otherwise the modal explains the browser's "Add to Home Screen" action
+- Installation is optional after profile save: "Continue without installing" proceeds to the animated completion state
+- Completion detects installed/standalone mode: installed users see "Open app"; others see "Install Evento" plus "Continue in browser"
+- The tutorial is removed from the current release pending UX replanning; completed onboarding routes directly to Home
+- No tutorial entry point is shown in navigation or Settings during this deferred state
 - App is fully functional offline (directory, matches, and profiles load from cache)
 ```
 
@@ -231,9 +233,15 @@ Acceptance Criteria:
 - Attendee enters their email on the sign-up/login screen, and if it matches a
   registered attendee, a single-use signed link (30-minute expiry) is emailed to
   that address; first-time users land on profile setup, returning users land on Home
-- Response is identical whether or not the email matched ("If that email is on the
-  guest list, we've sent a link") — prevents using the login screen to check who is
-  registered
+- If the email does not match, show a clear not-registered message and direct the
+  attendee to retry with the registration email or contact the organizer. For this
+  closed pilot, recovery is prioritized over strict account-enumeration resistance;
+  per-email and per-IP rate limits remain required.
+- Unknown emails return `not_registered` with correction/organizer guidance. This
+  intentionally accepts limited account-enumeration exposure for the invite-only pilot;
+  per-email and per-IP rate limits remain the abuse control
+- Opening Login with a valid attendee session redirects immediately: completed profile
+  → Home, incomplete profile → Onboarding. Returning magic-link verification also lands on Home.
 - Rate limited (~5 sends/hour per email) to prevent inbox spam
 - Email is the only self-serve login channel — no WhatsApp-delivered login link
 - Entering someone else's email cannot grant access to their account — the
@@ -249,12 +257,10 @@ I want to add my LinkedIn profile and my business website to my card
 So that the people I meet can look me up properly instead of only having my phone number
 Acceptance Criteria:
 - Two new optional fields on the attendee record: LinkedIn URL and website URL.
-  Both are optional everywhere they appear — onboarding (US1.3), Edit Profile
-  (F4.5) and CSV import (US1.1). A profile with neither is complete and valid,
-  and nothing in the app gates on them
-- Enterable in three places: profile setup (Screen 1.1), Edit Profile
-  (Screen 2.11a), and optional import column mapping. Neither field is ever
-  required to submit any of those three
+  Both are optional everywhere they appear — Edit Profile (F4.5) and CSV import
+  (US1.1). They are deliberately deferred from current onboarding (US1.3), and
+  a profile with neither remains complete and valid.
+- Enterable through Edit Profile (Screen 2.11a) and optional import column mapping.
 - Validation on save: must be a syntactically valid http/https URL; a bare host
   ("acme.in", "linkedin.com/in/radha") is accepted and normalized to https://.
   LinkedIn additionally must be a linkedin.com host — anything else is rejected
@@ -637,12 +643,15 @@ Acceptance Criteria:
 **US7.1 - Attendee posts photo to event feed**
 ```
 As Radha (attendee)
-I want to take a selfie or upload a photo with a caption
+I want to select one or several event photos with a caption
 And share it with everyone at the event
 So that others can see who I am and feel more connected
 Acceptance Criteria:
 - "Post" button on the home feed
-- Tapping opens camera or photo library
+- Tapping opens the photo library with multi-select for up to 6 photos
+- Selected photos appear in a preview grid and publish together as one swipeable carousel post with one shared caption
+- Feed captions stay on one line by default and expose **Read more** when truncated
+- Like and Comment are compact icon actions; comments expand only after the Comment icon/count is selected
 - Photo editor: crop, brightness, optional filter
 - Caption field: up to 200 characters, emoji support
 - "Post" button publishes to the shared event feed
@@ -732,17 +741,13 @@ I want to see after the event ends:
 - How many people I met
 - How many cards I collected
 - A summary of my top connections
-- A link to download my connections list
 So that I have a record of the networking I did
 Acceptance Criteria:
 - Summary screen appears after event end time
 - Stats: "You met 7 people", "You collected 7 cards", "Your rank: 14th"
 - Top 5 connections list: name, company, phone, table number
 - "View all connections" link opens full list
-- "Download connections" button exports as CSV or vCard (for importing to contacts).
-  The CSV carries LinkedIn and website columns (US1.6) — empty for connections who
-  didn't add them
-- Attendee can share summary to WhatsApp
+- The summary remains focused on the recap, stats and top connections; bulk download/share actions are not surfaced on this screen
 ```
 
 **US9.2 - Post-event follow-up nudge (manual, via group)**
@@ -846,11 +851,12 @@ Acceptance Criteria:
 - Bottom tab bar is persistent and holds exactly four primary destinations, ordered:
   Home, People, Want to Meet, Profile
 - Each tab has a 44×44px minimum touch target, an icon plus a short label, and respects the device safe-area inset
-- The drawer holds only secondary destinations — Leaderboard, Event Summary, Give Feedback, Event Photos, Show My QR — with Sign Out visually separated at the bottom
+- The drawer holds only secondary destinations, ordered: Feed, Gallery, Leaderboard, Event Summary, Show My QR, Give Feedback; Feedback is last and Sign Out is visually separated at the bottom
 - No destination appears in both the tab bar and the drawer
-- Header shows a 44×44px menu trigger; drawer slides from the left and occupies at most 88% of a phone width / 360px
+- Header shows the RMB mark, a dynamically centered current-page title and a 44×44px menu trigger; page bodies do not repeat the page title
+- Drawer slides from the left and occupies at most 88% of a phone width / 360px
 - Scan QR is reachable in one tap from the primary navigation (proposed: a center FAB in the tab bar — OPEN, pending confirmation)
-- Current destination is visibly highlighted and programmatically marked in whichever system owns it
+- Current destination—including supported nested routes and query-driven states—is visibly highlighted and programmatically marked in whichever navigation surface owns it
 - Drawer close works through the close button, backdrop, Escape and Android/browser Back without leaving the current screen
 - Drawer traps focus while open, restores focus to its trigger, locks background scrolling and respects reduced motion
 - Navigation uses cached attendee identity offline; missing photos fall back to initials
@@ -901,15 +907,21 @@ START: Organizer has pre-registered attendees in CSV
   • Enter registered email → receive single-use magic link → tap to enter
   ↓
 [ATTENDEE: Complete Profile]
-  • Fill form: business category, looking for, offering, goals, optional bio
-  • Form validation: all required fields filled, phone is pre-filled
+  • Step 1: registration details + searchable database-backed City
+  • Step 2: Business Category → dependent searchable Offering multi-select
+  • Step 3: searchable Looking For + Goals multi-selects, optional bio
+  • Profile setup cannot be skipped
   • Submit → "Profile saved!"
   ↓
 [PWA INSTALL PROMPT]
-  • "Install Evento to unlock match suggestions and networking tools"
-  • Attendee can: Install Now | Install Later | Skip
-  • If Install: native PWA installer prompt (or "Add to home screen" instructions)
-  • If Skip: profile is saved; attendee can install later
+  • Responsive install modal; skipped automatically when already installed
+  • Native Install Evento prompt when supported; Add to Home Screen instructions otherwise
+  • Continue without installing remains available because profile setup is already complete
+  ↓
+[PROFILE COMPLETE]
+  • Animated success tick
+  • Installed: Open app
+  • Not installed/dismissed: Install Evento | Continue in browser
   ↓
 [SYSTEM: Pre-compute Matches (Day -3)]
   • For each attendee, calculate "People to Meet" list
@@ -1117,6 +1129,11 @@ END: Event data captured and reported
 - Image optimization: all user photos < 100 KB (auto-compressed on upload)
 - Lazy load: feed photos, non-critical components
 
+**Perceived Performance**
+- First-load data states use content-shaped loading skeletons (shimmering placeholders that mirror the target layout), not generic "Loading…" text or bare spinners. Applies to the home dashboard, matches, directory cards, feed posts and the individual attendee profile (Screen 2.3). See `DESIGN_SYSTEM.md` §Components and `SCREENS.md` per-screen loading states.
+- Tab/route navigation is instant: tapping any destination — bottom tabs (Home, People, Want to Meet, Profile) or side-drawer items (Feed, Gallery, Leaderboard, Event Summary, Feedback) — swaps to that screen's skeleton immediately (via route-level loading boundaries) rather than lingering on the previous screen while its code/data resolves, including on a route's first (uncached) visit. Persistent chrome (header, bottom tabs) stays in place across the transition.
+- On load failure the screen shows its error state rather than an indefinite skeleton.
+
 ### Security & Privacy
 
 **Data Storage & Protection**
@@ -1295,5 +1312,5 @@ Mapping original sticky-note brainstorm to decisions in this PRD, for transparen
 ---
 
 **Document prepared by:** Claude  
-**Last updated:** July 16, 2026  
+**Last updated:** July 21, 2026  
 **Next steps:** Design mockups, backend API spec, frontend component library

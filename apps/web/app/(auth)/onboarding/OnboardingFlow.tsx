@@ -6,6 +6,7 @@ import { usePwaInstall } from "./usePwaInstall";
 import { withCsrfHeaders } from "../../lib/csrf";
 
 type Step = "loading" | "form" | "install" | "thanks";
+type FormStep = 1 | 2 | 3;
 
 interface AttendeePrefill {
   id: string;
@@ -21,6 +22,7 @@ interface AttendeePrefill {
 
 interface ProfileOptions {
   businessCategories: readonly string[];
+  offeringsByCategory: Readonly<Record<string, readonly string[]>>;
   cities: readonly { value: string; name: string; stateOrUt: string }[];
   chapters: readonly string[];
   lookingFor: readonly string[];
@@ -34,9 +36,10 @@ function toggle(list: string[], value: string): string[] {
 
 export function OnboardingFlow() {
   const router = useRouter();
-  const { canInstall, promptInstall } = usePwaInstall();
+  const { canInstall, isInstalled, promptInstall } = usePwaInstall();
 
   const [step, setStep] = useState<Step>("loading");
+  const [formStep, setFormStep] = useState<FormStep>(1);
   const [attendee, setAttendee] = useState<AttendeePrefill | null>(null);
   const [options, setOptions] = useState<ProfileOptions | null>(null);
 
@@ -49,7 +52,6 @@ export function OnboardingFlow() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [profileSaved, setProfileSaved] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -62,6 +64,10 @@ export function OnboardingFlow() {
           return;
         }
         const me: AttendeePrefill = await meRes.json();
+        if (me.profileCompletedAt) {
+          router.replace("/home");
+          return;
+        }
         setAttendee(me);
         if (me.city) setCity(me.city);
         if (me.businessCategory) setBusinessCategory(me.businessCategory);
@@ -100,8 +106,7 @@ export function OnboardingFlow() {
         setSubmitError("Couldn't save your profile. Please try again.");
         return;
       }
-      setProfileSaved(true);
-      setStep("install");
+      setStep(isInstalled ? "thanks" : "install");
     } catch {
       setSubmitError("Couldn't reach the server. Check your connection and try again.");
     } finally {
@@ -109,9 +114,28 @@ export function OnboardingFlow() {
     }
   }
 
+  function continueForm() {
+    if (formStep === 1) {
+      if (!city.trim() || !options?.cities.some((option) => option.value === city.trim())) {
+        setFieldErrors((current) => ({ ...current, city: "Choose a city from the list" }));
+        return;
+      }
+      setFormStep(2);
+      return;
+    }
+
+    if (formStep === 2) {
+      if (!businessCategory) {
+        setFieldErrors((current) => ({ ...current, businessCategory: "Choose your business category" }));
+        return;
+      }
+      setFormStep(3);
+    }
+  }
+
   if (step === "loading") {
     return (
-      <div className="card">
+      <div className="card onboarding-card">
         <div className="wordmark">
           <span className="dot" />
           Evento
@@ -126,26 +150,25 @@ export function OnboardingFlow() {
 
   if (step === "install") {
     return (
-      <div className="card">
-        <div className="wordmark">
-          <span className="dot" />
-          Evento
-        </div>
-        <div className="center-state">
-          <div className="ring ok">📲</div>
-          <h2>Install Evento</h2>
-          <p>Add Evento to your home screen so it works offline and you don&rsquo;t have to hunt for a browser tab at the event.</p>
+      <div className="onboarding-install-overlay" role="presentation">
+        <div className="onboarding-install-dialog" role="dialog" aria-modal="true" aria-labelledby="install-evento-title">
+          <div className="onboarding-install-icon" aria-hidden="true">📲</div>
+          <div className="onboarding-install-copy">
+            <span className="onboarding-install-kicker">Profile complete</span>
+            <h2 id="install-evento-title">Install Evento</h2>
+            <p>Keep Evento one tap away and access essential event information even when connectivity is unreliable.</p>
+          </div>
           {canInstall ? (
-            <button className="btn-primary" style={{ width: "auto", padding: "0 24px" }} onClick={() => promptInstall().finally(() => setStep("thanks"))}>
+            <button className="btn-primary" onClick={() => promptInstall().finally(() => setStep("thanks"))}>
               Install now
             </button>
           ) : (
-            <p style={{ fontSize: ".78rem" }}>
-              Your browser doesn&rsquo;t support one-tap install here - use &ldquo;Add to Home Screen&rdquo; from your browser menu instead.
-            </p>
+            <div className="onboarding-install-help">
+              Open your browser menu and choose <strong>Add to Home Screen</strong> to install Evento.
+            </div>
           )}
-          <button className="link-muted" onClick={() => setStep("thanks")}>
-            Not now
+          <button className="onboarding-install-later" onClick={() => setStep("thanks")}>
+            Continue without installing
           </button>
         </div>
       </div>
@@ -154,31 +177,45 @@ export function OnboardingFlow() {
 
   if (step === "thanks") {
     return (
-      <div className="card">
+      <div className="card onboarding-card onboarding-success-card">
         <div className="wordmark">
           <span className="dot" />
           Evento
         </div>
-        <div className="center-state">
-          <div className="ring ok">✓</div>
-          <h2>Your profile is set up!</h2>
-          <p>
-            {profileSaved
-              ? "You can open the app now. The first-time tutorial will guide you through the basics."
-              : "See you at the event. If you skipped profile setup, we'll bring you back here on your next login."}
-          </p>
-          {profileSaved ? (
-            <button className="btn-primary" style={{ width: "auto", padding: "0 24px" }} onClick={() => router.push("/tutorial")}>
-              Open app
-            </button>
-          ) : null}
+        <div className="onboarding-success-content">
+          <div className="onboarding-success-tick" aria-hidden="true">
+            <svg viewBox="0 0 72 72">
+              <circle cx="36" cy="36" r="31" />
+              <path d="m22 36 9 9 19-21" />
+            </svg>
+          </div>
+          <span className="onboarding-success-kicker">All done</span>
+          <h1>Your profile is set up</h1>
+          <p>Your profile is ready. Start discovering people worth meeting.</p>
+
+          <div className="onboarding-success-actions">
+            {isInstalled ? (
+              <button className="btn-primary" onClick={() => router.push("/home")}>
+                Open app
+              </button>
+            ) : (
+              <>
+                <button className="btn-primary" onClick={() => setStep("install")}>
+                  Install Evento
+                </button>
+                <button className="onboarding-success-browser" onClick={() => router.push("/home")}>
+                  Continue in browser
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="card" style={{ maxWidth: 440 }}>
+    <div className="card onboarding-card" style={{ maxWidth: 440 }}>
       <div className="wordmark">
         <span className="dot" />
         Evento
@@ -186,82 +223,117 @@ export function OnboardingFlow() {
       <h1 className="title">Complete your profile</h1>
       <p className="copy">A few quick questions so we can suggest people worth meeting.</p>
 
-      <div className="field">
-        <label>Name</label>
-        <input value={attendee?.name ?? ""} disabled />
+      <div className="onboarding-progress" aria-label={`Step ${formStep} of 3`}>
+        {[1, 2, 3].map((number) => (
+          <span key={number} className={number <= formStep ? "active" : ""} />
+        ))}
       </div>
-      <div className="field">
-        <label>Business / profession</label>
-        <input value={attendee?.businessName ?? ""} disabled />
-      </div>
-      {attendee?.chapterName && (
-        <div className="field">
-          <label>RMB Chapter</label>
-          <input value={attendee.chapterName} disabled />
-        </div>
+      <div className="onboarding-step-label">Step {formStep} of 3</div>
+
+      {formStep === 1 && (
+        <section className="onboarding-step" aria-labelledby="onboarding-about-title">
+          <h2 id="onboarding-about-title">About you</h2>
+          <p>Confirm your registration details and tell us where you&rsquo;re based.</p>
+
+          <div className="field">
+            <label>Name</label>
+            <input value={attendee?.name ?? ""} disabled />
+          </div>
+          <div className="field">
+            <label>Business / profession</label>
+            <input value={attendee?.businessName ?? ""} disabled />
+          </div>
+          {attendee?.chapterName && (
+            <div className="field">
+              <label>RMB Chapter</label>
+              <input value={attendee.chapterName} disabled />
+            </div>
+          )}
+
+          <CityCombobox
+            options={options?.cities ?? []}
+            value={city}
+            error={fieldErrors.city}
+            onChange={(nextCity) => {
+              setCity(nextCity);
+              setFieldErrors(({ city: _drop, ...rest }) => rest);
+            }}
+          />
+        </section>
       )}
 
-      <div className="field" style={{ marginTop: 16 }}>
-        <label htmlFor="businessCategory">Business category</label>
-        <select
-          id="businessCategory"
-          value={businessCategory}
-          onChange={(e) => {
-            setBusinessCategory(e.target.value);
-            setFieldErrors(({ businessCategory: _drop, ...rest }) => rest);
-          }}
-        >
-          <option value="">Select your category</option>
-          {options?.businessCategories.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-        {fieldErrors.businessCategory && <div className="hint err">{fieldErrors.businessCategory}</div>}
-      </div>
+      {formStep === 2 && (
+        <section className="onboarding-step" aria-labelledby="onboarding-business-title">
+          <h2 id="onboarding-business-title">Your business</h2>
+          <p>Choose your category, then describe what you offer.</p>
 
-      <div className="field">
-        <label htmlFor="city">City</label>
-        <input
-          id="city"
-          list="indian-city-options"
-          maxLength={100}
-          placeholder="Search city or state/UT"
-          value={city}
-          onChange={(e) => {
-            setCity(e.target.value);
-            setFieldErrors(({ city: _drop, ...rest }) => rest);
-          }}
-        />
-        <datalist id="indian-city-options">
-          {options?.cities.map((option) => (
-            <option key={`${option.name}-${option.stateOrUt}`} value={option.value} />
-          ))}
-        </datalist>
-        {fieldErrors.city && <div className="hint err">{fieldErrors.city}</div>}
-      </div>
+          <div className="field">
+            <label htmlFor="businessCategory">Business category</label>
+            <select
+              id="businessCategory"
+              value={businessCategory}
+              onChange={(e) => {
+                const nextCategory = e.target.value;
+                const compatibleOfferings = options?.offeringsByCategory[nextCategory] ?? [];
+                const hasIncompatibleSelections = offering.some((item) => !compatibleOfferings.includes(item));
+                if (
+                  hasIncompatibleSelections &&
+                  !window.confirm("Changing category will clear offerings that do not belong to the new category. Continue?")
+                ) {
+                  return;
+                }
+                setBusinessCategory(nextCategory);
+                setOffering((current) => current.filter((item) => compatibleOfferings.includes(item)));
+                setFieldErrors(({ businessCategory: _drop, ...rest }) => rest);
+              }}
+            >
+              <option value="">Select your category</option>
+              {options?.businessCategories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            {fieldErrors.businessCategory && <div className="hint err">{fieldErrors.businessCategory}</div>}
+          </div>
 
-      <MultiSelectDropdown
-        label="Looking for"
-        options={options?.lookingFor ?? []}
-        selected={lookingFor}
-        onToggle={(v) => setLookingFor((s) => toggle(s, v))}
-      />
-      <MultiSelectDropdown
-        label="Offering"
-        options={options?.offering ?? []}
-        selected={offering}
-        onToggle={(v) => setOffering((s) => toggle(s, v))}
-      />
-      <TagField label="Goals" options={options?.goals ?? []} selected={goals} onToggle={(v) => setGoals((s) => toggle(s, v))} />
+          <MultiSelectDropdown
+            label="Offering"
+            options={options?.offeringsByCategory[businessCategory] ?? []}
+            selected={offering}
+            onToggle={(v) => setOffering((s) => toggle(s, v))}
+            disabled={!businessCategory}
+            placeholder={businessCategory ? "Select offerings" : "Select a business category first"}
+          />
+        </section>
+      )}
 
-      <div className="field">
-        <label htmlFor="bio">Bio (optional)</label>
-        <textarea id="bio" maxLength={200} rows={3} value={bio} onChange={(e) => setBio(e.target.value)} />
-      </div>
+      {formStep === 3 && (
+        <section className="onboarding-step" aria-labelledby="onboarding-goals-title">
+          <h2 id="onboarding-goals-title">Networking goals</h2>
+          <p>Tell us who you want to meet and what you hope to achieve.</p>
 
-      {submitError && (
+          <MultiSelectDropdown
+            label="Looking for"
+            options={options?.lookingFor ?? []}
+            selected={lookingFor}
+            onToggle={(v) => setLookingFor((s) => toggle(s, v))}
+          />
+          <MultiSelectDropdown
+            label="Goals"
+            options={options?.goals ?? []}
+            selected={goals}
+            onToggle={(v) => setGoals((s) => toggle(s, v))}
+          />
+
+          <div className="field">
+            <label htmlFor="bio">Bio (optional)</label>
+            <textarea id="bio" maxLength={200} rows={3} value={bio} onChange={(e) => setBio(e.target.value)} />
+          </div>
+        </section>
+      )}
+
+      {formStep === 3 && submitError && (
         <div className="banner warn" style={{ marginBottom: 12 }}>
           <div>
             <b>Save failed</b>
@@ -270,50 +342,133 @@ export function OnboardingFlow() {
         </div>
       )}
 
-      <button className="btn-primary" disabled={submitting} onClick={submitProfile}>
-        {submitting ? (
-          <>
-            <span className="spinner" /> Saving&hellip;
-          </>
-        ) : (
-          "Continue"
+      <div className="onboarding-actions">
+        {formStep > 1 && (
+          <button className="onboarding-back" disabled={submitting} onClick={() => setFormStep((formStep - 1) as FormStep)}>
+            <svg className="back-icon" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M12.5 4.5 7 10l5.5 5.5" />
+            </svg>
+            <span>Back</span>
+          </button>
         )}
-      </button>
-      <div className="links">
-        <button className="link-muted" disabled={submitting} onClick={() => setStep("install")}>
-          Skip for now
-        </button>
+        {formStep < 3 ? (
+          <button className="btn-primary" onClick={continueForm}>
+            Continue
+          </button>
+        ) : (
+          <button className="btn-primary" disabled={submitting} onClick={submitProfile}>
+            {submitting ? (
+              <>
+                <span className="spinner" /> Saving&hellip;
+              </>
+            ) : (
+              "Save profile"
+            )}
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
-function TagField({
-  label,
+function CityCombobox({
   options,
-  selected,
-  onToggle,
+  value,
+  error,
+  onChange,
 }: {
-  label: string;
-  options: readonly string[];
-  selected: string[];
-  onToggle: (value: string) => void;
+  options: readonly { value: string; name: string; stateOrUt: string }[];
+  value: string;
+  error?: string;
+  onChange: (value: string) => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const normalizedQuery = value.trim().toLowerCase();
+  const visibleOptions = options
+    .filter((option) => {
+      if (!normalizedQuery || options.some((candidate) => candidate.value === value)) return true;
+      return `${option.name} ${option.stateOrUt}`.toLowerCase().includes(normalizedQuery);
+    })
+    .slice(0, 12);
+
+  function chooseCity(nextValue: string) {
+    onChange(nextValue);
+    setOpen(false);
+    setActiveIndex(0);
+  }
+
   return (
-    <div className="field">
-      <label>{label}</label>
-      <div className="chip-row">
-        {options.map((opt) => (
-          <button
-            type="button"
-            key={opt}
-            className={`chip${selected.includes(opt) ? " on" : ""}`}
-            onClick={() => onToggle(opt)}
-          >
-            {opt}
-          </button>
-        ))}
+    <div className="field city-combobox" style={{ marginTop: 16 }}>
+      <label htmlFor="city">City</label>
+      <div className="city-combobox-control">
+        <input
+          id="city"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={open}
+          aria-controls="city-combobox-options"
+          aria-activedescendant={open && visibleOptions[activeIndex] ? `city-option-${activeIndex}` : undefined}
+          maxLength={100}
+          placeholder="Search city or state/UT"
+          value={value}
+          onFocus={() => setOpen(true)}
+          onChange={(event) => {
+            onChange(event.target.value);
+            setOpen(true);
+            setActiveIndex(0);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              setOpen(true);
+              setActiveIndex((current) => Math.min(current + 1, Math.max(visibleOptions.length - 1, 0)));
+            } else if (event.key === "ArrowUp") {
+              event.preventDefault();
+              setActiveIndex((current) => Math.max(current - 1, 0));
+            } else if (event.key === "Enter" && open && visibleOptions[activeIndex]) {
+              event.preventDefault();
+              chooseCity(visibleOptions[activeIndex].value);
+            } else if (event.key === "Escape") {
+              setOpen(false);
+            }
+          }}
+        />
+        <button
+          type="button"
+          className="city-combobox-toggle"
+          aria-label={open ? "Close city options" : "Open city options"}
+          onClick={() => setOpen((current) => !current)}
+        >
+          <span aria-hidden="true">⌄</span>
+        </button>
       </div>
+
+      {open && (
+        <>
+          <button className="city-combobox-backdrop" type="button" aria-label="Close city options" onClick={() => setOpen(false)} />
+          <div id="city-combobox-options" className="city-combobox-panel" role="listbox">
+            {visibleOptions.map((option, index) => (
+              <button
+                id={`city-option-${index}`}
+                type="button"
+                role="option"
+                aria-selected={option.value === value}
+                className={`city-combobox-option${index === activeIndex ? " active" : ""}`}
+                key={`${option.name}-${option.stateOrUt}`}
+                onMouseDown={(event) => event.preventDefault()}
+                onMouseEnter={() => setActiveIndex(index)}
+                onClick={() => chooseCity(option.value)}
+              >
+                <span>{option.name}</span>
+                <small>{option.stateOrUt}</small>
+              </button>
+            ))}
+            {visibleOptions.length === 0 && <div className="city-combobox-empty">No matching city found</div>}
+          </div>
+        </>
+      )}
+      {error && <div className="hint err">{error}</div>}
     </div>
   );
 }
@@ -323,13 +478,19 @@ function MultiSelectDropdown({
   options,
   selected,
   onToggle,
+  disabled = false,
+  placeholder,
 }: {
   label: string;
   options: readonly string[];
   selected: string[];
   onToggle: (value: string) => void;
+  disabled?: boolean;
+  placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const visibleOptions = options.filter((option) => option.toLowerCase().includes(query.trim().toLowerCase()));
 
   return (
     <div className="field multiselect">
@@ -338,21 +499,32 @@ function MultiSelectDropdown({
         type="button"
         className={`multiselect-trigger${selected.length === 0 ? " placeholder" : ""}`}
         onClick={() => setOpen((o) => !o)}
+        disabled={disabled}
       >
-        <span>{selected.length === 0 ? `Select ${label.toLowerCase()}` : selected.join(", ")}</span>
+        <span>{selected.length === 0 ? (placeholder ?? `Select ${label.toLowerCase()}`) : selected.join(", ")}</span>
         <span className="multiselect-caret">{open ? "▲" : "▼"}</span>
       </button>
       {open && (
         <>
           <div className="multiselect-backdrop" onClick={() => setOpen(false)} />
           <div className="multiselect-panel">
-            {options.map((opt) => (
+            <input
+              className="multiselect-search"
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={`Search ${label.toLowerCase()}`}
+              aria-label={`Search ${label.toLowerCase()}`}
+              autoFocus
+            />
+            {visibleOptions.map((opt) => (
               <label key={opt} className="multiselect-option">
                 <input type="checkbox" checked={selected.includes(opt)} onChange={() => onToggle(opt)} />
                 {opt}
               </label>
             ))}
-            <button type="button" className="multiselect-done" onClick={() => setOpen(false)}>
+            {visibleOptions.length === 0 && <div className="multiselect-empty">No options found</div>}
+            <button type="button" className="multiselect-done" onClick={() => { setOpen(false); setQuery(""); }}>
               Done
             </button>
           </div>

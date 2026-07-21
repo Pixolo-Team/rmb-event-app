@@ -22,6 +22,8 @@ import {
 import { resolveHomeMode, type HomeMode } from "../lib/homeMode";
 import { statsCache, type PersonalStats } from "../lib/statsCache";
 import { matchesCache, type MatchSuggestion } from "../lib/matchesCache";
+import { homeCache } from "../lib/homeCache";
+import { profileCache, type MyProfile } from "../lib/profileCache";
 
 // F3.6 — Home is lifecycle-aware (PRD US3.5, SCREENS 2.1): pre-event · arrival ·
 // dashboard · ended. Only the arrival mode is the full-page check-in flow that
@@ -111,7 +113,9 @@ export default function HomePage() {
     if (kind === "checkin-geolocation" || kind === "checkin-manual") {
       const outcome = response as { checkedInAt?: string; method?: CheckinMethod } | null;
       if (outcome?.checkedInAt && outcome.method) {
-        setCheckin({ checkedIn: true, checkedInAt: outcome.checkedInAt, method: outcome.method });
+        const syncedCheckin: CheckinStatus = { checkedIn: true, checkedInAt: outcome.checkedInAt, method: outcome.method };
+        setCheckin(syncedCheckin);
+        if (attendee) homeCache.set({ attendee, checkin: syncedCheckin, event });
       }
       setPendingSync(false);
     }
@@ -159,6 +163,19 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    const cachedHome = homeCache.get();
+    let renderedFromCache = false;
+
+    if (cachedHome) {
+      renderedFromCache = true;
+      setAttendee(cachedHome.attendee);
+      setCheckin(cachedHome.checkin);
+      setEvent(cachedHome.event);
+      venueConfig.current = cachedHome.event;
+      setStep(cachedHome.checkin.checkedIn ? "checked_in" : "locating");
+      loadDashboardData();
+    }
+
     // The failure that actually bit here was a *hang*, not a rejection: a starved
     // API connection pool leaves the request in flight until it times out server
     // side. Without our own deadline the attendee just watches a spinner.
@@ -177,6 +194,8 @@ export default function HomePage() {
         // server is just unwell — and on event day it would send someone to the
         // help desk over a blip.
         if (meRes.status === 401 || meRes.status === 403) {
+          homeCache.clear();
+          profileCache.clear();
           router.replace("/login");
           return;
         }
@@ -196,6 +215,7 @@ export default function HomePage() {
           photoUrl: me.photoUrl,
           tableNumber: me.tableNumber ?? null,
         });
+        profileCache.set(me as MyProfile);
 
         const config: CachedVenueConfig | null = eventConfig ?? (await getCachedVenueConfig());
         if (eventConfig) await cacheVenueConfig(eventConfig);
@@ -205,11 +225,24 @@ export default function HomePage() {
         const status: CheckinStatus = await checkinRes.json();
         setCheckin(status);
         setStep(status.checkedIn ? "checked_in" : "locating");
-        loadDashboardData();
+        homeCache.set({
+          attendee: {
+            name: me.name,
+            businessName: me.businessName,
+            chapterName: me.chapterName,
+            photoUrl: me.photoUrl,
+            tableNumber: me.tableNumber ?? null,
+          },
+          checkin: status,
+          event: config,
+        });
+        if (!renderedFromCache) loadDashboardData();
       })
       // Network down, request aborted at our deadline, or the API is unreachable —
       // an error the attendee can retry, not a sign-out.
-      .catch(() => setLoadFailed(true));
+      .catch(() => {
+        if (!renderedFromCache) setLoadFailed(true);
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -272,7 +305,9 @@ export default function HomePage() {
 
     const acceptOffline = async () => {
       await enqueueWrite(queueKind, url, body);
-      setCheckin({ checkedIn: true, checkedInAt: new Date().toISOString(), method });
+      const offlineCheckin: CheckinStatus = { checkedIn: true, checkedInAt: new Date().toISOString(), method };
+      setCheckin(offlineCheckin);
+      if (attendee) homeCache.set({ attendee, checkin: offlineCheckin, event });
       setPendingSync(true);
       setConfirmOffline(true);
       setStep("checked_in");
@@ -293,7 +328,9 @@ export default function HomePage() {
       });
       const outcome = await res.json();
       if (outcome.status === "checked_in" || outcome.status === "already_checked_in") {
-        setCheckin({ checkedIn: true, checkedInAt: outcome.checkedInAt, method: outcome.method });
+        const nextCheckin: CheckinStatus = { checkedIn: true, checkedInAt: outcome.checkedInAt, method: outcome.method };
+        setCheckin(nextCheckin);
+        if (attendee) homeCache.set({ attendee, checkin: nextCheckin, event });
         setStep("checked_in");
         // Land on the desk view first: the attendee just tapped "Check in" and the
         // next thing they do is show this to the registration counter.
@@ -336,16 +373,7 @@ export default function HomePage() {
   }
 
   if (step === "loading" || mode === null) {
-    return (
-      <div className="full-page attendee-tabbed-page">
-        <PageHeader attendee={attendee} />
-        <div className="full-page-band tone-info">
-          <span className="ring info lg">📍</span>
-          <h1>Loading…</h1>
-        </div>
-        <div className="full-page-body" />
-      </div>
-    );
+    return <HomeSkeleton attendee={attendee} />;
   }
 
   if (mode === "pre_event") {
@@ -515,6 +543,35 @@ export default function HomePage() {
 
 // ---------------------------------------------------------------- modes
 
+function HomeSkeleton({ attendee }: { attendee: Attendee | null }) {
+  return (
+    <div className="home-dash attendee-tabbed-page" aria-busy="true" aria-label="Loading Home">
+      <PageHeader attendee={attendee} />
+      <main className="home-dash-body home-skeleton">
+        <div className="home-skeleton-line greeting" />
+        <div className="home-skeleton-block status" />
+        <div className="home-skeleton-block action" />
+
+        <section className="profile-section">
+          <div className="home-skeleton-line section-title" />
+          <div className="home-skeleton-stats">
+            <span />
+            <span />
+            <span />
+          </div>
+        </section>
+
+        <section className="profile-section">
+          <div className="home-skeleton-line section-title" />
+          <div className="home-skeleton-person"><i /><span /></div>
+          <div className="home-skeleton-person"><i /><span /></div>
+        </section>
+      </main>
+      {attendee && <AttendeeBottomTabs />}
+    </div>
+  );
+}
+
 function DashboardMode({
   attendee,
   checkin,
@@ -634,6 +691,7 @@ function DashboardMode({
 
         <PoweredByFooter />
       </main>
+      <AttendeeBottomTabs />
     </div>
   );
 }
@@ -709,6 +767,7 @@ function PreEventMode({
 
         <PoweredByFooter />
       </main>
+      <AttendeeBottomTabs />
     </div>
   );
 }
@@ -723,7 +782,7 @@ function EndedMode({
   online: boolean;
 }) {
   return (
-    <div className="full-page">
+    <div className="full-page attendee-tabbed-page">
       <PageHeader attendee={attendee} />
       <div className="full-page-band tone-success">
         <span className="ring ok lg">🎉</span>
@@ -748,6 +807,7 @@ function EndedMode({
 
         <PoweredByFooter />
       </div>
+      <AttendeeBottomTabs />
     </div>
   );
 }
@@ -766,20 +826,18 @@ function StatTile({ value, label, sub }: { value: React.ReactNode; label: string
 
 function PageHeader({ attendee }: { attendee: Attendee | null }) {
   return (
-    <div className="full-page-header">
-      <div className="wordmark">
-        <span className="dot" />
-        RMBF Evento
-      </div>
-      <div className="full-page-header-right">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/images/rmb-fellowship-logo.png"
-          alt="Rotary Means Business Fellowship"
-          className="app-topbar-brand"
-        />
-        {attendee && <AttendeeMenu attendee={attendee} />}
-      </div>
+    <div className="full-page-header attendee-app-header">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/images/rmb-fellowship-logo.png"
+        alt="Rotary Means Business Fellowship"
+        className="app-topbar-brand"
+        width={50}
+        height={50}
+      />
+      <h1 className="app-header-title">Home</h1>
+      {attendee && <AttendeeMenu attendee={attendee} />}
+      {!attendee && <span className="app-header-spacer" aria-hidden="true" />}
     </div>
   );
 }

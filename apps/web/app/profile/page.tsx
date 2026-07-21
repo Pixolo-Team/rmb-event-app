@@ -7,6 +7,7 @@ import { ContactRows } from "../components/ContactRows";
 import { PersonalStats } from "../components/PersonalStats";
 import { PhotoUploadModal } from "../components/PhotoUploadModal";
 import { profileCache, type MyProfile } from "../lib/profileCache";
+import { ProfileSkeleton } from "./ProfileSkeleton";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<MyProfile | null>(null);
@@ -89,7 +90,7 @@ export default function ProfilePage() {
     <AttendeePageShell>
       <main className="attendee-page profile-page">
         {!profile ? (
-          <div className="profile-skeleton" role="status">Loading your profile…</div>
+          <ProfileSkeleton />
         ) : (
           <>
             {offline && (

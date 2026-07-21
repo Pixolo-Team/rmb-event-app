@@ -96,12 +96,12 @@ Two things to check against your host before the first deploy: uploads are writt
 
 | Piece | Status |
 |---|---|
-| Email format validation, rate limiting, enumeration-safe responses, single-use signed tokens (login + onboarding) | Real |
+| Email format validation, rate limiting, explicit unknown-email recovery, single-use signed tokens (login + onboarding) | Real — the invite-only pilot intentionally reports unregistered emails so attendees can correct the address or contact the organizer; see `docs/SCREENS.md` Screen 2.0 |
 | Session issuance (JWT in an httpOnly cookie), shared across login and onboarding | Real |
-| Postgres schema (`Attendee`, `Chapter`, `MagicLinkToken`, `OnboardingToken`, `ImportBatch`, `ImportRow`, `Event`, `CheckIn`) | Real |
+| Postgres schema (`Attendee`, `Chapter`, `BusinessCategoryOption`, `OfferingOption`, `CityOption`, `MagicLinkToken`, `OnboardingToken`, `ImportBatch`, `ImportRow`, `Event`, `CheckIn`) | Real |
 | CSV import: column-mapping, dedup by phone+email, per-row status reporting, mismatched-email-column flagging | Real |
-| Profile setup form (business category/looking-for/offering/goals/bio), server-validated against a fixed taxonomy | Real |
-| PWA installability (manifest, icon, service worker, `beforeinstallprompt` wiring) | Real, but the service worker only caches `manifest.json`/`icon.svg` — no route/asset pre-caching for a cold start while offline |
+| Required three-step profile setup (DB City → category/dependent offerings → networking goals), with searchable custom controls and per-step validation | Real |
+| PWA installability (responsive install modal, installed-mode detection, native prompt, Add to Home Screen and browser fallbacks) | Real, but the service worker only caches `manifest.json`/`icon.svg` — no route/asset pre-caching for a cold start while offline |
 | Home dashboard + geolocation auto check-in, manual check-in fallback (`/home`) | Real, including offline (see below) |
 | Admin venue settings (`/admin/event`), live check-in dashboard + camera QR scan (`/admin/checkin`), badge printing (`/admin/badges`) | Real |
 | Offline write-queue (check-ins/scans work with no connectivity, sync on reconnect) | Real — Dexie/IndexedDB queue (`apps/web/app/lib/offlineQueue.ts`), drains on the `online` event / every 15s / next load. Covers "already open, connectivity drops mid-session"; a fully offline cold start still needs the service worker pre-caching noted above |
