@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { BookmarkButton } from "../components/BookmarkButton";
 import { DirectoryAvatar } from "../components/DirectoryAvatar";
+import { PageIntro } from "../components/PageIntro";
 import { matchesCache, type MatchesResponse, type MatchSuggestion } from "../lib/matchesCache";
 import { MatchesSkeleton } from "./MatchesSkeleton";
 
@@ -65,7 +66,7 @@ export default function MatchesPage() {
   return (
     <AttendeePageShell>
       <main className="attendee-page matches-page">
-        <p className="page-intro">Recommendations based on what you need and what others offer.</p>
+        <PageIntro>Recommendations based on what you need and what others offer.</PageIntro>
         <div className="matches-top-actions" aria-label="Recommendation actions"><Link className="matches-browse-top" href="/directory"><DirectoryListIcon /><span>Browse directory</span></Link><button className={`matches-refresh${refreshing ? " is-refreshing" : ""}`} type="button" disabled={refreshing} onClick={() => load(true)} aria-label={refreshing ? "Refreshing recommendations" : "Refresh recommendations"}><RefreshIcon /><span>{refreshing ? "Refreshing..." : "Refresh"}</span></button></div>
         {offline && <div className="banner info"><div><b>Showing saved recommendations</b>You are offline. These matches will refresh when you reconnect.</div></div>}
         {loading && <MatchesSkeleton />}

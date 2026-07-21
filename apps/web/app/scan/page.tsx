@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Html5Qrcode } from "html5-qrcode";
 import { AttendeePageShell } from "../components/AttendeePageShell";
+import { PoweredByFooter } from "../components/PoweredByFooter";
 import { enqueueWrite, useOfflineSync } from "../lib/offlineQueue";
 import { withCsrfHeaders } from "../lib/csrf";
 
@@ -102,7 +103,7 @@ export default function ScanPage() {
   }
 
   return (
-    <AttendeePageShell>
+    <AttendeePageShell showFooter={false}>
       <main className="attendee-page scan-page">
         <div className="scan-intro">
           <p className="copy">Point your camera at another attendee&rsquo;s QR to swap cards and log that you met.</p>
@@ -122,6 +123,8 @@ export default function ScanPage() {
 
           {outcome && <ResultCard outcome={outcome} onScanNext={scanNext} />}
         </div>
+
+        <PoweredByFooter />
       </main>
     </AttendeePageShell>
   );

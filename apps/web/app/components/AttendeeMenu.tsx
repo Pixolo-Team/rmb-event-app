@@ -246,7 +246,15 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
 
 export function AttendeeBottomTabs() {
   const pathname = usePathname();
+  const router = useRouter();
   const scanActive = pathname === "/scan";
+
+  useEffect(() => {
+    for (const item of TAB_ITEMS) {
+      if (item.href) router.prefetch(item.href);
+    }
+    router.prefetch("/scan");
+  }, [router]);
 
   return (
     <nav className="attendee-tabs" aria-label="Primary attendee navigation">
@@ -262,11 +270,23 @@ export function AttendeeBottomTabs() {
 }
 
 function TabLink({ item, pathname }: { item: MenuItem; pathname: string }) {
+  const router = useRouter();
   const Icon = item.icon;
   const active = pathname === item.href || Boolean(item.activePrefixes?.some((prefix) => pathname.startsWith(prefix)));
 
+  function warmRoute() {
+    if (!item.href) return;
+    router.prefetch(item.href);
+  }
+
   return (
-    <Link className={`attendee-tab${active ? " active" : ""}`} href={item.href!} aria-current={active ? "page" : undefined}>
+    <Link
+      className={`attendee-tab${active ? " active" : ""}`}
+      href={item.href!}
+      aria-current={active ? "page" : undefined}
+      onTouchStart={warmRoute}
+      onMouseEnter={warmRoute}
+    >
       <Icon />
       <span>{item.label}</span>
     </Link>

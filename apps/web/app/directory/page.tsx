@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { DirectoryAvatar } from "../components/DirectoryAvatar";
+import { PageIntro } from "../components/PageIntro";
 import { directoryCache, type DirectoryAttendee, type DirectoryResponse } from "../lib/directoryCache";
 import { BookmarkButton } from "../components/BookmarkButton";
 import { DirectorySkeleton } from "./DirectorySkeleton";
+import { DirectoryToolbar } from "./DirectoryToolbar";
 
 type CheckinFilter = "all" | "checked-in" | "not-checked-in";
 
@@ -120,21 +122,17 @@ export default function DirectoryPage() {
   return (
     <AttendeePageShell>
       <main className="attendee-page directory-page">
-        <p className="page-intro">Find the right people before and during the event.</p>
+        <PageIntro>Find the right people before and during the event.</PageIntro>
 
         {offlineResult && <div className="banner info"><div><b>Showing saved directory</b>You are offline. Results may be slightly out of date.</div></div>}
 
-        <div className="directory-toolbar">
-          <label className="search-control">
-            <span className="sr-only">Search attendees</span>
-            <SearchIcon />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name or company" />
-            {query && <button type="button" aria-label="Clear search" onClick={() => setQuery("")}>x</button>}
-          </label>
-          <button className="filter-button" type="button" onClick={() => setFilterOpen(true)} aria-label="Filters">
-            <FilterIcon /> <span className="filter-button-label">Filters</span> {activeFilterCount > 0 && <span className="filter-count">{activeFilterCount}</span>}
-          </button>
-        </div>
+        <DirectoryToolbar
+          query={query}
+          activeFilterCount={activeFilterCount}
+          onQueryChange={setQuery}
+          onClearQuery={() => setQuery("")}
+          onOpenFilters={() => setFilterOpen(true)}
+        />
 
         {loading && <DirectorySkeleton />}
         {!loading && error && !data && <DirectoryState title="Can't load directory" body="Check your connection and try again." />}
@@ -206,6 +204,7 @@ function AttendeeCard({ attendee, onBookmark }: { attendee: DirectoryAttendee; o
         <BookmarkButton attendeeId={attendee.id} initialBookmarked={Boolean(attendee.bookmarked)} compact onChange={onBookmark} />
         <a className="icon-btn" href={`tel:${attendee.phone}`} aria-label={`Call ${attendee.name}`} title="Call"><PhoneIcon /></a>
         {attendee.linkedInUrl && <a className="icon-btn" href={attendee.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${attendee.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /></a>}
+        {attendee.websiteUrl && <a className="icon-btn" href={attendee.websiteUrl} target="_blank" rel="noreferrer" aria-label={`${attendee.name} website`} title="Website"><WebsiteIcon /></a>}
         <button className="icon-btn" type="button" onClick={shareAttendee} aria-label={`Share ${attendee.name}`} title="Share"><ShareIcon /></button>
       </div>
     </article>
@@ -217,8 +216,7 @@ function FilterSelect({ label, value, options, onChange }: { label: string; valu
 }
 
 function DirectoryState({ title, body }: { title: string; body: string }) { return <div className="directory-state"><h2>{title}</h2><p>{body}</p></div>; }
-function SearchIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m16 16 4 4" /></svg>; }
-function FilterIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" /></svg>; }
 function PhoneIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8c1.2 2.4 3.2 4.4 5.6 5.6l1.9-1.9c.3-.3.7-.4 1-.2 1 .4 2.1.6 3.2.6.6 0 1 .4 1 1V19c0 .6-.4 1-1 1C9.6 20 4 14.4 4 7.7c0-.6.4-1 1-1h3.1c.6 0 1 .4 1 1 0 1.1.2 2.2.6 3.2.1.3 0 .7-.2 1L6.6 10.8Z" /></svg>; }
 function LinkedInIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9v10M5 5.5v.1M10 19v-9M10 13.5c.7-2.2 2-3.5 4-3.5 2.6 0 4 1.7 4 5v4" /></svg>; }
+function WebsiteIcon() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M4 12h16M12 4a13 13 0 0 1 0 16M12 4a13 13 0 0 0 0 16" /></svg>; }
 function ShareIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.2" /><circle cx="17" cy="6" r="2.2" /><circle cx="17" cy="18" r="2.2" /><path d="M8 11l7-4M8 13l7 4" /></svg>; }
