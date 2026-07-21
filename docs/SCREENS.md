@@ -242,6 +242,15 @@ Evento has no passwords and no WhatsApp messaging vendor — the group link is t
 **Module:** Home  
 **Purpose:** Central hub showing attendee's key stats, quick actions, and navigation to main features. Includes check-in status prominently.
 
+> ### Revised again (UX revision v1.2 — F3.7). Home is now **one constant dashboard**.
+> The four "modes" are no longer separate full-page screens: the **top block** swaps between pre-event countdown / check-in card / checked-in strip / ended banner, while the **body** (progress + people-to-meet) is the same constant layout throughout. Key changes to the states/flow described below:
+> - **No 30-second mode polling** — the mode resolves once on load and after a check-in.
+> - **Pre-event** shows a **live ticking countdown only within 3 days** of the start; further out it's a calm "Coming soon" + event name + date.
+> - **Not checked in** is no longer a full-page takeover — check-in runs **inline in a card**. Tapping **Check in** tries geolocation, then falls back to **scanning the printable venue attendance QR** (method `VENUE_QR`; see F3.7 / Screen 3.4). Manual self-mark (2.1A) is superseded by this scan.
+> - **Checked in** shows a **compact "Checked in ✓ · time" strip** — the separate full-page desk view is dropped.
+> - **Ended** keeps the constant layout with an "Event ended" banner.
+> - **People to meet** shows a skeleton, then a "No strong matches yet" empty state — it never blanks silently.
+>
 > ### Revised (UX revision v1.1 — F3.6). Home is lifecycle-aware: four modes, not one.
 > The screen shipped by F3.2 is a **check-in receipt that never stops being one** — every state below is about check-in, so once the attendee is checked in, Home shows a desk receipt and a Scan button for the remaining ~7 hours. F3.6 keeps the arrival flow exactly as-is and adds the three modes around it.
 >
@@ -1104,7 +1113,7 @@ Both link fields are **clearable** — emptying one and saving removes it, which
 ### Screen 3.4: Check-In Management
 
 **Module:** Admin  
-**Purpose:** View check-in status in real-time; manually check in attendees via QR scan
+**Purpose:** View check-in status in real-time; manually check in attendees via QR scan; generate the venue attendance QR
 
 **States:**
 - **Default:** List of checked-in attendees with counter "142 of 200"
@@ -1115,8 +1124,11 @@ Both link fields are **clearable** — emptying one and saving removes it, which
 - **Offline:** Show cached check-in list + "Offline" badge
 - **Venue Not Configured:** Show warning banner "Venue location not configured. Geolocation check-in is disabled."
 
+**Venue attendance QR (F3.7):** A card at the top renders the event's venue check-in QR (encodes `/checkin?venue=<token>`). The organizer prints/displays it at the entrance; attendees scan it in-app (or with a native camera) to self-check-in as `VENUE_QR`. Actions: **Download PNG**, **Regenerate** (rotates the token, invalidating old printouts). The method breakdown gains a **Venue scan** count.
+
 **User Interactions:**
-- View counter: total checked in vs. expected + breakdown by method (auto, manual, QR scan)
+- View counter: total checked in vs. expected + breakdown by method (geolocation, venue scan, manual, staff QR)
+- Download / regenerate the venue attendance QR
 - View two lists: "Checked In" (sortable by time/name/method), "Not Yet Checked In"
 - Tap "QR Scanner" button → activate camera
 - Hold camera to QR code → auto-detect and scan

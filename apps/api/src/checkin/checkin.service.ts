@@ -9,7 +9,8 @@ export type CheckinOutcome =
   | { status: "checked_in"; method: CheckInMethod; checkedInAt: Date }
   | { status: "already_checked_in"; method: CheckInMethod; checkedInAt: Date }
   | { status: "outside_radius"; distanceM: number }
-  | { status: "venue_not_configured" };
+  | { status: "venue_not_configured" }
+  | { status: "invalid_venue_token" };
 
 @Injectable()
 export class CheckinService {
@@ -44,6 +45,17 @@ export class CheckinService {
 
   async checkInManual(attendeeId: string): Promise<CheckinOutcome> {
     return this.recordCheckIn(attendeeId, "MANUAL");
+  }
+
+  // F3.7 — attendee scanned the venue attendance QR. The token is the event's
+  // current venueCheckinToken; a stale/forged one is rejected so a random string
+  // can't self-check-in.
+  async checkInByVenueQr(attendeeId: string, token: string): Promise<CheckinOutcome> {
+    const event = await this.eventService.getOrCreate();
+    if (!event.venueCheckinToken || event.venueCheckinToken !== token) {
+      return { status: "invalid_venue_token" };
+    }
+    return this.recordCheckIn(attendeeId, "VENUE_QR");
   }
 
   async checkInByStaffQrScan(
@@ -98,7 +110,7 @@ export class CheckinService {
       }),
     ]);
 
-    const breakdown: Record<CheckInMethod, number> = { GEOLOCATION: 0, MANUAL: 0, STAFF_QR: 0 };
+    const breakdown: Record<CheckInMethod, number> = { GEOLOCATION: 0, MANUAL: 0, STAFF_QR: 0, VENUE_QR: 0 };
     for (const c of checkIns) breakdown[c.method]++;
 
     const checkedInIds = checkIns.map((c) => c.attendeeId);

@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { Event } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
@@ -12,6 +13,23 @@ export class EventService {
     const existing = await this.prisma.event.findFirst();
     if (existing) return existing;
     return this.prisma.event.create({ data: {} });
+  }
+
+  // F3.7 — the token behind the printable venue attendance QR. Generated lazily so
+  // the admin never has to "turn it on"; the first time it's requested it exists.
+  async getVenueCheckinToken(): Promise<string> {
+    const event = await this.getOrCreate();
+    if (event.venueCheckinToken) return event.venueCheckinToken;
+    return this.regenerateVenueCheckinToken();
+  }
+
+  // Rotating the token invalidates any printout already in the wild — the admin
+  // does this if a QR leaks or between events.
+  async regenerateVenueCheckinToken(): Promise<string> {
+    const event = await this.getOrCreate();
+    const token = randomBytes(18).toString("base64url");
+    await this.prisma.event.update({ where: { id: event.id }, data: { venueCheckinToken: token } });
+    return token;
   }
 
   async updateVenue(dto: UpdateEventDto): Promise<Event> {

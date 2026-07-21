@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 // COMPONENTS //
 import Link from "next/link";
+import type { Html5Qrcode } from "html5-qrcode";
 import { AttendeeBottomTabs, AttendeeMenu, type MenuAttendee } from "../components/AttendeeMenu";
 import { PoweredByFooter } from "../components/PoweredByFooter";
 
@@ -26,20 +27,14 @@ import { homeCache } from "../lib/homeCache";
 import { profileCache, type MyProfile } from "../lib/profileCache";
 import { withCsrfHeaders } from "../lib/csrf";
 
-// F3.6 — Home is lifecycle-aware (PRD US3.5, SCREENS 2.1): pre-event · arrival ·
-// dashboard · ended. Only the arrival mode is the full-page check-in flow that
-// shipped with F3.2; the other three exist because check-in is finished ~90
-// seconds into a 7-hour event, and Home used to keep showing the receipt anyway.
-type Step =
-  | "loading"
-  | "locating"
-  | "arrived"
-  | "confirming_arrival"
-  | "need_manual"
-  | "confirming_manual"
-  | "checked_in";
+// F3.6/F3.7 — Home is one constant dashboard. The event's start/end times decide
+// the top block (pre-event countdown · check-in · checked-in · ended); the rest —
+// progress, people to meet — is always the same layout. Resolved once on load and
+// after a check-in: no background polling re-flowing the screen.
+type CheckinMethod = "GEOLOCATION" | "MANUAL" | "STAFF_QR" | "VENUE_QR";
 
-type CheckinMethod = "GEOLOCATION" | "MANUAL" | "STAFF_QR";
+// The check-in prompt runs inline in the top card rather than taking over the page.
+type CheckinPhase = "idle" | "locating" | "scanning" | "submitting";
 
 type Attendee = MenuAttendee & { tableNumber: string | null };
 
@@ -53,7 +48,12 @@ const METHOD_LABEL: Record<CheckinMethod, string> = {
   GEOLOCATION: "via location",
   MANUAL: "manual",
   STAFF_QR: "staff scan",
+  VENUE_QR: "by QR scan",
 };
+
+// Within 3 days of the start we show a live ticking countdown; further out, a
+// calmer "Coming soon" with the date. (PRD US3.5.)
+const COUNTDOWN_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
@@ -64,22 +64,6 @@ function formatDuration(ms: number): string {
   const totalMin = Math.floor(ms / 60000);
   const hours = Math.floor(totalMin / 60);
   return hours > 0 ? `${hours}h ${totalMin % 60}m` : `${totalMin}m`;
-}
-
-// "in 3 days" / "in 3h 20m" — deliberately coarse. The countdown is orientation,
-// not a launch clock, and a ticking seconds display would be noise.
-//
-// Days are *rounded*, not floored: an event 2d23h away is "in 3 days" to a human,
-// and flooring it to "in 2 days" reads as plainly wrong the day before travel.
-// Under 24h we switch to hours, where flooring is what people expect.
-function formatCountdown(ms: number): string {
-  if (ms <= 0) return "starting now";
-  const minutes = Math.floor(ms / 60000);
-  if (minutes < 60) return `in ${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `in ${hours}h ${minutes % 60}m`;
-  const days = Math.round(minutes / 1440);
-  return `in ${days} ${days === 1 ? "day" : "days"}`;
 }
 
 function formatEventDate(iso: string): string {
@@ -94,24 +78,23 @@ function formatEventDate(iso: string): string {
 
 export default function HomePage() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("loading");
   const [attendee, setAttendee] = useState<Attendee | null>(null);
   const [checkin, setCheckin] = useState<CheckinStatus | null>(null);
   const [event, setEvent] = useState<CachedVenueConfig | null>(null);
   const [stats, setStats] = useState<PersonalStats | null>(null);
   const [matches, setMatches] = useState<MatchSuggestion[]>([]);
+  const [matchesLoading, setMatchesLoading] = useState(true);
   const [pendingSync, setPendingSync] = useState(false);
-  const [reason, setReason] = useState<string | null>(null);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const [confirmOffline, setConfirmOffline] = useState(false);
-  const [showDeskView, setShowDeskView] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
+  const [ready, setReady] = useState(false);
+  const [checkinPhase, setCheckinPhase] = useState<CheckinPhase>("idle");
+  const [checkinError, setCheckinError] = useState<string | null>(null);
   const coords = useRef<{ lat: number; lng: number } | null>(null);
   const venueConfig = useRef<CachedVenueConfig | null>(null);
 
   const { online } = useOfflineSync((kind: QueueKind, response) => {
-    if (kind === "checkin-geolocation" || kind === "checkin-manual") {
+    if (kind === "checkin-geolocation" || kind === "checkin-manual" || kind === "checkin-venue-qr") {
       const outcome = response as { checkedInAt?: string; method?: CheckinMethod } | null;
       if (outcome?.checkedInAt && outcome.method) {
         const syncedCheckin: CheckinStatus = { checkedIn: true, checkedInAt: outcome.checkedInAt, method: outcome.method };
@@ -122,23 +105,16 @@ export default function HomePage() {
     }
   });
 
-  // Drives both the live "time at event" readout and the mode itself — an event
-  // can start or end while the screen is open, and Home must follow.
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(id);
-  }, []);
-
-  // Cache first, then refresh — and refresh *sequentially*. Both of these are
-  // heavy aggregates, and firing them together starves the API's Prisma pool
-  // (connection_limit=1 against the Supabase pooler), which times out at 10s and
-  // takes Home's own requests down with it. Home is never blocked on either: it
-  // renders from cache and fills in.
+  // Cache first, then refresh — sequentially. Both are heavy aggregates and firing
+  // them together starves the API's Prisma pool. Home renders from cache and fills in.
   const loadDashboardData = useCallback(async () => {
     const cachedStats = statsCache.get();
     if (cachedStats) setStats(cachedStats);
     const cachedMatches = matchesCache.get();
-    if (cachedMatches) setMatches(cachedMatches.matches.slice(0, 3));
+    if (cachedMatches) {
+      setMatches(cachedMatches.matches.slice(0, 3));
+      setMatchesLoading(false);
+    }
 
     try {
       const res = await fetch("/api/attendees/me/stats", { credentials: "include" });
@@ -160,6 +136,10 @@ export default function HomePage() {
       }
     } catch {
       /* offline / unreachable — cached matches stay on screen */
+    } finally {
+      // Whatever happened, stop showing the people skeleton — an empty result now
+      // renders a clear "no matches yet" state instead of blanking silently.
+      setMatchesLoading(false);
     }
   }, []);
 
@@ -173,13 +153,10 @@ export default function HomePage() {
       setCheckin(cachedHome.checkin);
       setEvent(cachedHome.event);
       venueConfig.current = cachedHome.event;
-      setStep(cachedHome.checkin.checkedIn ? "checked_in" : "locating");
+      setReady(true);
       loadDashboardData();
     }
 
-    // The failure that actually bit here was a *hang*, not a rejection: a starved
-    // API connection pool leaves the request in flight until it times out server
-    // side. Without our own deadline the attendee just watches a spinner.
     const deadline = AbortSignal.timeout(12_000);
 
     Promise.all([
@@ -190,10 +167,8 @@ export default function HomePage() {
         .catch(() => null),
     ])
       .then(async ([meRes, checkinRes, eventConfig]) => {
-        // Only a real auth rejection signs the attendee out. A 5xx used to land
-        // them on the login screen too, which is a lie — they're signed in, the
-        // server is just unwell — and on event day it would send someone to the
-        // help desk over a blip.
+        // Only a real auth rejection signs the attendee out; a 5xx is a sick server,
+        // not a logout.
         if (meRes.status === 401 || meRes.status === 403) {
           homeCache.clear();
           profileCache.clear();
@@ -201,7 +176,7 @@ export default function HomePage() {
           return;
         }
         if (!meRes.ok || !checkinRes.ok) {
-          setLoadFailed(true);
+          if (!renderedFromCache) setLoadFailed(true);
           return;
         }
         const me = await meRes.json();
@@ -209,13 +184,14 @@ export default function HomePage() {
           router.replace("/onboarding");
           return;
         }
-        setAttendee({
+        const nextAttendee: Attendee = {
           name: me.name,
           businessName: me.businessName,
           chapterName: me.chapterName,
           photoUrl: me.photoUrl,
           tableNumber: me.tableNumber ?? null,
-        });
+        };
+        setAttendee(nextAttendee);
         profileCache.set(me as MyProfile);
 
         const config: CachedVenueConfig | null = eventConfig ?? (await getCachedVenueConfig());
@@ -225,324 +201,487 @@ export default function HomePage() {
 
         const status: CheckinStatus = await checkinRes.json();
         setCheckin(status);
-        setStep(status.checkedIn ? "checked_in" : "locating");
-        homeCache.set({
-          attendee: {
-            name: me.name,
-            businessName: me.businessName,
-            chapterName: me.chapterName,
-            photoUrl: me.photoUrl,
-            tableNumber: me.tableNumber ?? null,
-          },
-          checkin: status,
-          event: config,
-        });
+        setReady(true);
+        homeCache.set({ attendee: nextAttendee, checkin: status, event: config });
         if (!renderedFromCache) loadDashboardData();
       })
-      // Network down, request aborted at our deadline, or the API is unreachable —
-      // an error the attendee can retry, not a sign-out.
       .catch(() => {
         if (!renderedFromCache) setLoadFailed(true);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Resolved once (Date.now() captured on first compute) — no 30s re-evaluation.
   const mode: HomeMode | null = useMemo(
-    () => (checkin === null ? null : resolveHomeMode(event, checkin.checkedIn, now)),
-    [event, checkin, now],
+    () => (checkin === null ? null : resolveHomeMode(event, checkin.checkedIn, Date.now())),
+    [event, checkin],
   );
 
-  // Geolocation runs only when Home is actually asking the attendee to check in.
-  // Before F3.6 it ran unconditionally, so an attendee opening the group link five
-  // days early got "Not checked in · Outside venue area" — a warning about a
-  // problem that didn't exist yet.
-  useEffect(() => {
-    if (mode !== "arrival" || step !== "locating") return;
+  // ---- check-in flow (inline in the top card) ----
 
-    if (!navigator.geolocation) {
-      setReason("Location services off");
-      setStep("need_manual");
+  const submitCheckin = useCallback(
+    async (method: CheckinMethod, url: string, body: object, queueKind: QueueKind) => {
+      setCheckinPhase("submitting");
+      setCheckinError(null);
+
+      const acceptOffline = async () => {
+        await enqueueWrite(queueKind, url, body);
+        const offlineCheckin: CheckinStatus = { checkedIn: true, checkedInAt: new Date().toISOString(), method };
+        setCheckin(offlineCheckin);
+        setPendingSync(true);
+        setConfirmOffline(true);
+        setCheckinPhase("idle");
+        setAttendee((current) => {
+          if (current) homeCache.set({ attendee: current, checkin: offlineCheckin, event });
+          return current;
+        });
+      };
+
+      if (!navigator.onLine) {
+        await acceptOffline();
+        return;
+      }
+
+      try {
+        const res = await fetch(
+          url,
+          withCsrfHeaders({
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(body),
+          }),
+        );
+        const outcome = await res.json();
+        if (outcome.status === "checked_in" || outcome.status === "already_checked_in") {
+          const next: CheckinStatus = { checkedIn: true, checkedInAt: outcome.checkedInAt, method: outcome.method };
+          setCheckin(next);
+          setCheckinPhase("idle");
+          setAttendee((current) => {
+            if (current) homeCache.set({ attendee: current, checkin: next, event });
+            return current;
+          });
+          loadDashboardData();
+        } else if (outcome.status === "invalid_venue_token") {
+          setCheckinError("That QR isn't valid for this event. Ask a staff member for help.");
+          setCheckinPhase("scanning");
+        } else {
+          // outside_radius / venue_not_configured reaching here means location
+          // didn't place us in range — fall through to scanning the venue QR.
+          setCheckinError(null);
+          setCheckinPhase("scanning");
+        }
+      } catch {
+        await acceptOffline();
+      }
+    },
+    [event, loadDashboardData],
+  );
+
+  function startCheckin() {
+    setCheckinError(null);
+    const config = venueConfig.current;
+    // No usable location → go straight to scanning the venue QR.
+    if (!navigator.geolocation || !config || config.venueLat == null || config.venueLng == null) {
+      setCheckinPhase("scanning");
       return;
     }
 
+    setCheckinPhase("locating");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords;
         coords.current = { lat, lng };
-
-        const config = venueConfig.current;
-        if (!config || config.venueLat == null || config.venueLng == null) {
-          setReason("Venue location isn't set up yet");
-          setStep("need_manual");
-          return;
+        const distanceM = distanceMeters(lat, lng, config.venueLat!, config.venueLng!);
+        if (distanceM <= config.checkinRadiusM) {
+          submitCheckin("GEOLOCATION", "/api/checkin/geolocation", { lat, lng }, "checkin-geolocation");
+        } else {
+          setCheckinPhase("scanning");
         }
-
-        const distanceM = distanceMeters(lat, lng, config.venueLat, config.venueLng);
-        if (distanceM > config.checkinRadiusM) {
-          setReason("Outside venue area");
-          setStep("need_manual");
-          return;
-        }
-
-        setStep("arrived");
       },
-      () => {
-        setReason("Geolocation failed");
-        setStep("need_manual");
-      },
+      () => setCheckinPhase("scanning"),
       { timeout: 5000 },
     );
-  }, [step, mode]);
-
-  async function confirmCheckIn(kind: "geolocation" | "manual") {
-    setStep(kind === "geolocation" ? "confirming_arrival" : "confirming_manual");
-    setSubmitError(null);
-    setConfirmOffline(false);
-
-    const queueKind: QueueKind = kind === "geolocation" ? "checkin-geolocation" : "checkin-manual";
-    const url = kind === "geolocation" ? "/api/checkin/geolocation" : "/api/checkin/manual";
-    const body = kind === "geolocation" && coords.current ? coords.current : {};
-    const method: CheckinMethod = kind === "geolocation" ? "GEOLOCATION" : "MANUAL";
-
-    const acceptOffline = async () => {
-      await enqueueWrite(queueKind, url, body);
-      const offlineCheckin: CheckinStatus = { checkedIn: true, checkedInAt: new Date().toISOString(), method };
-      setCheckin(offlineCheckin);
-      if (attendee) homeCache.set({ attendee, checkin: offlineCheckin, event });
-      setPendingSync(true);
-      setConfirmOffline(true);
-      setStep("checked_in");
-      setShowDeskView(true);
-    };
-
-    if (!navigator.onLine) {
-      await acceptOffline();
-      return;
-    }
-
-    try {
-      const res = await fetch(url, withCsrfHeaders({
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(body),
-      }));
-      const outcome = await res.json();
-      if (outcome.status === "checked_in" || outcome.status === "already_checked_in") {
-        const nextCheckin: CheckinStatus = { checkedIn: true, checkedInAt: outcome.checkedInAt, method: outcome.method };
-        setCheckin(nextCheckin);
-        if (attendee) homeCache.set({ attendee, checkin: nextCheckin, event });
-        setStep("checked_in");
-        // Land on the desk view first: the attendee just tapped "Check in" and the
-        // next thing they do is show this to the registration counter.
-        setShowDeskView(true);
-        loadDashboardData();
-      } else {
-        setSubmitError("Can't check in. Try again or ask staff to scan your QR.");
-        setStep(kind === "geolocation" ? "arrived" : "confirming_manual");
-      }
-    } catch {
-      // Network dropped mid-submit — queue it rather than surfacing an error.
-      await acceptOffline();
-    }
   }
 
-  const firstName = attendee ? attendee.name.split(" ")[0] : "";
+  // Latest-value ref so the html5-qrcode decode callback (bound once) never runs a
+  // stale submit closure.
+  const onVenueScanRef = useRef<(text: string) => void>(() => {});
+  onVenueScanRef.current = (text: string) => {
+    let token = text.trim();
+    try {
+      const parsed = new URL(text);
+      const venue = parsed.searchParams.get("venue");
+      if (venue) token = venue;
+    } catch {
+      /* not a URL — treat the whole payload as the token */
+    }
+    submitCheckin("VENUE_QR", "/api/checkin/venue-qr", { token }, "checkin-venue-qr");
+  };
 
-  // A slow or failing API must not leave Home spinning forever — that's the trap
-  // /profile still falls into. An unreachable server is an error the attendee can
-  // retry, not an indefinite "Loading…".
+  useEffect(() => {
+    if (checkinPhase !== "scanning") return;
+    let cancelled = false;
+    let scanner: Html5Qrcode | undefined;
+    const locked = { current: false };
+
+    import("html5-qrcode").then(({ Html5Qrcode }) => {
+      if (cancelled) return;
+      scanner = new Html5Qrcode("home-qr-reader");
+      scanner
+        .start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: 220 },
+          (decodedText: string) => {
+            if (locked.current) return;
+            locked.current = true;
+            onVenueScanRef.current(decodedText);
+          },
+          () => {
+            /* per-frame "no QR yet" — expected */
+          },
+        )
+        .catch(() => {
+          setCheckinError("Couldn't open the camera. Ask a staff member to scan your badge.");
+          setCheckinPhase("idle");
+        });
+    });
+
+    return () => {
+      cancelled = true;
+      scanner
+        ?.stop()
+        .then(() => scanner?.clear())
+        .catch(() => {});
+    };
+  }, [checkinPhase]);
+
+  // ---- render ----
+
   if (loadFailed) {
     return (
-      <div className="full-page">
+      <div className="home-dash attendee-tabbed-page">
         <PageHeader attendee={attendee} />
-        <div className="full-page-band tone-warning">
-          <span className="ring warn lg">!</span>
-          <h1>Can&rsquo;t load Home</h1>
-        </div>
-        <div className="full-page-body">
+        <main className="home-dash-body">
+          <div className="full-page-band tone-warning">
+            <span className="ring warn lg">!</span>
+            <h1>Can&rsquo;t load Home</h1>
+          </div>
           <p className="copy">
-            We couldn&rsquo;t reach the server. Check your connection and try again — you can still be
-            checked in by staff at the desk.
+            We couldn&rsquo;t reach the server. Check your connection and try again — you can still be checked
+            in by staff at the desk.
           </p>
-          <button className="btn-primary" onClick={() => window.location.reload()}>
+          <button className="btn-primary" type="button" onClick={() => window.location.reload()}>
             Try again
           </button>
-        </div>
+        </main>
+        {attendee && <AttendeeBottomTabs />}
       </div>
     );
   }
 
-  if (step === "loading" || mode === null) {
+  if (!ready || mode === null) {
     return <HomeSkeleton attendee={attendee} />;
   }
 
-  if (mode === "pre_event") {
-    return (
-      <PreEventMode
-        attendee={attendee}
-        event={event}
-        matches={matches}
-        now={now}
-        online={online}
-      />
-    );
-  }
+  const firstName = attendee ? attendee.name.split(" ")[0] : "";
+  const checkedIn = Boolean(checkin?.checkedIn);
+  const startMs = event?.startAt ? new Date(event.startAt).getTime() : null;
 
-  if (mode === "ended") {
-    return <EndedMode attendee={attendee} stats={stats} online={online} />;
-  }
-
-  if (mode === "dashboard" && !showDeskView) {
-    return (
-      <DashboardMode
-        attendee={attendee}
-        checkin={checkin}
-        stats={stats}
-        matches={matches}
-        now={now}
-        online={online}
-        pendingSync={pendingSync}
-        onShowDeskView={() => setShowDeskView(true)}
-        onScan={() => router.push("/scan")}
-      />
-    );
-  }
-
-  // ----- Arrival mode (unchanged from F3.2) + the expanded desk view -----
-
-  if (step === "locating") {
-    return (
-      <div className="full-page">
-        <PageHeader attendee={attendee} />
-        <div className="full-page-band tone-info">
-          <span className="ring info lg">📍</span>
-          <h1>Finding the venue…</h1>
-        </div>
-        <div className="full-page-body">
-          <p className="copy" style={{ textAlign: "center" }}>Hold on while we check your location.</p>
-        </div>
-        {attendee && <AttendeeBottomTabs />}
-      </div>
-    );
-  }
-
-  if (step === "arrived" || step === "confirming_arrival") {
-    return (
-      <div className="full-page attendee-tabbed-page">
-        <PageHeader attendee={attendee} />
-        <div className="full-page-band tone-success">
-          <span className="ring ok lg">📍</span>
-          <h1>You&rsquo;ve arrived</h1>
-        </div>
-        <div className="full-page-body">
-          <p className="copy">
-            Hey{firstName ? `, ${firstName}` : ""} — you&rsquo;re near the venue. Check yourself in to start
-            networking.
-          </p>
-          {submitError && (
-            <div className="banner warn">
-              <div>{submitError}</div>
-            </div>
-          )}
-          <button className="btn-primary" disabled={step === "confirming_arrival"} onClick={() => confirmCheckIn("geolocation")}>
-            {step === "confirming_arrival" ? (
-              <>
-                <span className="spinner" /> Checking you in&hellip;
-              </>
-            ) : (
-              "Check in"
-            )}
-          </button>
-          <button className="link-muted" disabled={step === "confirming_arrival"} onClick={() => setStep("need_manual")}>
-            Not at the venue yet?
-          </button>
-        </div>
-        {attendee && <AttendeeBottomTabs />}
-      </div>
-    );
-  }
-
-  if (step === "need_manual" || step === "confirming_manual") {
-    return (
-      <div className="full-page attendee-tabbed-page">
-        <PageHeader attendee={attendee} />
-        <div className="full-page-band tone-warning">
-          <span className="ring warn lg">!</span>
-          <h1>Not checked in</h1>
-        </div>
-        <div className="full-page-body">
-          <p className="copy">{reason ?? "Confirm you're at the venue to start networking."}</p>
-          {submitError && (
-            <div className="banner warn">
-              <div>{submitError}</div>
-            </div>
-          )}
-          <button className="btn-warning" disabled={step === "confirming_manual"} onClick={() => confirmCheckIn("manual")}>
-            {step === "confirming_manual" ? (
-              <>
-                <span className="spinner" /> Marking you present&hellip;
-              </>
-            ) : (
-              "Check in manually"
-            )}
-          </button>
-        </div>
-        {attendee && <AttendeeBottomTabs />}
-      </div>
-    );
-  }
-
-  // The desk view — what the attendee shows at the registration counter. It is
-  // reached by tapping the dashboard's check-in strip, and directly after a
-  // successful check-in.
   return (
-    <div className="full-page attendee-tabbed-page">
+    <div className="home-dash attendee-tabbed-page">
       <PageHeader attendee={attendee} />
-      <div className="full-page-band tone-success">
-        <span className="ring ok lg">✓</span>
-        <h1>Checked in{checkin?.checkedInAt ? ` · ${formatTime(checkin.checkedInAt)}` : ""}</h1>
-      </div>
-      <div className="full-page-body">
+      <main className="home-dash-body">
+        <h1 className="home-greeting">Hi{firstName ? `, ${firstName}` : ""} 👋</h1>
+
         {!online && (
           <div className="banner info">
             <div>
               <b>You&rsquo;re offline</b>
-              This will sync once you&rsquo;re back online.
+              Showing your saved data. Anything you do will sync later.
             </div>
           </div>
         )}
-        {confirmOffline && (
-          <div className="banner info">
+
+        {/* ---- top block: depends on where we are in the event lifecycle ---- */}
+        {mode === "pre_event" && <PreEventTop event={event} startMs={startMs} />}
+
+        {mode === "ended" && (
+          <div className="home-status-banner tone-ended">
+            <span aria-hidden="true">🎉</span>
             <div>
-              <b>Saved offline</b>
-              Will confirm with the server once you&rsquo;re back online.
+              <b>The event has ended</b>
+              <em>Your connections are saved.</em>
             </div>
           </div>
         )}
 
-        <div className="field" style={{ textAlign: "center" }}>
-          <p style={{ fontWeight: 700, fontSize: "1.05rem", margin: "0 0 4px" }}>{attendee?.name}</p>
-          {attendee?.businessName && <p style={{ color: "var(--ink-muted)", margin: 0 }}>{attendee.businessName}</p>}
-        </div>
+        {mode !== "pre_event" && mode !== "ended" && (
+          checkedIn ? (
+            <CheckedInStrip checkin={checkin} pendingSync={pendingSync} confirmOffline={confirmOffline} />
+          ) : (
+            <CheckInCard
+              phase={checkinPhase}
+              error={checkinError}
+              online={online}
+              onStart={startCheckin}
+              onCancel={() => {
+                setCheckinPhase("idle");
+                setCheckinError(null);
+              }}
+            />
+          )
+        )}
 
-        <div className="banner ok" style={{ textAlign: "center" }}>
-          <div>
-            <b>Show this screen at the registration counter</b>
-            {checkin?.method && `Checked in ${METHOD_LABEL[checkin.method]}${pendingSync ? " · syncing…" : ""}`}
+        {checkedIn && attendee?.tableNumber && (
+          <div className="table-callout">
+            <span>Your table</span>
+            <strong>{attendee.tableNumber}</strong>
           </div>
-        </div>
+        )}
 
-        <button className="btn-primary" onClick={() => setShowDeskView(false)}>
-          Done — go to Home
-        </button>
-      </div>
-      {attendee && <AttendeeBottomTabs />}
+        {/* ---- scan-to-connect: only during the live event, once checked in ---- */}
+        {mode === "dashboard" && checkedIn && (
+          <button className="btn-primary home-scan-cta" type="button" onClick={() => router.push("/scan")}>
+            Scan to connect
+          </button>
+        )}
+
+        {/* ---- your progress: once you have an attendance record ---- */}
+        {(checkedIn || mode === "ended") && <ProgressSection stats={stats} />}
+
+        {/* ---- people to meet: always, with a skeleton + empty state ---- */}
+        <PeopleToMeet matches={matches} loading={matchesLoading} />
+
+        {mode === "pre_event" && (
+          <Link href="/directory" className="btn-secondary home-secondary-cta">
+            See who&rsquo;s coming
+          </Link>
+        )}
+        {mode === "ended" && (
+          <Link href="/summary" className="btn-secondary home-secondary-cta">
+            View your summary
+          </Link>
+        )}
+
+        <PoweredByFooter />
+      </main>
+      <AttendeeBottomTabs />
     </div>
   );
 }
 
-// ---------------------------------------------------------------- modes
+// ---------------------------------------------------------------- top blocks
+
+function CheckInCard({
+  phase,
+  error,
+  online,
+  onStart,
+  onCancel,
+}: {
+  phase: CheckinPhase;
+  error: string | null;
+  online: boolean;
+  onStart: () => void;
+  onCancel: () => void;
+}) {
+  const busy = phase === "locating" || phase === "submitting";
+
+  return (
+    <section className="home-checkin-card" aria-label="Check in">
+      <div className="home-checkin-head">
+        <span className="home-checkin-icon" aria-hidden="true">📍</span>
+        <div>
+          <b>You&rsquo;re not checked in yet</b>
+          <em>We&rsquo;ll use your location — or scan the venue QR at the entrance.</em>
+        </div>
+      </div>
+
+      {error && <div className="banner warn"><div>{error}</div></div>}
+
+      {phase === "scanning" ? (
+        <>
+          <p className="home-checkin-hint">Point your camera at the venue QR code to check in.</p>
+          <div id="home-qr-reader" className="home-qr-reader" />
+          <button className="btn-secondary" type="button" onClick={onCancel}>
+            Cancel
+          </button>
+        </>
+      ) : (
+        <button className="btn-primary" type="button" disabled={busy} onClick={onStart}>
+          {phase === "locating" ? (
+            <>
+              <span className="spinner" /> Finding the venue&hellip;
+            </>
+          ) : phase === "submitting" ? (
+            <>
+              <span className="spinner" /> Checking you in&hellip;
+            </>
+          ) : (
+            "Check in"
+          )}
+        </button>
+      )}
+
+      {!online && phase === "idle" && (
+        <p className="home-checkin-hint">You&rsquo;re offline — checking in will confirm once you reconnect.</p>
+      )}
+    </section>
+  );
+}
+
+function CheckedInStrip({
+  checkin,
+  pendingSync,
+  confirmOffline,
+}: {
+  checkin: CheckinStatus | null;
+  pendingSync: boolean;
+  confirmOffline: boolean;
+}) {
+  return (
+    <div className="checkin-strip is-static">
+      <span className="checkin-strip-tick" aria-hidden="true">✓</span>
+      <span className="checkin-strip-text">
+        <b>Checked in{checkin?.checkedInAt ? ` · ${formatTime(checkin.checkedInAt)}` : ""}</b>
+        <em>
+          {checkin?.method ? METHOD_LABEL[checkin.method] : ""}
+          {pendingSync ? " · syncing…" : confirmOffline ? " · saved offline" : ""}
+        </em>
+      </span>
+    </div>
+  );
+}
+
+function PreEventTop({ event, startMs }: { event: CachedVenueConfig | null; startMs: number | null }) {
+  const [now, setNow] = useState(() => Date.now());
+  const withinCountdown = startMs !== null && startMs - now <= COUNTDOWN_WINDOW_MS;
+
+  // A self-contained tick only while we're actually counting down — not the global
+  // 30s mode re-check that used to re-flow the whole screen.
+  useEffect(() => {
+    if (!withinCountdown) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [withinCountdown]);
+
+  const name = event?.name || "The event";
+
+  return (
+    <section className="home-preevent" aria-label="Event countdown">
+      <span className="home-preevent-eyebrow">{withinCountdown ? "Starting soon" : "Coming soon"}</span>
+      <h2 className="home-preevent-name">{name}</h2>
+      {event?.startAt && <p className="home-preevent-date">{formatEventDate(event.startAt)}</p>}
+      {withinCountdown && startMs !== null && <Countdown ms={Math.max(0, startMs - now)} />}
+    </section>
+  );
+}
+
+function Countdown({ ms }: { ms: number }) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const parts: { value: number; label: string }[] = [
+    ...(days > 0 ? [{ value: days, label: days === 1 ? "day" : "days" }] : []),
+    { value: hours, label: "hrs" },
+    { value: minutes, label: "min" },
+    { value: seconds, label: "sec" },
+  ];
+
+  return (
+    <div className="home-countdown" role="timer" aria-label="Time until the event starts">
+      {parts.map((part) => (
+        <div className="home-countdown-part" key={part.label}>
+          <strong>{String(part.value).padStart(2, "0")}</strong>
+          <span>{part.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- sections
+
+function ProgressSection({ stats }: { stats: PersonalStats | null }) {
+  const timeAtEvent =
+    stats?.checkedInAt
+      ? formatDuration(
+          Math.min(Date.now(), stats.eventEndAt ? new Date(stats.eventEndAt).getTime() : Date.now()) -
+            new Date(stats.checkedInAt).getTime(),
+        )
+      : null;
+
+  return (
+    <section className="profile-section" aria-label="Your progress">
+      <h2>Your progress</h2>
+      <div className="stats-grid home-stats-grid">
+        <StatTile value={stats?.peopleMet ?? "—"} label="People met" />
+        <StatTile value={stats ? `#${stats.rank}` : "—"} sub={stats ? `of ${stats.totalRanked}` : undefined} label="Rank" />
+        <StatTile value={timeAtEvent ?? "—"} label="Time at event" />
+      </div>
+      {stats?.peopleMet === 0 && <p className="empty-copy home-nudge">No meetings yet. Start scanning!</p>}
+    </section>
+  );
+}
+
+function PeopleToMeet({ matches, loading }: { matches: MatchSuggestion[]; loading: boolean }) {
+  return (
+    <section className="profile-section" aria-label="People to meet">
+      <div className="home-section-head">
+        <h2>People to meet</h2>
+        {matches.length > 0 && (
+          <Link href="/matches" className="link-muted">
+            See all
+          </Link>
+        )}
+      </div>
+
+      {loading ? (
+        <ul className="home-match-list" aria-busy="true">
+          {[0, 1, 2].map((i) => (
+            <li key={i} className="home-match home-match-skeleton">
+              <span className="skeleton-block home-match-avatar" />
+              <span className="home-match-text">
+                <span className="skeleton-block home-match-line" />
+                <span className="skeleton-block home-match-line short" />
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : matches.length > 0 ? (
+        <ul className="home-match-list">
+          {matches.map((match) => (
+            <li key={match.id}>
+              <Link href={`/attendees/${match.id}`} className="home-match">
+                <span className="home-match-avatar" aria-hidden="true">
+                  {match.name
+                    .split(" ")
+                    .slice(0, 2)
+                    .map((part) => part[0])
+                    .join("")
+                    .toUpperCase()}
+                </span>
+                <span className="home-match-text">
+                  <b>{match.name}</b>
+                  <em>{match.headline || match.businessName || ""}</em>
+                </span>
+                {match.checkedIn && <span className="badge badge-success">Here</span>}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="empty-copy">No strong matches yet — complete your profile and check back as more people arrive.</p>
+      )}
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------- bits
 
 function HomeSkeleton({ attendee }: { attendee: Attendee | null }) {
   return (
@@ -572,248 +711,6 @@ function HomeSkeleton({ attendee }: { attendee: Attendee | null }) {
     </div>
   );
 }
-
-function DashboardMode({
-  attendee,
-  checkin,
-  stats,
-  matches,
-  now,
-  online,
-  pendingSync,
-  onShowDeskView,
-  onScan,
-}: {
-  attendee: Attendee | null;
-  checkin: CheckinStatus | null;
-  stats: PersonalStats | null;
-  matches: MatchSuggestion[];
-  now: number;
-  online: boolean;
-  pendingSync: boolean;
-  onShowDeskView: () => void;
-  onScan: () => void;
-}) {
-  const firstName = attendee ? attendee.name.split(" ")[0] : "";
-  const timeAtEvent =
-    stats?.checkedInAt
-      ? formatDuration(
-          Math.min(now, stats.eventEndAt ? new Date(stats.eventEndAt).getTime() : now) -
-            new Date(stats.checkedInAt).getTime(),
-        )
-      : null;
-
-  return (
-    <div className="home-dash">
-      <PageHeader attendee={attendee} />
-      <main className="home-dash-body">
-        <h1 className="home-greeting">Hi{firstName ? `, ${firstName}` : ""} 👋</h1>
-
-        {!online && (
-          <div className="banner info">
-            <div>
-              <b>You&rsquo;re offline</b>
-              Showing your saved data. Anything you do will sync later.
-            </div>
-          </div>
-        )}
-
-        {/* The desk receipt shrinks to a strip once it's done its job — but it
-            stays one tap away, because staff still ask to see it. */}
-        <button type="button" className="checkin-strip" onClick={onShowDeskView}>
-          <span className="checkin-strip-tick" aria-hidden="true">✓</span>
-          <span className="checkin-strip-text">
-            <b>
-              Checked in{checkin?.checkedInAt ? ` · ${formatTime(checkin.checkedInAt)}` : ""}
-            </b>
-            <em>
-              {checkin?.method ? METHOD_LABEL[checkin.method] : ""}
-              {pendingSync ? " · syncing…" : ""} · Tap to show at the desk
-            </em>
-          </span>
-        </button>
-
-        {attendee?.tableNumber && (
-          <div className="table-callout">
-            <span>Your table</span>
-            <strong>{attendee.tableNumber}</strong>
-          </div>
-        )}
-
-        <button className="btn-primary home-scan-cta" onClick={onScan}>
-          Scan to connect
-        </button>
-
-        <section className="profile-section" aria-label="Your progress">
-          <h2>Your progress</h2>
-          <div className="stats-grid home-stats-grid">
-            <StatTile value={stats?.peopleMet ?? "—"} label="People met" />
-            <StatTile
-              value={stats ? `#${stats.rank}` : "—"}
-              sub={stats ? `of ${stats.totalRanked}` : undefined}
-              label="Rank"
-            />
-            <StatTile value={timeAtEvent ?? "—"} label="Time at event" />
-          </div>
-          {stats?.peopleMet === 0 && (
-            <p className="empty-copy home-nudge">No meetings yet. Start scanning!</p>
-          )}
-        </section>
-
-        {matches.length > 0 && (
-          <section className="profile-section" aria-label="People to meet">
-            <div className="home-section-head">
-              <h2>People to meet</h2>
-              <Link href="/matches" className="link-muted">See all</Link>
-            </div>
-            <ul className="home-match-list">
-              {matches.map((match) => (
-                <li key={match.id}>
-                  <Link href={`/attendees/${match.id}`} className="home-match">
-                    <span className="home-match-avatar" aria-hidden="true">
-                      {match.name
-                        .split(" ")
-                        .slice(0, 2)
-                        .map((part) => part[0])
-                        .join("")
-                        .toUpperCase()}
-                    </span>
-                    <span className="home-match-text">
-                      <b>{match.name}</b>
-                      <em>{match.headline || match.businessName || ""}</em>
-                    </span>
-                    {match.checkedIn && <span className="badge badge-success">Here</span>}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        <PoweredByFooter />
-      </main>
-      <AttendeeBottomTabs />
-    </div>
-  );
-}
-
-function PreEventMode({
-  attendee,
-  event,
-  matches,
-  now,
-  online,
-}: {
-  attendee: Attendee | null;
-  event: CachedVenueConfig | null;
-  matches: MatchSuggestion[];
-  now: number;
-  online: boolean;
-}) {
-  const firstName = attendee ? attendee.name.split(" ")[0] : "";
-  const startMs = event?.startAt ? new Date(event.startAt).getTime() : null;
-
-  return (
-    <div className="home-dash">
-      <PageHeader attendee={attendee} />
-      <div className="full-page-band tone-info">
-        <span className="ring info lg">🗓️</span>
-        <h1>{event?.name || "The event"} starts {startMs ? formatCountdown(startMs - now) : "soon"}</h1>
-      </div>
-      <main className="home-dash-body">
-        {!online && (
-          <div className="banner info">
-            <div>
-              <b>You&rsquo;re offline</b>
-              Showing your saved event details.
-            </div>
-          </div>
-        )}
-        <p className="copy">
-          You&rsquo;re all set{firstName ? `, ${firstName}` : ""}. We&rsquo;ll check you in when you arrive — until
-          then, get a head start on who you want to meet.
-        </p>
-        {event?.startAt && <p className="home-event-when">{formatEventDate(event.startAt)}</p>}
-
-        <Link href="/directory" className="btn-primary home-scan-cta">See who&rsquo;s coming</Link>
-
-        {matches.length > 0 && (
-          <section className="profile-section" aria-label="People to meet">
-            <div className="home-section-head">
-              <h2>People to meet</h2>
-              <Link href="/matches" className="link-muted">See all</Link>
-            </div>
-            <ul className="home-match-list">
-              {matches.map((match) => (
-                <li key={match.id}>
-                  <Link href={`/attendees/${match.id}`} className="home-match">
-                    <span className="home-match-avatar" aria-hidden="true">
-                      {match.name
-                        .split(" ")
-                        .slice(0, 2)
-                        .map((part) => part[0])
-                        .join("")
-                        .toUpperCase()}
-                    </span>
-                    <span className="home-match-text">
-                      <b>{match.name}</b>
-                      <em>{match.headline || match.businessName || ""}</em>
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        <PoweredByFooter />
-      </main>
-      <AttendeeBottomTabs />
-    </div>
-  );
-}
-
-function EndedMode({
-  attendee,
-  stats,
-  online,
-}: {
-  attendee: Attendee | null;
-  stats: PersonalStats | null;
-  online: boolean;
-}) {
-  return (
-    <div className="full-page attendee-tabbed-page">
-      <PageHeader attendee={attendee} />
-      <div className="full-page-band tone-success">
-        <span className="ring ok lg">🎉</span>
-        <h1>That&rsquo;s a wrap</h1>
-      </div>
-      <div className="full-page-body">
-        {!online && (
-          <div className="banner info">
-            <div>
-              <b>You&rsquo;re offline</b>
-              Showing your saved summary.
-            </div>
-          </div>
-        )}
-        <p className="copy">
-          {stats && stats.peopleMet > 0
-            ? `You met ${stats.peopleMet} ${stats.peopleMet === 1 ? "person" : "people"} — your connections are saved.`
-            : "The event has ended. Your connections are saved."}
-        </p>
-        <Link href="/summary" className="btn-primary home-scan-cta">View your summary</Link>
-        <Link href="/connections" className="link-muted">See all your connections</Link>
-
-        <PoweredByFooter />
-      </div>
-      <AttendeeBottomTabs />
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------- bits
 
 function StatTile({ value, label, sub }: { value: React.ReactNode; label: string; sub?: string }) {
   return (

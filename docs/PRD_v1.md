@@ -344,7 +344,7 @@ Acceptance Criteria:
 
 ### Feature 3: Attendance & Check-In
 
-**Description:** Attendees are marked present when they open the app at the venue; fallback is staff QR scan.
+**Description:** Attendees are marked present by tapping Check in at the venue — geolocation confirms arrival, or they scan a printable venue attendance QR; fallback is staff QR scan.
 
 **User Stories**
 
@@ -437,12 +437,14 @@ I want to see in real time how many attendees have checked in
 So that I know how the event is progressing and can send reminders if needed
 Acceptance Criteria:
 - Admin dashboard shows live counter: "142 of 200 checked in" (updated every 5–10 seconds)
-- Breakdown: by check-in method (auto geolocation, manual button, staff QR)
+- Breakdown: by check-in method (geolocation, venue-QR self-scan, manual, staff QR)
 - List of checked-in attendees (by check-in time, sortable by name or company)
 - List of not-yet-checked-in attendees
 - Admin can copy the not-yet-checked-in list (names/phones) to nudge them manually in the WhatsApp group — no system-sent reminders (no WhatsApp vendor)
 - Check-in timeline chart: graph of check-ins over time (optional)
 ```
+
+> **Revised (UX revision v1.2 — builds as F3.7).** Home is now **one constant dashboard**, not four separate full-page modes. The top block swaps between pre-event countdown / check-in card / checked-in strip / ended banner while the body (progress + people-to-meet) stays put. Specific changes to the criteria below: (a) the background 30-second mode re-check is **removed** — the mode resolves on load and after a check-in; (b) the pre-event countdown shows a **live ticking timer only within 3 days** of the start, and a calm "Coming soon" + date further out; (c) "NOT CHECKED IN" is no longer a full-page takeover — check-in runs **inline in a card**: tapping **Check in** tries geolocation, then falls back to **scanning the printable venue attendance QR** (new `VENUE_QR` method — see US3.6); (d) the checked-in receipt is a **compact strip only** (the separate full-page desk view is dropped); (e) "AFTER THE EVENT" keeps the same constant layout with an "Event ended" banner; (f) people-to-meet shows a skeleton then a "No strong matches yet" empty state instead of vanishing.
 
 **US3.5 - Home is the hub for the whole event, not just for checking in** *(added UX revision v1.1 — builds as F3.6)*
 ```
@@ -476,6 +478,28 @@ Technical Details:
   These aren't sensitive and are cached client-side per the offline architecture, so mode
   selection keeps working with no connectivity
 - Stats reuse the existing cached attendee-stats endpoint (US11.1); no new aggregate
+```
+
+**US3.6 - Venue-QR self check-in** *(added UX revision v1.2 — builds as F3.7)*
+```
+As Radha (attendee) at the venue, when geolocation can't place me inside the radius
+I want to scan a QR displayed at the entrance and be marked present
+So that check-in is seamless without waiting for staff to scan my badge
+Acceptance Criteria:
+- The organizer generates a single "venue attendance QR" per event and prints/displays it at
+  the entrance. It encodes a URL (/checkin?venue=<token>) tied to the event's current token.
+- On Home, tapping "Check in" first tries geolocation; if that can't confirm the venue, the app
+  opens the in-app camera to scan the venue QR, which records the check-in (method VENUE_QR).
+- Scanning the same QR with a phone's native camera opens /checkin?venue=<token> and, for a
+  signed-in attendee, self-checks-in and returns to Home; a signed-out scan is sent to sign-in.
+- An invalid/rotated token is rejected ("That QR isn't valid for this event — ask staff").
+- Admin can regenerate the token, which invalidates any earlier printout.
+- Works offline: a scan is queued and confirmed on reconnect (same as other check-in methods).
+- The staff-scan-badge flow (US3.2) remains the ultimate fallback.
+Technical Details:
+- Event gains venueCheckinToken; POST /checkin/venue-qr validates it. Admin: GET /admin/event/
+  venue-qr (generate-on-read) and POST /admin/event/venue-qr/regenerate; QR is rendered/downloaded
+  client-side with the qrcode lib (same as badge printing, US3.5/F3.5).
 ```
 
 ---
@@ -1312,5 +1336,5 @@ Mapping original sticky-note brainstorm to decisions in this PRD, for transparen
 ---
 
 **Document prepared by:** Claude  
-**Last updated:** July 21, 2026  
+**Last updated:** July 21, 2026 (F3.7 — venue-QR self check-in + constant Home)  
 **Next steps:** Design mockups, backend API spec, frontend component library

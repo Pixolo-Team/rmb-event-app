@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import QRCode from "qrcode";
 import type { Html5Qrcode } from "html5-qrcode";
 import { enqueueWrite, useOfflineSync } from "../../lib/offlineQueue";
 import { withCsrfHeaders } from "../../lib/csrf";
 
-type Method = "GEOLOCATION" | "MANUAL" | "STAFF_QR";
+type Method = "GEOLOCATION" | "MANUAL" | "STAFF_QR" | "VENUE_QR";
 
 interface StatusResponse {
   totalAttendees: number;
@@ -19,6 +20,7 @@ const METHOD_LABEL: Record<Method, string> = {
   GEOLOCATION: "via location",
   MANUAL: "manual",
   STAFF_QR: "staff scan",
+  VENUE_QR: "venue scan",
 };
 
 const POLL_MS = 7000;
@@ -163,9 +165,12 @@ export default function AdminCheckinPage() {
               tone="ok"
             />
             <StatPill label="Via location" value={status.breakdown.GEOLOCATION} tone="neutral" />
+            <StatPill label="Venue scan" value={status.breakdown.VENUE_QR} tone="neutral" />
             <StatPill label="Manual" value={status.breakdown.MANUAL} tone="neutral" />
             <StatPill label="Staff scan" value={status.breakdown.STAFF_QR} tone="neutral" />
           </div>
+
+          <VenueQrCard />
 
           <div style={{ marginBottom: 28 }}>
             <button className="btn-primary" style={{ width: "auto", padding: "0 24px" }} onClick={() => setScannerOpen((o) => !o)}>
@@ -213,6 +218,80 @@ export default function AdminCheckinPage() {
         </>
       )}
     </div>
+  );
+}
+
+// F3.7 — the printable venue attendance QR. Attendees scan this in-app to
+// self-check-in. It encodes a URL so it also works if scanned with a native
+// camera; the token is the event's current venueCheckinToken.
+function VenueQrCard() {
+  const [token, setToken] = useState<string | null>(null);
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const [regenerating, setRegenerating] = useState(false);
+
+  const render = useCallback(async (nextToken: string) => {
+    setToken(nextToken);
+    const url = `${window.location.origin}/checkin?venue=${encodeURIComponent(nextToken)}`;
+    try {
+      setDataUrl(await QRCode.toDataURL(url, { margin: 2, width: 320, errorCorrectionLevel: "M" }));
+    } catch {
+      setDataUrl(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/admin/event/venue-qr")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => data?.token && render(data.token))
+      .catch(() => undefined);
+  }, [render]);
+
+  async function regenerate() {
+    if (!window.confirm("Generate a new QR? Any printout of the current one will stop working.")) return;
+    setRegenerating(true);
+    try {
+      const res = await fetch("/api/admin/event/venue-qr/regenerate", withCsrfHeaders({ method: "POST" }));
+      if (res.ok) {
+        const data = (await res.json()) as { token: string };
+        await render(data.token);
+      }
+    } finally {
+      setRegenerating(false);
+    }
+  }
+
+  return (
+    <section className="venue-qr-card">
+      <div className="venue-qr-copy">
+        <h2>Venue attendance QR</h2>
+        <p className="copy">
+          Print this and display it at the entrance. Attendees tap <b>Check in</b> on their Home screen and
+          scan it to mark themselves present.
+        </p>
+        <div className="venue-qr-actions">
+          <a
+            className="btn-primary"
+            href={dataUrl ?? undefined}
+            download="venue-attendance-qr.png"
+            aria-disabled={!dataUrl}
+          >
+            Download PNG
+          </a>
+          <button className="btn-secondary" type="button" onClick={regenerate} disabled={regenerating}>
+            {regenerating ? "Regenerating…" : "Regenerate"}
+          </button>
+        </div>
+      </div>
+      <div className="venue-qr-preview">
+        {dataUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={dataUrl} alt="Venue attendance QR code" width={180} height={180} />
+        ) : (
+          <div className="venue-qr-placeholder" role="status">Preparing…</div>
+        )}
+        {token && <code className="venue-qr-token">{token.slice(0, 6)}…</code>}
+      </div>
+    </section>
   );
 }
 

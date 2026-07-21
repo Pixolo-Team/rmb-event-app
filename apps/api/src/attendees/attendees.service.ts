@@ -10,6 +10,7 @@ import { MatchingService } from "../matching/matching.service";
 import type { MatchProfile } from "../matching/matching.types";
 import { hashToken } from "../common/tokens";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
+import { UpdateLinksDto } from "./dto/update-links.dto";
 import { GOALS_TAGS, OFFERING_TAGS } from "./profile-options";
 import { CreateAdminAttendeeDto } from "./dto/create-admin-attendee.dto";
 
@@ -43,6 +44,7 @@ export type DirectoryAttendee = {
   phone: string;
   photoUrl: string | null;
   linkedInUrl: string | null;
+  websiteUrl: string | null;
   bookmarked: boolean;
   met: boolean;
 };
@@ -58,6 +60,7 @@ export type PublicProfileData = {
   phone: string;
   photoUrl: string | null;
   linkedInUrl: string | null;
+  websiteUrl: string | null;
 };
 
 @Injectable()
@@ -132,6 +135,7 @@ export class AttendeesService {
       phone: attendee.phone,
       photoUrl: attendee.photoUrl,
       linkedInUrl: attendee.linkedInUrl,
+      websiteUrl: attendee.websiteUrl,
     };
   }
 
@@ -172,9 +176,23 @@ export class AttendeesService {
       phone: attendee.phone,
       photoUrl: attendee.photoUrl,
       linkedInUrl: attendee.linkedInUrl,
+      websiteUrl: attendee.websiteUrl,
       bookmarked: bookmarkedIds.has(attendee.id),
       met: metIds.has(attendee.id),
     }));
+  }
+
+  // Partial update of just the optional profile links (the /profile website editor).
+  // No required-field validation and no profileCompletedAt touch — see UpdateLinksDto.
+  async updateLinks(attendeeId: string, dto: UpdateLinksDto) {
+    return this.prisma.attendee.update({
+      where: { id: attendeeId },
+      data: {
+        ...(dto.linkedInUrl !== undefined && { linkedInUrl: dto.linkedInUrl ?? null }),
+        ...(dto.websiteUrl !== undefined && { websiteUrl: dto.websiteUrl ?? null }),
+      },
+      select: { linkedInUrl: true, websiteUrl: true },
+    });
   }
 
   async updateProfile(attendeeId: string, dto: UpdateProfileDto) {
@@ -219,6 +237,7 @@ export class AttendeesService {
         goals: dto.goals,
         bio: dto.bio,
         linkedInUrl: dto.linkedInUrl,
+        websiteUrl: dto.websiteUrl,
         profileCompletedAt: new Date(),
       },
     });
@@ -314,6 +333,7 @@ export class AttendeesService {
           photoUrl: true,
           tableNumber: true,
           linkedInUrl: true,
+          websiteUrl: true,
           chapter: { select: { name: true } },
           checkIn: { select: { createdAt: true } },
         },
@@ -356,6 +376,7 @@ export class AttendeesService {
       photoUrl: attendee.photoUrl,
       tableNumber: attendee.tableNumber,
       linkedInUrl: attendee.linkedInUrl,
+      websiteUrl: attendee.websiteUrl,
       chapterName: attendee.chapter?.name ?? null,
       checkedIn: Boolean(attendee.checkIn),
       bookmarked: bookmarkedIds.has(attendee.id),
@@ -399,6 +420,8 @@ export class AttendeesService {
           tableNumber: true,
           goals: true,
           bio: true,
+          linkedInUrl: true,
+          websiteUrl: true,
           checkIn: { select: { createdAt: true } },
           deletedAt: true,
           ...matchSelect,

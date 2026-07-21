@@ -15,7 +15,7 @@ const TOOLS = [
   { href: "/admin/feedback", title: "Feedback", desc: "Ratings & comments analytics" },
 ];
 
-type Breakdown = { GEOLOCATION: number; MANUAL: number; STAFF_QR: number };
+type Breakdown = { GEOLOCATION: number; MANUAL: number; STAFF_QR: number; VENUE_QR: number };
 type Leader = { id: string; rank: number; name: string; businessName: string | null; metCount: number };
 type TimePoint = { label: string; checkIns: number; meetings: number };
 type DashboardData = {
@@ -301,6 +301,7 @@ export default function AdminHome() {
           </div>
           <div className="admin-method-grid">
             <SmallStat label="Via location" value={data?.breakdown.GEOLOCATION ?? "—"} />
+            <SmallStat label="Venue scan" value={data?.breakdown.VENUE_QR ?? "—"} />
             <SmallStat label="Manual" value={data?.breakdown.MANUAL ?? "—"} />
             <SmallStat label="Staff scan" value={data?.breakdown.STAFF_QR ?? "—"} />
           </div>

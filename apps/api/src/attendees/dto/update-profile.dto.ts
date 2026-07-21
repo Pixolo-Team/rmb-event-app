@@ -38,4 +38,9 @@ export class UpdateProfileDto {
   @IsUrl({ require_protocol: true })
   @MaxLength(300)
   linkedInUrl?: string;
+
+  @IsOptional()
+  @IsUrl({ require_protocol: true })
+  @MaxLength(300)
+  websiteUrl?: string;
 }

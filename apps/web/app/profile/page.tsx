@@ -101,7 +101,7 @@ export default function ProfilePage() {
     setWebsiteSaving(true);
     setWebsiteError(null);
     try {
-      const res = await fetch("/api/attendees/me/profile", withCsrfHeaders({
+      const res = await fetch("/api/attendees/me/links", withCsrfHeaders({
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

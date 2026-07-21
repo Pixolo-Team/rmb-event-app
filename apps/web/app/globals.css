@@ -1985,6 +1985,17 @@ p.copy {
 .content-skeleton-heading { width: 45%; height: 16px; }
 .content-skeleton-line { width: 100%; height: 12px; }
 .content-skeleton-line.short { width: 60%; }
+.venue-qr-card { display: flex; gap: 20px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 28px; padding: 20px; border: 1px solid var(--border); border-radius: var(--radius-lg, 18px); background: var(--surface); }
+.venue-qr-copy { flex: 1; min-width: 240px; }
+.venue-qr-copy h2 { margin: 0 0 6px; font: 700 1.1rem var(--font-display); }
+.venue-qr-copy .copy { margin: 0 0 14px; }
+.venue-qr-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.venue-qr-actions .btn-primary, .venue-qr-actions .btn-secondary { width: auto; padding: 0 20px; text-decoration: none; display: inline-flex; align-items: center; }
+.venue-qr-actions .btn-primary[aria-disabled="true"] { opacity: .5; pointer-events: none; }
+.venue-qr-preview { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.venue-qr-preview img { border-radius: var(--radius-md); border: 1px solid var(--border); }
+.venue-qr-placeholder { width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; color: var(--ink-muted); background: var(--surface-2); border-radius: var(--radius-md); }
+.venue-qr-token { font-family: var(--font-mono); font-size: .72rem; color: var(--ink-faint); }
 .gallery-grid-placeholder {
   width: 100%;
   height: 100%;
@@ -3186,6 +3197,44 @@ a.contact-row:active { background: var(--brand-100); }
   font-size: 0.75rem;
   opacity: 0.85;
 }
+.checkin-strip.is-static { cursor: default; }
+.checkin-strip.is-static:active { transform: none; }
+
+/* F3.7 — inline check-in prompt (location → venue-QR scan) */
+.home-checkin-card { display: grid; gap: 14px; padding: 18px; border: 1px solid var(--border); border-radius: var(--radius-lg, 18px); background: var(--surface); }
+.home-checkin-head { display: flex; gap: 12px; align-items: flex-start; }
+.home-checkin-icon { font-size: 1.4rem; line-height: 1.2; }
+.home-checkin-head b { display: block; font-size: 0.98rem; }
+.home-checkin-head em { display: block; margin-top: 3px; font-style: normal; font-size: 0.82rem; color: var(--ink-muted); }
+.home-checkin-hint { margin: 0; font-size: 0.82rem; color: var(--ink-muted); }
+.home-qr-reader { width: 100%; max-width: 300px; margin: 0 auto; border-radius: var(--radius-md); overflow: hidden; }
+
+/* checked-in / ended status banner */
+.home-status-banner { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: var(--radius-md); background: var(--surface-2); }
+.home-status-banner > span[aria-hidden] { font-size: 1.4rem; }
+.home-status-banner b { display: block; }
+.home-status-banner em { display: block; margin-top: 2px; font-style: normal; font-size: 0.8rem; color: var(--ink-muted); }
+.home-status-banner.tone-ended { background: var(--success-100); color: var(--success-700); }
+.home-status-banner.tone-ended em { color: inherit; opacity: 0.85; }
+
+/* pre-event countdown / coming soon */
+.home-preevent { display: grid; gap: 8px; padding: 22px 18px; border: 1px solid var(--border); border-radius: var(--radius-lg, 18px); background: linear-gradient(180deg, var(--brand-50, var(--surface-2)), var(--surface)); text-align: center; }
+.home-preevent-eyebrow { font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--brand-700); }
+.home-preevent-name { margin: 0; font: 700 1.4rem var(--font-display); }
+.home-preevent-date { margin: 0; color: var(--ink-muted); font-size: 0.9rem; }
+.home-countdown { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
+.home-countdown-part { display: grid; gap: 4px; min-width: 58px; padding: 10px 6px; border-radius: var(--radius-md); background: var(--surface); border: 1px solid var(--border); }
+.home-countdown-part strong { font: 800 1.4rem var(--font-display); color: var(--brand-800); font-variant-numeric: tabular-nums; }
+.home-countdown-part span { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-muted); }
+
+.home-secondary-cta { text-align: center; text-decoration: none; }
+
+/* people-to-meet skeleton rows */
+.home-match-skeleton { pointer-events: none; }
+.home-match-skeleton .home-match-avatar { color: transparent; background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%); background-size: 200% 100%; animation: feed-skeleton-shimmer 1.35s ease-in-out infinite; }
+.home-match-skeleton .home-match-text { flex: 1; }
+.home-match-line { display: block; height: 11px; width: 70%; }
+.home-match-line.short { width: 45%; margin-top: 7px; }
 
 /* Table number: the "where do I physically go" fact, and the thing an attendee
    hunts for in the first ten minutes — so it gets size, not colour. Deliberately
