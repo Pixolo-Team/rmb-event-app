@@ -135,6 +135,13 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 **Module:** Onboarding (accessible before event)  
 **Purpose:** Show attendee their suggested matches before the event so they can plan who to meet
 
+> ### Revised (UX revision v1.3 — "Want to Meet" = your list, matches are suggestions into it). ✅ Built.
+> The "Want to Meet" tab (`/matches`) conflated two different things — the attendee's **saved list** (bookmarks) and the algorithm's **smart matches** — as similar cards, and the saved list *also* lived in My Connections (Screen 2.6). Agreed redesign (option A):
+> - **The tab is your saved list.** Top section **"Your list"** = bookmarked attendees only.
+> - **Smart matches become suggestions that feed the list.** A visually distinct **"Suggested for you"** section below shows the full ranked matches (with the ✦ "why you should meet" reason), each with a **bookmark** control (not a heart) framed as *tap to add*. Bookmarking a suggestion moves it up into "Your list" and removes it from Suggestions; already-saved attendees never appear as suggestions. Long lists show ~5 then a "Show more"; Refresh stays.
+> - **Presentation:** both sections are **compact list rows** (avatar · name · company·chapter · ✦ reason on suggestions · bookmark toggle), not large cards — quicker to scan and add. Per-person quick actions (call / LinkedIn / share) live on the attendee profile the row opens, not inline.
+> - **De-duplicated:** the saved list is removed from My Connections (Screen 2.6 becomes *Already met* only) so "Want to Meet" lives in exactly one place. Tab keeps the name "Want to Meet".
+
 **States:**
 - **Default:** List of top 10 matches displayed with card view
 - **Loading:** Skeleton loaders for the match cards. Tapping the "Want to Meet" tab swaps to this skeleton immediately via a route-level loading boundary — the page never lingers on the previous screen while the segment and data resolve.
@@ -596,6 +603,9 @@ and keeps the whole check-in experience on one URL.
 
 **Module:** Networking  
 **Purpose:** View all people the attendee has met or bookmarked, with details and action options
+
+> ### Revised (UX revision v1.3 — Already Met only). ✅ Built.
+> The **Want to Meet** tab is **removed from this screen** — the saved/bookmarked list now lives solely on the "Want to Meet" bottom tab (Screen 1.4), so it isn't in two places. My Connections becomes a single **Already met** list (no tabs). The states/interactions below that reference the Want-to-Meet tab no longer apply here; see Screen 1.4 for the saved list.
 
 **States:**
 - **Default:** Two tabs (Want to Meet / Already Met) with card list

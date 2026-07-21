@@ -578,6 +578,8 @@ Acceptance Criteria:
 
 **Description:** Attendees can bookmark people they want to meet or have met, visible in "My Connections."
 
+> **Revised (UX revision v1.3 — F2.8). ✅ Built.** The bookmarked "want to meet" list now lives on the **"Want to Meet" bottom tab**, not inside My Connections — so it's in one place. That tab shows the saved list as **"Your list"**, with the smart matches (Feature 2) as a distinct **"Suggested for you"** section below that feeds into it (bookmark a suggestion → it joins Your list). **My Connections becomes "Already met" only.** See `SCREENS.md` 1.4/2.6 revision v1.3 and `FEATURES.md` F2.8.
+
 **User Stories**
 
 **US5.1 - Attendee bookmarks someone from directory**
@@ -1336,5 +1338,5 @@ Mapping original sticky-note brainstorm to decisions in this PRD, for transparen
 ---
 
 **Document prepared by:** Claude  
-**Last updated:** July 21, 2026 (F3.7 — venue-QR self check-in + constant Home)  
+**Last updated:** July 21, 2026 (F3.7 — venue-QR self check-in + constant Home; F2.8 plan — Want-to-Meet = saved list + suggestions)  
 **Next steps:** Design mockups, backend API spec, frontend component library
