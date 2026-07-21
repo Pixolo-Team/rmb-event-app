@@ -295,7 +295,7 @@ export function OnboardingFlow() {
               value={businessCategory}
               onChange={(e) => {
                 const nextCategory = e.target.value;
-                const compatibleOfferings = options?.offeringsByCategory[nextCategory] ?? [];
+                const compatibleOfferings = options?.offeringsByCategory?.[nextCategory] ?? [];
                 const hasIncompatibleSelections = offering.some((item) => !compatibleOfferings.includes(item));
                 if (
                   hasIncompatibleSelections &&
@@ -320,7 +320,7 @@ export function OnboardingFlow() {
 
           <MultiSelectDropdown
             label="Offering"
-            options={options?.offeringsByCategory[businessCategory] ?? []}
+            options={options?.offeringsByCategory?.[businessCategory] ?? []}
             selected={offering}
             onToggle={(v) => setOffering((s) => toggle(s, v))}
             disabled={!businessCategory}

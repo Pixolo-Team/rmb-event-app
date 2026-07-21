@@ -72,4 +72,5 @@ export const directoryCache = {
   set: (value: DirectoryResponse) => write(DIRECTORY_KEY, value),
   getProfile: (id: string) => read<AttendeeProfile>(`${PROFILE_PREFIX}${id}`),
   setProfile: (id: string, value: AttendeeProfile) => write(`${PROFILE_PREFIX}${id}`, value),
+  clear: () => { try { localStorage.removeItem(DIRECTORY_KEY); } catch { /* nothing to clean up */ } },
 };
