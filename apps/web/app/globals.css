@@ -1585,6 +1585,13 @@ p.copy {
   color: var(--ink-faint);
   cursor: not-allowed;
 }
+.menu-install-hint {
+  margin: -4px 0 6px;
+  padding: 0 12px 8px;
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
 .menu-soon {
   margin-left: auto;
   padding: 2px 7px;

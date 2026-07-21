@@ -51,10 +51,20 @@ function initials(name: string): string {
     .join("");
 }
 
+function manualInstallHint(): string {
+  if (typeof navigator === "undefined") return "";
+  const ua = navigator.userAgent;
+  const isIos = /iPad|iPhone|iPod/.test(ua) && !(window as unknown as { MSStream?: unknown }).MSStream;
+  if (isIos) return "Tap the Share icon, then “Add to Home Screen.”";
+  if (/Android/.test(ua)) return "Open your browser menu and choose “Install app” or “Add to Home screen.”";
+  return "Open your browser menu and choose “Install Evento” or “Add to Home screen.”";
+}
+
 export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [installHint, setInstallHint] = useState<string | null>(null);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -76,6 +86,10 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
     const timeout = window.setTimeout(() => setMounted(false), 220);
     return () => window.clearTimeout(timeout);
   }, [open, mounted]);
+
+  useEffect(() => {
+    if (!open) setInstallHint(null);
+  }, [open]);
 
   function removeMenuHistoryMarker() {
     if (!window.history.state?.eventoAttendeeMenu) return;
@@ -201,18 +215,25 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
             </div>
 
             <nav className="menu-nav" aria-label="Attendee navigation">
-              {canInstall && !isInstalled && (
-                <button
-                  type="button"
-                  className="menu-link"
-                  onClick={() => {
-                    promptInstall();
-                    setOpen(false);
-                  }}
-                >
-                  <InstallIcon />
-                  <span className="menu-link-label">Install app</span>
-                </button>
+              {!isInstalled && (
+                <>
+                  <button
+                    type="button"
+                    className="menu-link"
+                    onClick={() => {
+                      if (canInstall) {
+                        promptInstall();
+                        setOpen(false);
+                      } else {
+                        setInstallHint(manualInstallHint());
+                      }
+                    }}
+                  >
+                    <InstallIcon />
+                    <span className="menu-link-label">Install app</span>
+                  </button>
+                  {installHint && <p className="menu-install-hint">{installHint}</p>}
+                </>
               )}
               {DRAWER_ITEMS.filter((item) => item.available || SHOW_PLANNED_ITEMS).map((item) => {
                 if (!item.available) return <DisabledMenuItem key={item.label} item={item} />;
