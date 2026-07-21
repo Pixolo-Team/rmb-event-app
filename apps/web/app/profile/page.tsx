@@ -50,7 +50,10 @@ export default function ProfilePage() {
         body: formData,
       }));
 
-      if (!res.ok) throw new Error("Upload failed");
+      if (!res.ok) {
+        const body = await res.json().catch(() => null) as { message?: string } | null;
+        throw new Error(body?.message ?? "Upload failed");
+      }
 
       const data = await res.json() as { status: string; photoUrl: string };
       updateProfilePhoto(data.photoUrl);
