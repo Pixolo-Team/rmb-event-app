@@ -111,13 +111,13 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 - **Loading:** (N/A)
 
 **User Interactions:**
-- Tap "Open app" → enter the tutorial when running as an installed PWA
+- Tap "Open app" → go directly to Home when running as an installed PWA
 - Tap "Install Evento" → reopen the install modal when the app is not installed
-- Tap "Continue in browser" → enter the tutorial without requiring installation
+- Tap "Continue in browser" → go directly to Home without requiring installation
 
 **Navigation:**
 - **Comes from:** Profile Setup Form (1.1) or PWA Install Prompt (1.2)
-- **Leads to:** First-time Tutorial (2.12), then Home
+- **Leads to:** Home (2.1); Tutorial (2.12) is deferred
 
 **Data Needed to Display:**
 - Animated design-system success tick and "Your profile is set up" confirmation
@@ -817,7 +817,7 @@ and keeps the whole check-in experience on one URL.
 - Tap own QR code → enlarge full-screen (brightness boosted); tap again or back to dismiss
 - Tap on profile fields (name, company, business category, etc.) → edit (some read-only)
 - Toggle notifications on/off
-- Tap "View tutorial" → re-show onboarding tutorial
+- Tutorial entry point is omitted while Screen 2.12 is deferred for replanning
 - Tap "About" → show app version, support email
 - Tap "Terms & Privacy" → open in browser
 - Tap "Sign out" (if applicable) → return to login/start screen
@@ -891,10 +891,12 @@ Both link fields are **clearable** — emptying one and saving removes it, which
 
 ---
 
-### Screen 2.12: First-Time Tutorial
+### Screen 2.12: First-Time Tutorial — Deferred
 
 **Module:** Onboarding (In-App)  
-**Purpose:** Show new users a quick walkthrough of key features (auto-shown on first launch)
+**Status:** Removed from the current app pending UX replanning. No `/tutorial` route or user-facing entry point is active.
+
+**Purpose (future):** Show new users a quick walkthrough of key features after the experience is redesigned.
 
 **States:**
 - **Default:** Modal overlay showing step-by-step tutorial
@@ -1435,7 +1437,7 @@ Cross-Cutting:
   Sync Status (4.2)
   Loading Skeletons (4.3)
   Toast Notifications (5.1)
-  First-Time Tutorial (2.12) [shown on app first launch]
+  First-Time Tutorial (2.12) [deferred; not in the current app]
 ```
 
 ---
@@ -1446,7 +1448,7 @@ Cross-Cutting:
 |--------|---------|---------|
 | Pre-Event Onboarding | 4 | Group link → email magic link (2.0) → Profile → PWA install → Pre-event matches |
 | Attendee App (Main) | 10 | Home (with check-in orchestration), Manual Check-In (fallback), Directory, Profile, Scanner, Leaderboard, Connections, Photo Feed, Post Photo, Summary |
-| Settings & Tutorial | 2 | Settings (2.11), Tutorial (2.12) |
+| Settings | 1 active | Settings (2.11); Tutorial (2.12) is deferred |
 | Admin Dashboard | 8 | Login, Dashboard, Event Settings (venue config), Import Attendees, Check-in Management (with QR scanner), Feed Moderation, Feedback Analytics, Print Badges |
 | Cross-Cutting | 3 | Network errors, sync status, loading skeletons |
 | **Total** | **27** | +3 screens (2.1A Manual Check-In, 3.2A Event Settings, updated check-in flow) |

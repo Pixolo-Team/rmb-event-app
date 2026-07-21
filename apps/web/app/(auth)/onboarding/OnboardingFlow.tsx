@@ -191,11 +191,11 @@ export function OnboardingFlow() {
           </div>
           <span className="onboarding-success-kicker">All done</span>
           <h1>Your profile is set up</h1>
-          <p>Your profile is ready. Take a quick tour, then start discovering people worth meeting.</p>
+          <p>Your profile is ready. Start discovering people worth meeting.</p>
 
           <div className="onboarding-success-actions">
             {isInstalled ? (
-              <button className="btn-primary" onClick={() => router.push("/tutorial")}>
+              <button className="btn-primary" onClick={() => router.push("/home")}>
                 Open app
               </button>
             ) : (
@@ -203,7 +203,7 @@ export function OnboardingFlow() {
                 <button className="btn-primary" onClick={() => setStep("install")}>
                   Install Evento
                 </button>
-                <button className="onboarding-success-browser" onClick={() => router.push("/tutorial")}>
+                <button className="onboarding-success-browser" onClick={() => router.push("/home")}>
                   Continue in browser
                 </button>
               </>

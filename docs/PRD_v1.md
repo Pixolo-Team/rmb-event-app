@@ -200,22 +200,22 @@ Acceptance Criteria:
 - After completion, profile save opens the PWA install modal unless the app is already running as an installed PWA
 - Profile is saved even if attendee doesn't install PWA
 - Profile setup itself cannot be skipped; all required onboarding fields must be valid before the attendee can continue to the install prompt
-- Tutorial video or walkthrough available (optional for attendees who want it)
+- Tutorial/walkthrough is deferred pending UX replanning; the current experience proceeds directly to Home
 ```
 
 **US1.4 - PWA install & first-time experience**
 ```
 As Radha (attendee)
 I want to install the Evento app on my home screen so I can use it offline
-And see a tutorial on my first open
-So that I know what to do at the event and don't have to figure it out on the day
+And enter the app directly after setup
+So that I can start using the event experience without an interim walkthrough
 Acceptance Criteria:
 - Installation is offered in a responsive modal: centered on tablet/desktop and bottom-positioned on small phones
 - "Install Evento" uses the native PWA prompt when supported; otherwise the modal explains the browser's "Add to Home Screen" action
 - Installation is optional after profile save: "Continue without installing" proceeds to the animated completion state
 - Completion detects installed/standalone mode: installed users see "Open app"; others see "Install Evento" plus "Continue in browser"
-- On first app open, auto-show a focused tutorial for check-in, QR connections, People and Want to Meet. Feed/posting is learned contextually on the dedicated Feed page, not inside Tutorial.
-- Tutorial has skip button; re-accessible from settings
+- The tutorial is removed from the current release pending UX replanning; completed onboarding routes directly to Home
+- No tutorial entry point is shown in navigation or Settings during this deferred state
 - App is fully functional offline (directory, matches, and profiles load from cache)
 ```
 

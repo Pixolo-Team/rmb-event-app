@@ -93,7 +93,7 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 | F1.2 | Required three-step Profile Setup — About You/DB City → Business Category/dependent Offering → searchable Looking For/Goals + optional Bio; responsive shell and per-step validation | Screen 1.1 | P0 | No | PF2, PF8 | ✅ Done |
 | F1.3 | Responsive PWA install modal — native prompt, Add to Home Screen fallback, Continue without installing, installed-mode detection | Screen 1.2 | P0 | Yes | PF1, F1.2 | ✅ Done |
 | F1.4 | Profile-complete screen — animated success tick and adaptive Open App / Install / Continue in browser actions | Screen 1.3 | P2 | Yes | F1.3 | ✅ Done |
-| F1.5 | First-time tutorial (skippable and re-accessible) | Screen 2.12 | P2 | Yes (cached) | F1.4 | ✅ Done |
+| F1.5 | First-time tutorial — removed from the current app pending UX replanning | Screen 2.12 | Deferred | — | F1.4 | ⏸ Replan |
 
 **Feeds into:** every other epic — this is where attendee records, QR codes, and profile tags originate.
 
@@ -227,7 +227,7 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 
 **F7 build notes:**
 - `/feed` is an authenticated attendee route linked from the shared navigation. It loads newest-first with pagination, likes, flat comments, full-screen viewing and owner-only deletion.
-- Feed and its post composer are intentionally absent from `/tutorial`; the tutorial covers check-in, QR connections, People and Want to Meet, while posting is introduced contextually on `/feed` itself.
+- The `/tutorial` route and tutorial entry points are removed from the current app pending UX replanning. After onboarding, attendees proceed directly to Home; Feed/posting is introduced contextually on `/feed`.
 - Feed begins with a persistent LinkedIn-style composer (identity, **Start a post**, and **Photo**) followed by posts or the empty-state message. Both entry controls open the photo/caption modal. Uploads include the shared CSRF token.
 - `/gallery` is the browse-only visual grid; creation remains centralized in Feed. Development-only `?preview=1` data uses bundled event images and never writes to Supabase.
 - The composer accepts up to six library images and a 200-character shared caption. The API stores them atomically as one post with ordered media URLs; existing one-image records remain compatible. Feed renders a carousel, one-line caption with Read more, compact Like/Comment icon actions, collapsed comments, and an icon-only comment send action.

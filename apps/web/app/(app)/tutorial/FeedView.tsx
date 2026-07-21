@@ -289,15 +289,19 @@ export function FeedView({
   photos,
   setPhotos,
   demoMode = false,
+  initialDataLoaded = false,
+  externalDataLoad = false,
 }: {
   attendee: AttendeeMe;
   photos: FeedPhotoData[];
   setPhotos: Dispatch<SetStateAction<FeedPhotoData[]>>;
   demoMode?: boolean;
+  initialDataLoaded?: boolean;
+  externalDataLoad?: boolean;
 }) {
   const localMode = demoMode;
   const [feedState, setFeedState] = useState<"loading" | "ready" | "error">(
-    localMode ? "ready" : "loading",
+    localMode || initialDataLoaded ? "ready" : "loading",
   );
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -346,8 +350,12 @@ export function FeedView({
   }
 
   useEffect(() => {
-    if (localMode) {
+    if (localMode || initialDataLoaded) {
       setFeedState("ready");
+      return;
+    }
+    if (externalDataLoad) {
+      setFeedState("loading");
       return;
     }
 
@@ -374,7 +382,7 @@ export function FeedView({
     return () => {
       cancelled = true;
     };
-  }, [localMode, setPhotos]);
+  }, [externalDataLoad, initialDataLoaded, localMode, setPhotos]);
 
   async function handleToggleLike(photo: FeedPhotoData) {
     if (localMode) {
@@ -538,22 +546,7 @@ export function FeedView({
         ) : null}
 
         {feedState === "loading" ? (
-          <section className="feed-post-skeleton" aria-label="Loading posts" aria-busy="true">
-            <div className="feed-skeleton-author">
-              <span className="skeleton-block feed-skeleton-avatar" />
-              <span className="feed-skeleton-author-lines">
-                <span className="skeleton-block feed-skeleton-name" />
-                <span className="skeleton-block feed-skeleton-meta" />
-              </span>
-            </div>
-            <span className="skeleton-block feed-skeleton-caption" />
-            <span className="skeleton-block feed-skeleton-photo" />
-            <div className="feed-skeleton-actions">
-              <span className="skeleton-block" />
-              <span className="skeleton-block" />
-            </div>
-            <span className="sr-only">Loading posts…</span>
-          </section>
+          <FeedSkeleton />
         ) : null}
 
         {feedState === "error" ? (
@@ -807,6 +800,25 @@ function PhotoCard({
       </div>}
     </article>
   );
+}
+
+export function FeedSkeleton() {
+  return <section className="feed-post-skeleton" aria-label="Loading posts" aria-busy="true">
+    <div className="feed-skeleton-author">
+      <span className="skeleton-block feed-skeleton-avatar" />
+      <span className="feed-skeleton-author-lines">
+        <span className="skeleton-block feed-skeleton-name" />
+        <span className="skeleton-block feed-skeleton-meta" />
+      </span>
+    </div>
+    <span className="skeleton-block feed-skeleton-caption" />
+    <span className="skeleton-block feed-skeleton-photo" />
+    <div className="feed-skeleton-actions">
+      <span className="skeleton-block" />
+      <span className="skeleton-block" />
+    </div>
+    <span className="sr-only">Loading posts…</span>
+  </section>;
 }
 
 function HeartIcon({ filled = false }: { filled?: boolean }) {
