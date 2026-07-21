@@ -72,4 +72,14 @@ export const directoryCache = {
   set: (value: DirectoryResponse) => write(DIRECTORY_KEY, value),
   getProfile: (id: string) => read<AttendeeProfile>(`${PROFILE_PREFIX}${id}`),
   setProfile: (id: string, value: AttendeeProfile) => write(`${PROFILE_PREFIX}${id}`, value),
+  // Drops the cached list so the next visit refetches fresh — used when the
+  // server reports an attendee from the cached list no longer exists (the
+  // cache has gone stale relative to the database, e.g. after a reseed).
+  clear: () => {
+    try {
+      localStorage.removeItem(DIRECTORY_KEY);
+    } catch {
+      // Storage may be unavailable; nothing to clean up in that case.
+    }
+  },
 };

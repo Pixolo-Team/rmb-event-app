@@ -3424,6 +3424,7 @@ a.contact-row:active { background: var(--brand-100); }
 .bookmark-button svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; }
 .bookmark-button.is-bookmarked { color: #124e96; border-color: #7ea9d8; background: #edf5ff; }
 .bookmark-button.is-bookmarked svg { fill: currentColor; animation: like-pulse 0.3s ease; }
+.bookmark-button-stale { color: var(--ink-faint); background: var(--surface-2); border-color: var(--border); cursor: default; }
 @media (prefers-reduced-motion: reduce) {
   .bookmark-button.is-bookmarked svg {
     animation: none;

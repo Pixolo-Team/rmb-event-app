@@ -4,4 +4,5 @@ const KEY = "evento:matches:v1";
 export const matchesCache = {
   get(): MatchesResponse | null { try { const value = localStorage.getItem(KEY); return value ? JSON.parse(value) as MatchesResponse : null; } catch { return null; } },
   set(value: MatchesResponse) { try { localStorage.setItem(KEY, JSON.stringify(value)); } catch { /* best-effort offline cache */ } },
+  clear() { try { localStorage.removeItem(KEY); } catch { /* nothing to clean up */ } },
 };

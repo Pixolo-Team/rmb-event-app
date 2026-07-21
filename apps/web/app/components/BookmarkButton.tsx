@@ -3,10 +3,13 @@
 import { useState } from "react";
 import { withCsrfHeaders } from "../lib/csrf";
 import { enqueueWrite } from "../lib/offlineQueue";
+import { directoryCache } from "../lib/directoryCache";
+import { matchesCache } from "../lib/matchesCache";
 
 export function BookmarkButton({ attendeeId, initialBookmarked, compact = false, onChange }: { attendeeId: string; initialBookmarked: boolean; compact?: boolean; onChange?: (value: boolean) => void }) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [saving, setSaving] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
   async function change() {
     if (saving) return;
@@ -20,6 +23,18 @@ export function BookmarkButton({ attendeeId, initialBookmarked, compact = false,
         `/api/bookmarks/${attendeeId}`,
         withCsrfHeaders({ method, credentials: "include" }),
       );
+      if (response.status === 404) {
+        setNotFound(true);
+        setBookmarked(!next);
+        // onChange runs first — callers (Directory/Matches pages) persist their
+        // own optimistic update back into these same caches via onChange, so
+        // clearing has to happen after that write, not before, or it gets
+        // silently undone.
+        onChange?.(!next);
+        directoryCache.clear();
+        matchesCache.clear();
+        return;
+      }
       if (!response.ok) throw new Error("server rejected bookmark");
     } catch (error) {
       if (error instanceof TypeError || !navigator.onLine) {
@@ -31,6 +46,12 @@ export function BookmarkButton({ attendeeId, initialBookmarked, compact = false,
     } finally {
       setSaving(false);
     }
+  }
+
+  if (notFound) {
+    return <span className="bookmark-button bookmark-button-stale" title="This attendee is no longer available">
+      <BookmarkIcon />{!compact && <span>No longer available</span>}
+    </span>;
   }
 
   return <button className={`bookmark-button${bookmarked ? " is-bookmarked" : ""}${compact ? " compact" : ""}`} type="button" onClick={change} aria-pressed={bookmarked} aria-label={bookmarked ? "Remove from Want to Meet" : "Add to Want to Meet"}>
