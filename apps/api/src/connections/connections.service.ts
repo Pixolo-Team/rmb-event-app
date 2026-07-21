@@ -13,6 +13,7 @@ export type ConnectionAttendeeData = {
   phone: string;
   photoUrl: string | null;
   linkedInUrl: string | null;
+  websiteUrl: string | null;
   metAt: Date;
 };
 
@@ -74,6 +75,7 @@ export class ConnectionsService {
         phone: target.phone,
         photoUrl: target.photoUrl,
         linkedInUrl: target.linkedInUrl,
+        websiteUrl: target.websiteUrl,
         metAt: meeting.createdAt,
       },
     };
@@ -103,6 +105,7 @@ export class ConnectionsService {
         phone: other.phone,
         photoUrl: other.photoUrl,
         linkedInUrl: other.linkedInUrl,
+        websiteUrl: other.websiteUrl,
         metAt: meeting.createdAt,
       };
     });

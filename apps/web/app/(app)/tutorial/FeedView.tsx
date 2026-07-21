@@ -7,6 +7,7 @@ import { PoweredByFooter } from "./PoweredByFooter";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { getCsrfToken, withCsrfHeaders } from "../../lib/csrf";
 import { trackEvent } from "../../lib/gtag";
+import { compressFeedImage } from "../../lib/imageCompression";
 type FeedPageResponse = {
   photos: FeedPhotoData[];
   nextCursor: string | null;
@@ -82,7 +83,7 @@ export function PostComposerModal({
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [caption, setCaption] = useState("");
-  const [composerStatus, setComposerStatus] = useState<"idle" | "uploading" | "error" | "success">("idle");
+  const [composerStatus, setComposerStatus] = useState<"idle" | "compressing" | "uploading" | "error" | "success">("idle");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [composerError, setComposerError] = useState<string | null>(null);
   const [closing, setClosing] = useState(false);
@@ -123,7 +124,7 @@ export function PostComposerModal({
   }
 
   function closeComposer() {
-    if (closing || composerStatus === "uploading") return;
+    if (closing || composerStatus === "compressing" || composerStatus === "uploading") return;
     setClosing(true);
     window.setTimeout(() => {
       resetComposer();
@@ -167,11 +168,13 @@ export function PostComposerModal({
       return;
     }
 
-    setComposerStatus("uploading");
+    setComposerStatus("compressing");
     setUploadProgress(0);
 
     try {
-      const created = await uploadPhotoWithProgress(selectedFiles, caption, setUploadProgress);
+      const compressedFiles = await Promise.all(selectedFiles.map((file) => compressFeedImage(file)));
+      setComposerStatus("uploading");
+      const created = await uploadPhotoWithProgress(compressedFiles, caption, setUploadProgress);
       setPhotos((current) => [created, ...current]);
       setComposerStatus("success");
       trackEvent("photo_uploaded", {
@@ -213,7 +216,7 @@ export function PostComposerModal({
             className="photo-modal-close"
             type="button"
             onClick={closeComposer}
-            disabled={composerStatus === "uploading"}
+            disabled={composerStatus === "compressing" || composerStatus === "uploading"}
             aria-label="Close share photos modal"
           >
             Close
@@ -282,11 +285,13 @@ export function PostComposerModal({
         ) : null}
 
         <div className="photo-modal-actions feed-composer-actions">
-          <button className="photo-modal-secondary" type="button" onClick={closeComposer} disabled={composerStatus === "uploading"}>
+          <button className="photo-modal-secondary" type="button" onClick={closeComposer} disabled={composerStatus === "compressing" || composerStatus === "uploading"}>
             Cancel
           </button>
-          <button className="btn-primary photo-modal-submit" type="button" disabled={composerStatus === "uploading"} onClick={handlePost}>
-            {composerStatus === "uploading"
+          <button className="btn-primary photo-modal-submit" type="button" disabled={composerStatus === "compressing" || composerStatus === "uploading"} onClick={handlePost}>
+            {composerStatus === "compressing"
+              ? "Preparing photos..."
+              : composerStatus === "uploading"
               ? `Uploading... ${uploadProgress}%`
               : selectedFiles.length > 0
                 ? `Post ${selectedFiles.length} photo${selectedFiles.length === 1 ? "" : "s"}`

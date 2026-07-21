@@ -7,19 +7,6 @@ import { PageIntro } from "../components/PageIntro";
 import { PoweredByFooter } from "../components/PoweredByFooter";
 import { leaderboardCache, type LeaderboardResponse } from "../lib/leaderboardCache";
 
-const PREVIEW: LeaderboardResponse = {
-  top: [
-    { id: "1", rank: 1, name: "Aarav Mehta", businessName: "Mehta Packaging", photoUrl: null, metCount: 18 },
-    { id: "2", rank: 2, name: "Neha Kapoor", businessName: "Kapoor Digital", photoUrl: null, metCount: 14 },
-    { id: "3", rank: 3, name: "Vikram Shah", businessName: "Shah Industrial Systems", photoUrl: null, metCount: 11 },
-    { id: "me", rank: 4, name: "Radha Sharma", businessName: "Radha Textiles", photoUrl: null, metCount: 8 },
-    { id: "5", rank: 5, name: "Kabir Malhotra", businessName: "Malhotra Foods", photoUrl: null, metCount: 6 },
-  ],
-  me: { id: "me", rank: 4, name: "Radha Sharma", businessName: "Radha Textiles", photoUrl: null, metCount: 8 },
-  totalAttendees: 42,
-  updatedAt: new Date().toISOString(),
-};
-
 export default function LeaderboardPage() {
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,12 +14,6 @@ export default function LeaderboardPage() {
   const [error, setError] = useState(false);
 
   const load = useCallback(async (quiet = false) => {
-    const preview = process.env.NODE_ENV !== "production" && new URLSearchParams(window.location.search).get("preview") === "1";
-    if (preview) {
-      setData(PREVIEW);
-      setLoading(false);
-      return;
-    }
     if (!quiet) setLoading(true);
     try {
       const response = await fetch("/api/leaderboard", { credentials: "include" });

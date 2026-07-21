@@ -8,59 +8,10 @@ import { trackEvent } from "../lib/gtag";
 import { profileCache } from "../lib/profileCache";
 import type { FeedPhotoData } from "../lib/feedTypes";
 
-const PREVIEW_ATTENDEE: AttendeeMe = {
-  id: "preview-me",
-  name: "Radha Sharma",
-  email: "radha@example.com",
-  phone: "+91 98765 43210",
-  businessName: "Sharma Trading Co.",
-  chapterName: "RMB Ahmedabad",
-  tableNumber: "A-12",
-  city: "Ahmedabad",
-  businessCategory: "Textiles",
-  photoUrl: null,
-  profileCompletedAt: new Date().toISOString(),
-};
-
-const PREVIEW_PHOTOS: FeedPhotoData[] = [
-  {
-    id: "preview-photo-1",
-    url: "/images/preview/networking-conversation.jpg",
-    urls: [
-      "/images/preview/networking-conversation.jpg",
-      "/images/preview/business-card-exchange.jpg",
-      "/images/preview/conference-applause.jpg",
-    ],
-    caption: "A great start to the evening - so many useful conversations already! New introductions, shared ideas, and promising collaborations.",
-    createdAt: "2026-07-16T12:10:00.000Z",
-    attendeeId: "preview-1",
-    attendeeName: "Aarav Mehta",
-    attendeeBusinessName: "Mehta Packaging Solutions",
-    likeCount: 18,
-    commentCount: 2,
-    likedByMe: true,
-    comments: [
-      {
-        id: "c1",
-        name: "Neha Kapoor",
-        message: "Wonderful meeting everyone!",
-        createdAt: "2026-07-16T12:15:00.000Z",
-      },
-      {
-        id: "c2",
-        name: "Radha Sharma",
-        message: "Great energy tonight.",
-        createdAt: "2026-07-16T12:18:00.000Z",
-      },
-    ],
-  },
-];
-
 export default function FeedPage() {
   const [attendee, setAttendee] = useState<AttendeeMe | null>(null);
   const [photos, setPhotos] = useState<FeedPhotoData[]>([]);
   const [error, setError] = useState(false);
-  const [preview, setPreview] = useState(false);
   const [feedLoaded, setFeedLoaded] = useState(false);
 
   useEffect(() => {
@@ -135,7 +86,7 @@ export default function FeedPage() {
             attendee={attendee}
             photos={photos}
             setPhotos={setPhotos}
-            demoMode={preview}
+            demoMode={false}
             initialDataLoaded={feedLoaded}
             externalDataLoad
           />

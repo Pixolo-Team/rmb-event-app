@@ -29,22 +29,34 @@ export default function ProfilePage() {
     setWebsiteDraft(nextProfile.websiteUrl ?? "");
   }
 
+  const updateProfilePhoto = (photoUrl: string | null) => {
+    setProfile((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, photoUrl };
+      profileCache.set(updated);
+      return updated;
+    });
+  };
+
   const handlePhotoUpload = async (file: File) => {
     setPhotoUploading(true);
     try {
       const formData = new FormData();
       formData.append("photo", file);
 
-      const res = await fetch("/api/attendees/me/photo", {
+      const res = await fetch("/api/attendees/me/photo", withCsrfHeaders({
         method: "POST",
         credentials: "include",
         body: formData,
-      });
+      }));
 
-      if (!res.ok) throw new Error("Upload failed");
+      if (!res.ok) {
+        const body = await res.json().catch(() => null) as { message?: string } | null;
+        throw new Error(body?.message ?? "Upload failed");
+      }
 
       const data = await res.json() as { status: string; photoUrl: string };
-      if (profile) syncProfile({ ...profile, photoUrl: data.photoUrl });
+      updateProfilePhoto(data.photoUrl);
     } catch (error) {
       console.error("Photo upload error:", error);
       throw error;
@@ -53,6 +65,27 @@ export default function ProfilePage() {
     }
   };
 
+  const handlePhotoRemove = async () => {
+    setPhotoUploading(true);
+    try {
+      const res = await fetch("/api/attendees/me/photo/remove", withCsrfHeaders({
+        method: "PATCH",
+        credentials: "include",
+      }));
+
+      if (!res.ok) throw new Error("Remove failed");
+
+      updateProfilePhoto(null);
+    } catch (error) {
+      console.error("Photo remove error:", error);
+      throw error;
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
+  // Cache-first so the screen (and QR) appear instantly and work offline, then
+  // refresh from the network when reachable.
   useEffect(() => {
     const cached = profileCache.get();
     if (cached) {
@@ -263,6 +296,8 @@ export default function ProfilePage() {
         isOpen={photoModalOpen}
         onClose={() => setPhotoModalOpen(false)}
         onPhotoUpload={handlePhotoUpload}
+        hasExistingPhoto={Boolean(profile?.photoUrl)}
+        onPhotoRemove={handlePhotoRemove}
         isLoading={photoUploading}
       />
     </AttendeePageShell>
