@@ -178,10 +178,14 @@ export class AttendeesService {
   }
 
   async updateProfile(attendeeId: string, dto: UpdateProfileDto) {
-    const [category, cities] = await Promise.all([
+    const [category, validOfferingOptions, cities] = await Promise.all([
       this.prisma.businessCategoryOption.findFirst({
         where: { name: dto.businessCategory, active: true },
         select: { id: true },
+      }),
+      this.prisma.offeringOption.findMany({
+        where: { active: true, category: { name: dto.businessCategory, active: true } },
+        select: { name: true },
       }),
       this.prisma.cityOption.findMany({
         where: { active: true },
@@ -189,6 +193,10 @@ export class AttendeesService {
       }),
     ]);
     if (!category) throw new BadRequestException("Choose a valid business category");
+    const validOfferings = new Set(validOfferingOptions.map((option) => option.name));
+    if (dto.offering.some((offering) => !validOfferings.has(offering))) {
+      throw new BadRequestException("Choose valid offerings for your business category");
+    }
     if (!cities.some((city) => this.cityValue(city) === dto.city)) {
       throw new BadRequestException("Choose a valid city");
     }

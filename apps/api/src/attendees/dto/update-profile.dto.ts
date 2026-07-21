@@ -1,5 +1,5 @@
 import { ArrayMaxSize, IsArray, IsIn, IsNotEmpty, IsOptional, IsString, IsUrl, MaxLength } from "class-validator";
-import { LOOKING_FOR_TAGS, OFFERING_TAGS, GOALS_TAGS } from "../profile-options";
+import { LOOKING_FOR_TAGS, GOALS_TAGS } from "../profile-options";
 
 export class UpdateProfileDto {
   @IsString()
@@ -19,7 +19,8 @@ export class UpdateProfileDto {
 
   @IsArray()
   @ArrayMaxSize(6)
-  @IsIn(OFFERING_TAGS, { each: true })
+  @IsString({ each: true })
+  @MaxLength(100, { each: true })
   offering!: string[];
 
   @IsArray()
