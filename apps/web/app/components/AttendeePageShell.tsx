@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 import { AttendeeBottomTabs, AttendeeMenu, type MenuAttendee } from "./AttendeeMenu";
+import { InstallBanner } from "./InstallBanner";
 import { PoweredByFooter } from "./PoweredByFooter";
 import { RotaryLoader } from "./RotaryLoader";
 import { profileCache, type MyProfile } from "../lib/profileCache";
@@ -163,6 +164,7 @@ export function AttendeePageShell({
         <h1 className="app-header-title">{pageTitle(pathname)}</h1>
         <AttendeeMenu attendee={attendee} />
       </header>
+      <InstallBanner />
       <div className="attendee-shell-content">
         {children}
         {showFooter ? <PoweredByFooter /> : null}

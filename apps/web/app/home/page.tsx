@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Html5Qrcode } from "html5-qrcode";
 import { AttendeeBottomTabs, AttendeeMenu, type MenuAttendee } from "../components/AttendeeMenu";
+import { InstallBanner } from "../components/InstallBanner";
 import { PoweredByFooter } from "../components/PoweredByFooter";
 
 // OTHERS //
@@ -391,6 +392,7 @@ export default function HomePage() {
   return (
     <div className="home-dash attendee-tabbed-page">
       <PageHeader attendee={attendee} />
+      <InstallBanner />
       <main className="home-dash-body">
         <h1 className="home-greeting">Hi{firstName ? `, ${firstName}` : ""} 👋</h1>
 

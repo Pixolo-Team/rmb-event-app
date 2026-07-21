@@ -4,6 +4,7 @@ import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { AttendeeMe } from "./TutorialPage";
 import { TEMP_BYPASS_LOGIN } from "./TutorialPage";
 import { PoweredByFooter } from "./PoweredByFooter";
+import { SingleSelectDropdown } from "../../components/SingleSelectDropdown";
 
 type CityOption = {
   name: string;
@@ -358,17 +359,14 @@ export function EditProfileForm({
         <section className="profile-edit-section">
           <h2 className="profile-edit-section-title">Card details</h2>
 
-          <div className="field">
-            <label htmlFor="edit-category">Business category</label>
-            <select id="edit-category" value={businessCategory} onChange={(e) => setBusinessCategory(e.target.value)}>
-              <option value="">Select your category</option>
-              {options.businessCategories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
+          <SingleSelectDropdown
+            id="edit-category"
+            label="Business category"
+            options={options.businessCategories}
+            value={businessCategory}
+            placeholder="Select your category"
+            onChange={setBusinessCategory}
+          />
 
           <div className="field">
             <label htmlFor="edit-city">City</label>

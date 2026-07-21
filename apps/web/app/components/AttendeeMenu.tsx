@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { withCsrfHeaders } from "../lib/csrf";
 import { PoweredByFooter } from "./PoweredByFooter";
+import { usePwaInstall } from "./PwaInstallProvider";
 import { profileCache } from "../lib/profileCache";
 
 export interface MenuAttendee {
@@ -57,6 +58,7 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { canInstall, isInstalled, promptInstall } = usePwaInstall();
   const titleId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
@@ -199,6 +201,19 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
             </div>
 
             <nav className="menu-nav" aria-label="Attendee navigation">
+              {canInstall && !isInstalled && (
+                <button
+                  type="button"
+                  className="menu-link"
+                  onClick={() => {
+                    promptInstall();
+                    setOpen(false);
+                  }}
+                >
+                  <InstallIcon />
+                  <span className="menu-link-label">Install app</span>
+                </button>
+              )}
               {DRAWER_ITEMS.filter((item) => item.available || SHOW_PLANNED_ITEMS).map((item) => {
                 if (!item.available) return <DisabledMenuItem key={item.label} item={item} />;
 
@@ -339,6 +354,10 @@ function SparkIcon() {
 
 function DirectoryIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3" /><path d="M3 19c.4-3.5 2.4-5.2 6-5.2s5.6 1.7 6 5.2M17 7h4M17 11h4M17 15h4" /></svg>;
+}
+
+function InstallIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 20h14" /></svg>;
 }
 
 function ConnectionsIcon() {

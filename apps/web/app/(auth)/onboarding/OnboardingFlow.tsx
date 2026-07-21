@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { usePwaInstall } from "./usePwaInstall";
+import { usePwaInstall } from "../../components/PwaInstallProvider";
+import { RotaryLoader } from "../../components/RotaryLoader";
+import { ChevronDownIcon, SingleSelectDropdown } from "../../components/SingleSelectDropdown";
 import { withCsrfHeaders } from "../../lib/csrf";
 
 type Step = "loading" | "form" | "install" | "thanks";
@@ -156,13 +158,9 @@ export function OnboardingFlow() {
 
   if (step === "loading") {
     return (
-      <div className="card onboarding-card">
-        <div className="wordmark">
-          <span className="dot" />
-          Evento
-        </div>
+      <div className="card onboarding-card onboarding-card-center">
         <div className="center-state">
-          <span className="spinner" style={{ borderTopColor: "var(--brand-500)", borderColor: "var(--border)" }} />
+          <RotaryLoader />
           <p>Loading your profile&hellip;</p>
         </div>
       </div>
@@ -288,35 +286,26 @@ export function OnboardingFlow() {
           <h2 id="onboarding-business-title">Your business</h2>
           <p>Choose your category, then describe what you offer.</p>
 
-          <div className="field">
-            <label htmlFor="businessCategory">Business category</label>
-            <select
-              id="businessCategory"
-              value={businessCategory}
-              onChange={(e) => {
-                const nextCategory = e.target.value;
-                const compatibleOfferings = options?.offeringsByCategory?.[nextCategory] ?? [];
-                const hasIncompatibleSelections = offering.some((item) => !compatibleOfferings.includes(item));
-                if (
-                  hasIncompatibleSelections &&
-                  !window.confirm("Changing category will clear offerings that do not belong to the new category. Continue?")
-                ) {
-                  return;
-                }
-                setBusinessCategory(nextCategory);
-                setOffering((current) => current.filter((item) => compatibleOfferings.includes(item)));
-                setFieldErrors(({ businessCategory: _drop, ...rest }) => rest);
-              }}
-            >
-              <option value="">Select your category</option>
-              {options?.businessCategories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-            {fieldErrors.businessCategory && <div className="hint err">{fieldErrors.businessCategory}</div>}
-          </div>
+          <SingleSelectDropdown
+            label="Business category"
+            options={options?.businessCategories ?? []}
+            value={businessCategory}
+            placeholder="Select your category"
+            onChange={(nextCategory) => {
+              const compatibleOfferings = options?.offeringsByCategory?.[nextCategory] ?? [];
+              const hasIncompatibleSelections = offering.some((item) => !compatibleOfferings.includes(item));
+              if (
+                hasIncompatibleSelections &&
+                !window.confirm("Changing category will clear offerings that do not belong to the new category. Continue?")
+              ) {
+                return;
+              }
+              setBusinessCategory(nextCategory);
+              setOffering((current) => current.filter((item) => compatibleOfferings.includes(item)));
+              setFieldErrors(({ businessCategory: _drop, ...rest }) => rest);
+            }}
+          />
+          {fieldErrors.businessCategory && <div className="hint err">{fieldErrors.businessCategory}</div>}
 
           <MultiSelectDropdown
             label="Offering"
@@ -471,11 +460,11 @@ function CityCombobox({
         />
         <button
           type="button"
-          className="city-combobox-toggle"
+          className={`city-combobox-toggle${open ? " open" : ""}`}
           aria-label={open ? "Close city options" : "Open city options"}
           onClick={() => setOpen((current) => !current)}
         >
-          <span aria-hidden="true">⌄</span>
+          <ChevronDownIcon />
         </button>
       </div>
 
@@ -537,7 +526,9 @@ function MultiSelectDropdown({
         disabled={disabled}
       >
         <span>{selected.length === 0 ? (placeholder ?? `Select ${label.toLowerCase()}`) : selected.join(", ")}</span>
-        <span className="multiselect-caret">{open ? "▲" : "▼"}</span>
+        <span className={`multiselect-caret${open ? " open" : ""}`}>
+          <ChevronDownIcon />
+        </span>
       </button>
       {open && (
         <>
