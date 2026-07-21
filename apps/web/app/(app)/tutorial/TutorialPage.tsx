@@ -215,7 +215,9 @@ export function TutorialPage() {
         setState("ready");
         if (typeof window !== "undefined" && !window.localStorage.getItem(TUTORIAL_STORAGE_KEY)) {
           setTutorialOpen(true);
+          return;
         }
+        router.replace("/home");
       } catch {
         setState("error");
       }
@@ -240,12 +242,15 @@ export function TutorialPage() {
     );
   }, [directory, search]);
 
-  function closeTutorial(markSeen = true) {
+  function closeTutorial(markSeen = true, destination = "/home") {
     if (markSeen && typeof window !== "undefined") {
       window.localStorage.setItem(TUTORIAL_STORAGE_KEY, new Date().toISOString());
     }
     setTutorialOpen(false);
     setTutorialIndex(0);
+    if (!TEMP_BYPASS_LOGIN) {
+      router.replace(destination);
+    }
   }
 
   function restartTutorial() {
@@ -367,8 +372,8 @@ export function TutorialPage() {
         {view === "home" ? (
           <main className="app-content">
             <section className="feature-card">
-              <p className="feature-title">Learn the event essentials</p>
-              <p className="feature-copy">Use the walkthrough to learn check-in, QR connections, People, and Want to Meet.</p>
+              <p className="feature-title">Welcome to RMBF Evento</p>
+              <p className="feature-copy">Finish the quick walkthrough and we&apos;ll take you into the real Home page.</p>
               <button className="btn-primary" type="button" onClick={restartTutorial}>Replay walkthrough</button>
             </section>
             <PoweredByFooter />
@@ -423,7 +428,7 @@ export function TutorialPage() {
               <section className="feature-card">
                 <p className="feature-title">No one bookmarked yet</p>
                 <p className="feature-copy">Browse People and tap bookmark to add people here.</p>
-                <button className="btn-primary" type="button" onClick={() => setView("people")}>
+                <button className="btn-primary" type="button" onClick={() => router.push("/directory")}>
                   Open People
                 </button>
               </section>
@@ -455,12 +460,12 @@ export function TutorialPage() {
         ) : null}
       </div>
 
-      {!profileEditing ? <nav className="bottom-nav">
-        <button type="button" className={`bottom-nav-item${view === "home" ? " active" : ""}`} onClick={() => setView("home")}>
+      {!profileEditing && !tutorialOpen ? <nav className="bottom-nav">
+        <button type="button" className={`bottom-nav-item${view === "home" ? " active" : ""}`} onClick={() => router.push("/home")}>
           <HomeIcon active={view === "home"} />
           <span>Home</span>
         </button>
-        <button type="button" className={`bottom-nav-item${view === "people" ? " active" : ""}`} onClick={() => setView("people")}>
+        <button type="button" className={`bottom-nav-item${view === "people" ? " active" : ""}`} onClick={() => router.push("/directory")}>
           <PeopleIcon active={view === "people"} />
           <span>People</span>
         </button>
@@ -474,11 +479,11 @@ export function TutorialPage() {
             <ScanIcon />
           </span>
         </button>
-        <button type="button" className={`bottom-nav-item${view === "wantToMeet" ? " active" : ""}`} onClick={() => setView("wantToMeet")}>
+        <button type="button" className={`bottom-nav-item${view === "wantToMeet" ? " active" : ""}`} onClick={() => router.push("/matches")}>
           <BookmarkTabIcon active={view === "wantToMeet"} />
           <span>Want to Meet</span>
         </button>
-        <button type="button" className={`bottom-nav-item${view === "profile" ? " active" : ""}`} onClick={() => setView("profile")}>
+        <button type="button" className={`bottom-nav-item${view === "profile" ? " active" : ""}`} onClick={() => router.push("/profile")}>
           <ProfileIcon active={view === "profile"} />
           <span>Profile</span>
         </button>
@@ -518,16 +523,16 @@ export function TutorialPage() {
             </div>
 
             <div className="tutorial-actions">
-              <button className="link-muted" type="button" onClick={() => closeTutorial(true)}>
-                Skip
+              <button className="link-muted" type="button" onClick={() => closeTutorial(true, "/home")}>
+                Skip to Home
               </button>
               {tutorialIndex < TUTORIAL_CARDS.length - 1 ? (
                 <button className="btn-primary tutorial-btn" type="button" onClick={() => setTutorialIndex((value) => value + 1)}>
                   Next
                 </button>
               ) : (
-                <button className="btn-primary tutorial-btn" type="button" onClick={() => closeTutorial(true)}>
-                  Start using RMBF Evento
+                <button className="btn-primary tutorial-btn" type="button" onClick={() => closeTutorial(true, "/home")}>
+                  Open Home
                 </button>
               )}
             </div>

@@ -1,3 +1,5 @@
+"use client";
+
 type DirectoryToolbarProps = {
   query: string;
   activeFilterCount: number;

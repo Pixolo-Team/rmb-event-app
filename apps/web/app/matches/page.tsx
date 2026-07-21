@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { BookmarkButton } from "../components/BookmarkButton";
 import { DirectoryAvatar } from "../components/DirectoryAvatar";
 import { PageIntro } from "../components/PageIntro";
+import { type BookmarkConnection, connectionsCache } from "../lib/connectionsCache";
 import { matchesCache, type MatchesResponse, type MatchSuggestion } from "../lib/matchesCache";
 import { MatchesSkeleton } from "./MatchesSkeleton";
 
@@ -16,6 +17,7 @@ const PREVIEW: MatchesResponse = { profileComplete: true, totalAttendees: 148, c
 
 export default function MatchesPage() {
   const [data, setData] = useState<MatchesResponse | null>(null);
+  const [bookmarks, setBookmarks] = useState<BookmarkConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
   const [error, setError] = useState(false);
@@ -23,16 +25,40 @@ export default function MatchesPage() {
 
   async function load(refresh = false) {
     if (refresh) setRefreshing(true);
+
+    const cachedBookmarks = connectionsCache.get()?.bookmarks ?? [];
+
     try {
-      const response = await fetch(`/api/matches${refresh ? "?refresh=1" : ""}`, { credentials: "include" });
-      if (!response.ok) throw new Error();
-      const result = await response.json() as MatchesResponse;
-      matchesCache.set(result);
-      setData(result);
+      const [matchesResult, bookmarksResult] = await Promise.allSettled([
+        fetch(`/api/matches${refresh ? "?refresh=1" : ""}`, { credentials: "include" }),
+        fetch("/api/bookmarks", { credentials: "include" }),
+      ]);
+
+      let nextMatches = data;
+      let nextBookmarks = bookmarks;
+      let hasFreshData = false;
+
+      if (matchesResult.status === "fulfilled" && matchesResult.value.ok) {
+        nextMatches = await matchesResult.value.json() as MatchesResponse;
+        matchesCache.set(nextMatches);
+        hasFreshData = true;
+      }
+
+      if (bookmarksResult.status === "fulfilled" && bookmarksResult.value.ok) {
+        nextBookmarks = await bookmarksResult.value.json() as BookmarkConnection[];
+        const existingConnections = connectionsCache.get()?.connections ?? [];
+        connectionsCache.set({ connections: existingConnections, bookmarks: nextBookmarks });
+        hasFreshData = true;
+      }
+
+      if (!hasFreshData) throw new Error();
+
+      setData(nextMatches);
+      setBookmarks(nextBookmarks);
       setOffline(false);
       setError(false);
     } catch {
-      if (!data && !matchesCache.get()) setError(true);
+      if (!data && !matchesCache.get() && cachedBookmarks.length === 0) setError(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -43,39 +69,102 @@ export default function MatchesPage() {
     const preview = process.env.NODE_ENV !== "production" && new URLSearchParams(window.location.search).get("preview") === "1";
     if (preview) {
       setData(PREVIEW);
+      setBookmarks([toBookmark(PREVIEW.matches[1])]);
       setLoading(false);
       return;
     }
-    const cached = matchesCache.get();
-    if (cached) {
-      setData(cached);
+
+    const cachedMatches = matchesCache.get();
+    const cachedBookmarks = connectionsCache.get()?.bookmarks ?? [];
+    if (cachedMatches) {
+      setData(cachedMatches);
       setOffline(!navigator.onLine);
       setLoading(false);
     }
+    if (cachedBookmarks.length > 0) {
+      setBookmarks(cachedBookmarks);
+      setOffline(!navigator.onLine);
+      setLoading(false);
+    }
+
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const visibleRecommendations = useMemo(
+    () => (data?.matches ?? []).filter((match) => !bookmarks.some((bookmark) => bookmark.id === match.id)),
+    [bookmarks, data?.matches],
+  );
+
+  function syncBookmarks(next: BookmarkConnection[]) {
+    setBookmarks(next);
+    const existingConnections = connectionsCache.get()?.connections ?? [];
+    connectionsCache.set({ connections: existingConnections, bookmarks: next });
+  }
+
   function updateBookmark(id: string, bookmarked: boolean) {
-    if (!data) return;
-    const next = { ...data, matches: data.matches.map((item) => item.id === id ? { ...item, bookmarked } : item) };
-    setData(next);
-    matchesCache.set(next);
+    if (data) {
+      const next = { ...data, matches: data.matches.map((item) => item.id === id ? { ...item, bookmarked } : item) };
+      setData(next);
+      matchesCache.set(next);
+
+      const match = next.matches.find((item) => item.id === id);
+      if (bookmarked && match) {
+        syncBookmarks(bookmarks.some((item) => item.id === id) ? bookmarks : [toBookmark(match), ...bookmarks]);
+        return;
+      }
+    }
+
+    if (!bookmarked) {
+      syncBookmarks(bookmarks.filter((item) => item.id !== id));
+    }
   }
 
   return (
     <AttendeePageShell>
       <main className="attendee-page matches-page">
-        <PageIntro>Recommendations based on what you need and what others offer.</PageIntro>
-        <div className="matches-top-actions" aria-label="Recommendation actions"><Link className="matches-browse-top" href="/directory"><DirectoryListIcon /><span>Browse directory</span></Link><button className={`matches-refresh${refreshing ? " is-refreshing" : ""}`} type="button" disabled={refreshing} onClick={() => load(true)} aria-label={refreshing ? "Refreshing recommendations" : "Refresh recommendations"}><RefreshIcon /><span>{refreshing ? "Refreshing..." : "Refresh"}</span></button></div>
-        {offline && <div className="banner info"><div><b>Showing saved recommendations</b>You are offline. These matches will refresh when you reconnect.</div></div>}
+        <PageIntro>Saved attendees appear here first, with fresh recommendations below.</PageIntro>
+        <div className="matches-top-actions" aria-label="Recommendation actions"><Link className="matches-browse-top" href="/directory"><DirectoryListIcon /><span>Browse directory</span></Link><button className={`matches-refresh${refreshing ? " is-refreshing" : ""}`} type="button" disabled={refreshing} onClick={() => load(true)} aria-label={refreshing ? "Refreshing attendees" : "Refresh attendees"}><RefreshIcon /><span>{refreshing ? "Refreshing..." : "Refresh"}</span></button></div>
+        {offline && <div className="banner info"><div><b>Showing saved attendees</b>You are offline. Your Want to Meet list will refresh when you reconnect.</div></div>}
         {loading && <MatchesSkeleton />}
-        {!loading && error && !data && <MatchState title="Can't load recommendations" body="Check your connection and try again." />}
-        {data && !data.profileComplete && <MatchState title="Complete your profile" body="Add what you're looking for and offering to receive useful recommendations." profileAction />}
-        {data?.profileComplete && data.matches.length === 0 && <MatchState title="No strong matches yet" body="Browse all attendees while more profiles are completed." directoryAction />}
-        {data && data.matches.length > 0 && <><div className="matches-summary"><span><b>{data.matches.length}</b> recommendations</span><span>from {data.totalAttendees} profiles</span></div><div className="matches-list">{data.matches.map((match, index) => <MatchCard key={match.id} match={match} rank={index + 1} onBookmark={(value) => updateBookmark(match.id, value)} />)}</div></>}
+        {!loading && error && !data && bookmarks.length === 0 && <MatchState title="Can't load attendees" body="Check your connection and try again." />}
+        {!loading && bookmarks.length === 0 && !data?.profileComplete && <MatchState title="Complete your profile" body="Add what you're looking for and offering to receive useful recommendations." profileAction />}
+        {!loading && bookmarks.length === 0 && visibleRecommendations.length === 0 && data?.profileComplete && <MatchState title="Your Want to Meet list is empty" body="Save attendees from People and they'll appear here." directoryAction />}
+
+        {bookmarks.length > 0 && <>
+          <div className="matches-summary"><span><b>{bookmarks.length}</b> saved attendees</span><span>ready for follow-up</span></div>
+          <div className="matches-list">{bookmarks.map((person) => <BookmarkMatchCard key={person.id} person={person} onBookmark={(value) => updateBookmark(person.id, value)} />)}</div>
+        </>}
+
+        {visibleRecommendations.length > 0 && <>
+          <div className="matches-summary"><span><b>{visibleRecommendations.length}</b> recommendations</span><span>from {data?.totalAttendees ?? 0} profiles</span></div>
+          <div className="matches-list">{visibleRecommendations.map((match, index) => <MatchCard key={match.id} match={match} rank={index + 1} onBookmark={(value) => updateBookmark(match.id, value)} />)}</div>
+        </>}
       </main>
     </AttendeePageShell>
+  );
+}
+
+function BookmarkMatchCard({ person, onBookmark }: { person: BookmarkConnection; onBookmark: (value: boolean) => void }) {
+  return (
+    <article className="match-card is-bookmarked">
+      <span className="match-saved-label">Saved</span>
+      <Link className="match-person" href={`/attendees/${person.id}`}>
+        <DirectoryAvatar name={person.name} photoUrl={person.photoUrl} />
+        <div>
+          <h2>{person.name}{person.met && <span className="met-badge">Met</span>}</h2>
+          {person.businessName && <p>{person.businessName}</p>}
+          <span>{[person.businessCategory, person.chapterName].filter(Boolean).join(" · ")}</span>
+        </div>
+      </Link>
+      <div className="card-icon-actions" aria-label={`Actions for ${person.name}`}>
+        <BookmarkButton attendeeId={person.id} initialBookmarked compact onChange={onBookmark} />
+        <a className="icon-btn" href={`tel:${person.phone}`} aria-label={`Call ${person.name}`} title="Call"><PhoneIcon /></a>
+        {person.linkedInUrl && <a className="icon-btn" href={person.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${person.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /></a>}
+      </div>
+      <div className="match-explanation"><span className="match-spark">✦</span><div><b>Saved to Want to Meet</b><p>Keep this attendee handy so you can reconnect during the event.</p></div></div>
+      <div className="match-card-footer"><span>Saved {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(person.bookmarkedAt))}</span>{person.tableNumber && <span>Table {person.tableNumber}</span>}<Link href={`/attendees/${person.id}`}>View profile →</Link></div>
+    </article>
   );
 }
 
@@ -116,6 +205,27 @@ function MatchCard({ match, rank, onBookmark }: { match: MatchSuggestion; rank: 
 function MatchState({ title, body, profileAction, directoryAction }: { title: string; body: string; profileAction?: boolean; directoryAction?: boolean }) {
   return <div className="directory-state"><h2>{title}</h2><p>{body}</p>{profileAction && <Link className="btn-primary" href="/profile">Open profile</Link>}{directoryAction && <Link className="btn-primary" href="/directory">Browse attendees</Link>}</div>;
 }
+
+function toBookmark(match: MatchSuggestion): BookmarkConnection {
+  return {
+    id: match.id,
+    name: match.name,
+    phone: match.phone,
+    email: "",
+    businessName: match.businessName,
+    businessCategory: match.businessCategory,
+    bio: null,
+    tableNumber: match.tableNumber,
+    photoUrl: match.photoUrl,
+    linkedInUrl: match.linkedInUrl,
+    met: match.met,
+    bookmarkedAt: new Date().toISOString(),
+    bookmarked: true,
+    chapterName: match.chapterName,
+    city: match.city,
+  };
+}
+
 function DirectoryListIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="7" r="2" /><circle cx="7" cy="17" r="2" /><path d="M12 7h8M12 17h8" /></svg>; }
 function RefreshIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5" /><path d="M18.3 12A6.5 6.5 0 0 0 7 7.5L4 12M5.7 12A6.5 6.5 0 0 0 17 16.5l3-4.5" /></svg>; }
 function PhoneIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8c1.2 2.4 3.2 4.4 5.6 5.6l1.9-1.9c.3-.3.7-.4 1-.2 1 .4 2.1.6 3.2.6.6 0 1 .4 1 1V19c0 .6-.4 1-1 1C9.6 20 4 14.4 4 7.7c0-.6.4-1 1-1h3.1c.6 0 1 .4 1 1 0 1.1.2 2.2.6 3.2.1.3 0 .7-.2 1L6.6 10.8Z" /></svg>; }
