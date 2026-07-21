@@ -204,7 +204,7 @@ function AttendeeCard({ attendee, onBookmark }: { attendee: DirectoryAttendee; o
         <BookmarkButton attendeeId={attendee.id} initialBookmarked={Boolean(attendee.bookmarked)} compact onChange={onBookmark} />
         <a className="icon-btn" href={`tel:${attendee.phone}`} aria-label={`Call ${attendee.name}`} title="Call"><PhoneIcon /></a>
         {attendee.linkedInUrl && <a className="icon-btn" href={attendee.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${attendee.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /></a>}
-        {attendee.websiteUrl && <a className="icon-btn" href={attendee.websiteUrl} target="_blank" rel="noreferrer" aria-label={`${attendee.name} website`} title="Website"><WebsiteIcon /></a>}
+        {attendee.websiteUrl ? <a className="icon-btn" href={attendee.websiteUrl} target="_blank" rel="noreferrer" aria-label={`${attendee.name} website`} title="Website"><WebsiteIcon /></a> : <button className="icon-btn" type="button" disabled aria-label={`${attendee.name} has no website`} title="No website"><WebsiteIcon /></button>}
         <button className="icon-btn" type="button" onClick={shareAttendee} aria-label={`Share ${attendee.name}`} title="Share"><ShareIcon /></button>
       </div>
     </article>

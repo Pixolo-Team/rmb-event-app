@@ -49,6 +49,7 @@ export type DirectoryAttendee = {
   phone: string;
   photoUrl: string | null;
   linkedInUrl: string | null;
+  websiteUrl?: string | null;
   bookmarked: boolean;
   met: boolean;
 };
@@ -110,6 +111,7 @@ const DEMO_DIRECTORY: DirectoryAttendee[] = [
     phone: "+91 90000 00001",
     photoUrl: null,
     linkedInUrl: "https://www.linkedin.com/in/deepak-patel",
+    websiteUrl: "https://patelpipes.example.com",
     bookmarked: false,
     met: true,
   },
@@ -124,6 +126,7 @@ const DEMO_DIRECTORY: DirectoryAttendee[] = [
     phone: "+91 90000 00002",
     photoUrl: null,
     linkedInUrl: null,
+    websiteUrl: "https://shahinteriors.example.com",
     bookmarked: true,
     met: false,
   },
