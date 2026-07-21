@@ -29,6 +29,7 @@ export type ResolveOnboardingResult =
         city: string | null;
         businessCategory: string | null;
         profileCompletedAt: Date | null;
+        websiteUrl: string | null;
       };
     }
   | { kind: "expired" };
@@ -97,6 +98,7 @@ export class AttendeesService {
         city: record.attendee.city,
         businessCategory: record.attendee.businessCategory,
         profileCompletedAt: record.attendee.profileCompletedAt,
+        websiteUrl: record.attendee.websiteUrl,
       },
     };
   }
@@ -196,13 +198,41 @@ export class AttendeesService {
   }
 
   async updateProfile(attendeeId: string, dto: UpdateProfileDto) {
+    const current = await this.prisma.attendee.findUnique({
+      where: { id: attendeeId },
+      select: {
+        businessCategory: true,
+        city: true,
+        lookingFor: true,
+        offering: true,
+        goals: true,
+        bio: true,
+        linkedInUrl: true,
+        websiteUrl: true,
+      },
+    });
+    if (!current) throw new NotFoundException("Attendee not found");
+
+    const next = {
+      businessCategory: dto.businessCategory ?? current.businessCategory,
+      city: dto.city ?? current.city,
+      lookingFor: dto.lookingFor ?? current.lookingFor,
+      offering: dto.offering ?? current.offering,
+      goals: dto.goals ?? current.goals,
+      bio: dto.bio ?? current.bio,
+      linkedInUrl: dto.linkedInUrl === undefined ? current.linkedInUrl : dto.linkedInUrl,
+      websiteUrl: dto.websiteUrl === undefined ? current.websiteUrl : dto.websiteUrl,
+    };
+    if (!next.businessCategory) throw new BadRequestException("Choose your business category");
+    if (!next.city) throw new BadRequestException("Choose a valid city");
+
     const [category, validOfferingOptions, validLookingForOptions, cities] = await Promise.all([
       this.prisma.businessCategoryOption.findFirst({
-        where: { name: dto.businessCategory, active: true },
+        where: { name: next.businessCategory, active: true },
         select: { id: true },
       }),
       this.prisma.offeringOption.findMany({
-        where: { active: true, category: { name: dto.businessCategory, active: true } },
+        where: { active: true, category: { name: next.businessCategory, active: true } },
         select: { name: true },
       }),
       this.prisma.offeringOption.findMany({
@@ -216,28 +246,28 @@ export class AttendeesService {
     ]);
     if (!category) throw new BadRequestException("Choose a valid business category");
     const validOfferings = new Set(validOfferingOptions.map((option) => option.name));
-    if (dto.offering.some((offering) => !validOfferings.has(offering))) {
+    if (next.offering.some((offering) => !validOfferings.has(offering))) {
       throw new BadRequestException("Choose valid offerings for your business category");
     }
     const validLookingFor = new Set(validLookingForOptions.map((option) => option.name));
-    if (dto.lookingFor.some((lookingFor) => !validLookingFor.has(lookingFor))) {
+    if (next.lookingFor.some((lookingFor) => !validLookingFor.has(lookingFor))) {
       throw new BadRequestException("Choose valid looking-for options");
     }
-    if (!cities.some((city) => this.cityValue(city) === dto.city)) {
+    if (!cities.some((city) => this.cityValue(city) === next.city)) {
       throw new BadRequestException("Choose a valid city");
     }
 
     return this.prisma.attendee.update({
       where: { id: attendeeId },
       data: {
-        businessCategory: dto.businessCategory,
-        city: dto.city,
-        lookingFor: dto.lookingFor,
-        offering: dto.offering,
-        goals: dto.goals,
-        bio: dto.bio,
-        linkedInUrl: dto.linkedInUrl,
-        websiteUrl: dto.websiteUrl,
+        businessCategory: next.businessCategory,
+        city: next.city,
+        lookingFor: next.lookingFor,
+        offering: next.offering,
+        goals: next.goals,
+        bio: next.bio,
+        linkedInUrl: next.linkedInUrl,
+        websiteUrl: next.websiteUrl,
         profileCompletedAt: new Date(),
       },
     });
@@ -424,6 +454,8 @@ export class AttendeesService {
           websiteUrl: true,
           checkIn: { select: { createdAt: true } },
           deletedAt: true,
+          linkedInUrl: true,
+          websiteUrl: true,
           ...matchSelect,
         },
       }),

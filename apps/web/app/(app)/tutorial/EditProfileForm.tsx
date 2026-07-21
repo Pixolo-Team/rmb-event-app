@@ -261,7 +261,7 @@ export function EditProfileForm({
         photoUrl = body.photoUrl ?? photoUrl;
       } else if (!photoPreview && attendee.photoUrl) {
         const removeRes = await fetch("/api/attendees/me/photo/remove", withCsrfHeaders({
-          method: "POST",
+          method: "PATCH",
           credentials: "include",
         }));
         if (!removeRes.ok) {

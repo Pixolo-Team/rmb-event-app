@@ -24,7 +24,7 @@ export default function FeedPage() {
       fetch("/api/photos", { credentials: "include" }),
     ])
       .then(async ([attendeeResult, feedResult]) => {
-        let resolvedAttendee = cachedProfile?.profileCompletedAt ? cachedProfile : null;
+        let resolvedAttendee: AttendeeMe | null = cachedProfile?.profileCompletedAt ? cachedProfile : null;
 
         if (attendeeResult.status === "fulfilled" && attendeeResult.value.ok) {
           const attendeeData = (await attendeeResult.value.json()) as AttendeeMe;
