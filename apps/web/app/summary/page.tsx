@@ -69,9 +69,6 @@ export default function SummaryPage() {
                   ? new Intl.DateTimeFormat(undefined, { dateStyle: "long" }).format(new Date(data.event.startAt))
                   : "Networking summary"}
               </p>
-              <div className="summary-celebration" aria-hidden="true">
-                +
-              </div>
             </section>
 
             <section className="summary-stats" aria-label="Event statistics">

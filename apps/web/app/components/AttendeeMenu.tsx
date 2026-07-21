@@ -24,6 +24,7 @@ type MenuItem = {
 
 const DRAWER_ITEMS: MenuItem[] = [
   { href: "/event", label: "Event Details", icon: EventIcon, available: true },
+  { href: "/connections", label: "My Connections", icon: ConnectionsIcon, available: true },
   { href: "/feed", label: "Feed", icon: PhotoIcon, available: true },
   { href: "/gallery", label: "Gallery", icon: GalleryIcon, available: true },
   { href: "/leaderboard", label: "Leaderboard", icon: TrophyIcon, available: true, activePrefixes: ["/leaderboard/"] },

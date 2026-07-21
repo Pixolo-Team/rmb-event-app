@@ -1,15 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { withCsrfHeaders } from "../lib/csrf";
 import { trackEvent } from "../lib/gtag";
 import { enqueueWrite } from "../lib/offlineQueue";
+import { directoryCache } from "../lib/directoryCache";
+import { matchesCache } from "../lib/matchesCache";
 
 export function BookmarkButton({ attendeeId, initialBookmarked, compact = false, onChange }: { attendeeId: string; initialBookmarked: boolean; compact?: boolean; onChange?: (value: boolean) => void }) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [saving, setSaving] = useState(false);
 
-  async function change() {
+  useEffect(() => {
+    setBookmarked(initialBookmarked);
+  }, [initialBookmarked]);
+
+  async function change(event: MouseEvent) {
+    // The button sits inside a card that is wrapped in a navigation link on the
+    // directory/people page — stop the tap from bubbling up and navigating away
+    // before the toggle registers.
+    event.preventDefault();
+    event.stopPropagation();
     if (saving) return;
     const next = !bookmarked;
     setBookmarked(next);
@@ -38,6 +49,10 @@ export function BookmarkButton({ attendeeId, initialBookmarked, compact = false,
       } else {
         setBookmarked(!next);
         onChange?.(!next);
+        // Attendee no longer exists (stale cached card, e.g. after a reseed) —
+        // clear so the next load refetches instead of failing again forever.
+        directoryCache.clear();
+        matchesCache.clear();
       }
     } finally {
       setSaving(false);

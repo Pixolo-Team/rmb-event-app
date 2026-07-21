@@ -234,10 +234,11 @@ export default function ProfilePage() {
                   ) : (
                     <div className="profile-inline-form">
                       <input
-                        type="url"
+                        type="text"
+                        inputMode="url"
                         value={websiteDraft}
                         onChange={(event) => setWebsiteDraft(event.target.value)}
-                        placeholder="https://yourwebsite.com"
+                        placeholder="yourwebsite.com"
                       />
                       <div className="profile-inline-form-actions">
                         <button className="btn-secondary" type="button" disabled={websiteSaving} onClick={() => {

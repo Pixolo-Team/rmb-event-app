@@ -148,7 +148,7 @@ function BookmarkMatchCard({ person, onBookmark }: { person: BookmarkConnection;
       <div className="card-icon-actions" aria-label={`Actions for ${person.name}`}>
         <BookmarkButton attendeeId={person.id} initialBookmarked compact onChange={onBookmark} />
         <a className="icon-btn" href={`tel:${person.phone}`} aria-label={`Call ${person.name}`} title="Call"><PhoneIcon /></a>
-        {person.linkedInUrl && <a className="icon-btn" href={person.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${person.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /></a>}
+        {person.linkedInUrl ? <a className="icon-btn" href={person.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${person.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /></a> : <button className="icon-btn" type="button" disabled aria-label={`${person.name} has no LinkedIn`} title="No LinkedIn"><LinkedInIcon /></button>}
       </div>
       <div className="match-explanation"><span className="match-spark">✦</span><div><b>Saved to Want to Meet</b><p>Keep this attendee handy so you can reconnect during the event.</p></div></div>
       <div className="match-card-footer"><span>Saved {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(person.bookmarkedAt))}</span>{person.tableNumber && <span>Table {person.tableNumber}</span>}<Link href={`/attendees/${person.id}`} onClick={() => trackMatchOpen("saved")}>View profile →</Link></div>
@@ -181,7 +181,7 @@ function MatchCard({ match, rank, onBookmark }: { match: MatchSuggestion; rank: 
       <div className="card-icon-actions" aria-label={`Actions for ${match.name}`}>
         <BookmarkButton attendeeId={match.id} initialBookmarked={match.bookmarked} compact onChange={onBookmark} />
         <a className="icon-btn" href={`tel:${match.phone}`} aria-label={`Call ${match.name}`} title="Call"><PhoneIcon /></a>
-        {match.linkedInUrl && <a className="icon-btn" href={match.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${match.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /></a>}
+        {match.linkedInUrl ? <a className="icon-btn" href={match.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${match.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /></a> : <button className="icon-btn" type="button" disabled aria-label={`${match.name} has no LinkedIn`} title="No LinkedIn"><LinkedInIcon /></button>}
         <button className="icon-btn" type="button" onClick={shareMatch} aria-label={`Share ${match.name}`} title="Share"><ShareIcon /></button>
       </div>
       <div className="match-explanation"><span className="match-spark">✦</span><div><b>Why you should meet</b><p>{match.headline}</p></div></div>
