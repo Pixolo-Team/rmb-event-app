@@ -39,6 +39,7 @@ export class BookmarksService {
       tableNumber: target.tableNumber,
       photoUrl: target.photoUrl,
       linkedInUrl: target.linkedInUrl,
+      websiteUrl: target.websiteUrl,
       met: metIds.has(target.id),
       bookmarkedAt: createdAt,
       bookmarked: true,

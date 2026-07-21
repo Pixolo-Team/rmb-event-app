@@ -94,6 +94,7 @@ model Attendee {
   // here, so the generated client had no linkedInUrl and every reader of it failed
   // to compile. Nullable — the link is optional everywhere (PRD US1.6).
   linkedInUrl        String?
+  websiteUrl         String?
   profileCompletedAt DateTime?
   deletedAt          DateTime?
 

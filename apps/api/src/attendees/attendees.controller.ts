@@ -76,6 +76,7 @@ export class AttendeesController {
       goals: attendee.goals,
       bio: attendee.bio,
       linkedInUrl: attendee.linkedInUrl,
+      websiteUrl: attendee.websiteUrl,
       // The caller's OWN signed QR token, for rendering their business-card QR
       // (F4.1, Screen 2.11). Only ever returned for `me` — getDirectoryProfile
       // strips qrToken so it is never exposed for other attendees.

@@ -9,6 +9,7 @@ export type Connection = {
   tableNumber: string | null;
   photoUrl: string | null;
   linkedInUrl: string | null;
+  websiteUrl?: string | null;
   met: boolean;
   metAt: string;
   note: string;
