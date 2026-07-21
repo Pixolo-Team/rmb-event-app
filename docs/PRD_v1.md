@@ -1129,6 +1129,10 @@ END: Event data captured and reported
 - Image optimization: all user photos < 100 KB (auto-compressed on upload)
 - Lazy load: feed photos, non-critical components
 
+**Perceived Performance**
+- First-load data states use content-shaped loading skeletons (shimmering placeholders that mirror the target layout), not generic "Loading…" text or bare spinners. Applies to the home dashboard, matches, directory cards, feed posts and the individual attendee profile (Screen 2.3). See `DESIGN_SYSTEM.md` §Components and `SCREENS.md` per-screen loading states.
+- On load failure the screen shows its error state rather than an indefinite skeleton.
+
 ### Security & Privacy
 
 **Data Storage & Protection**
@@ -1307,5 +1311,5 @@ Mapping original sticky-note brainstorm to decisions in this PRD, for transparen
 ---
 
 **Document prepared by:** Claude  
-**Last updated:** July 16, 2026  
+**Last updated:** July 21, 2026  
 **Next steps:** Design mockups, backend API spec, frontend component library

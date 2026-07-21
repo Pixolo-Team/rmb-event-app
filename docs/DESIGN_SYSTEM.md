@@ -208,6 +208,7 @@ Full rendered specimens live in `DESIGN_SYSTEM.html` §Components. Inventory:
 - **Stat tiles** — label + mono value + delta.
 - **Leaderboard row** — rank, avatar, name/company, mono count; "me" row highlighted in accent.
 - **Toasts & alerts** — success toast (auto-dismiss 3s per PRD), warning/offline toast, persistent alert banner with retry.
+- **Loading skeletons** — shimmering placeholder shapes that mirror the target content's layout, used in place of a generic "Loading…" text label while first-load data resolves (home dashboard, matches, directory cards, feed posts, individual attendee profile). Shapes reuse the shared `skeleton-block` shimmer; the container carries `role="status"` + `aria-busy` for screen readers. On load failure show the screen's error state, never a perpetual skeleton.
 - **Modal** — e.g. "Contact exists — Update?"
 - **Admin table** — attendee list: name, company, status pill, mono timestamp, check-in method. Wrapped in `overflow-x: auto` so it never breaks page layout on tablet.
 
