@@ -249,6 +249,20 @@ p.copy {
   font-size: 0.84rem;
   line-height: 1.45;
 }
+.onboarding-card,
+.onboarding-step,
+.onboarding-step .field,
+.onboarding-step .field select,
+.onboarding-step .multiselect {
+  min-width: 0;
+}
+.onboarding-card,
+.onboarding-step {
+  overflow: visible;
+}
+.onboarding-step .field select {
+  max-width: 100%;
+}
 .onboarding-actions {
   display: flex;
   gap: 10px;
@@ -2512,11 +2526,13 @@ p.copy {
 /* Call — solid brand primary with a filled handset. */
 .profile-action.call { background: var(--brand-500); border-color: var(--brand-500); color: var(--ink-on-brand); }
 .profile-action.call:hover { background: var(--brand-600); border-color: var(--brand-600); }
-.profile-action.call svg { fill: currentColor; stroke: none; }
+.profile-action.call svg { fill: none; stroke: currentColor; }
 
 /* WhatsApp — its recognizable green. */
 .profile-action.whatsapp { background: #1fa855; border-color: #1fa855; color: #fff; }
 .profile-action.whatsapp:hover { background: #1c934b; border-color: #1c934b; }
+.profile-action.linkedin { background: #0a66c2; border-color: #0a66c2; color: #fff; }
+.profile-action.linkedin:hover { background: #0958a8; border-color: #0958a8; }
 
 /* Share — full-width secondary row beneath the primary three. */
 .profile-action.share { grid-column: 1 / -1; }
@@ -2592,6 +2608,7 @@ a.contact-row:active { background: var(--brand-100); }
 .qr-name { margin: 16px 0 0; font: 700 1.35rem var(--font-display); color: var(--ink); }
 .qr-sub { margin: 4px 0 0; color: var(--ink-muted); font-weight: 600; }
 .qr-hint { margin: 10px 0 0; color: var(--ink-faint); font-size: 0.8rem; }
+.qr-photo-row { width: 100%; display: flex; justify-content: center; margin-top: 18px; }
 .profile-readonly-note { margin: 22px 0 0; color: var(--ink-faint); font-size: 0.8rem; }
 .business-card {
   border: 1px solid color-mix(in srgb, var(--border) 76%, var(--brand-500));
@@ -3424,6 +3441,7 @@ a.contact-row:active { background: var(--brand-100); }
 .directory-card-actions {
   padding: 0 16px 16px 88px;
   margin-top: -4px;
+  justify-content: flex-end;
 }
 .card-icon-actions {
   margin-top: 14px;
@@ -3532,7 +3550,7 @@ a.contact-row:active { background: var(--brand-100); }
 .feed-page .photo-card > .photo-card-media { border-radius: 0; aspect-ratio: 16 / 10; }
 .post-carousel { position: relative; overflow: hidden; background: var(--surface-2); }
 .post-carousel > .photo-card-media { width: 100%; border-radius: 0; aspect-ratio: 16 / 10; }
-.carousel-arrow { position: absolute; top: 50%; width: 38px; height: 38px; transform: translateY(-50%); border: 0; border-radius: 50%; background: rgba(12,25,45,.72); color: #fff; font-size: 1.7rem; cursor: pointer; }.carousel-arrow.previous{left:10px}.carousel-arrow.next{right:10px}
+.carousel-arrow { position: absolute; top: 50%; z-index: 1; width: 38px; height: 38px; transform: translateY(-50%); border: 1px solid rgba(255,255,255,.18); border-radius: 50%; background: rgba(12,25,45,.72); color: #fff; font-size: 0; line-height: 0; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }.carousel-arrow::before{content:"";width:10px;height:10px;border-top:2px solid currentColor;border-right:2px solid currentColor;display:block}.carousel-arrow.previous::before{transform:rotate(-135deg);margin-left:4px}.carousel-arrow.next::before{transform:rotate(45deg);margin-right:4px}.carousel-arrow.previous{left:10px}.carousel-arrow.next{right:10px}
 .carousel-dots { position: absolute; left: 50%; bottom: 10px; display: flex; gap: 5px; transform: translateX(-50%); }.carousel-dots span{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.55)}.carousel-dots span.active{background:#fff;transform:scale(1.25)}
 .post-caption { display: flex; min-width: 0; gap: 5px; margin: 0; padding: 0 16px 7px; color: var(--ink); font-size: .92rem; line-height: 1.4; }.post-caption span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.post-caption.expanded span{white-space:normal}.post-caption button{flex:0 0 auto;border:0;background:transparent;color:var(--ink-muted);font:inherit;font-weight:700;cursor:pointer}
 .feed-page .photo-card > .person-bio { margin: 0; padding: 14px 16px 10px; color: var(--ink); font-size: .94rem; line-height: 1.5; }
@@ -3843,6 +3861,48 @@ a.contact-row:active { background: var(--brand-100); }
 .feed-composer-card .powered-by-footer {
   padding-top: 0;
 }
+.feed-preview-card {
+  width: min(92vw, 560px);
+  padding: 0 0 16px;
+  overflow: hidden;
+}
+.feed-preview-close-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 12px 0;
+}
+.feed-preview-close {
+  min-height: 38px;
+}
+.feed-preview-card .photo-card-media {
+  width: 100%;
+  aspect-ratio: auto;
+  min-height: min(56dvh, 440px);
+  border-radius: 0;
+  background: rgba(11, 18, 32, 0.96);
+  cursor: default;
+}
+.feed-preview-card .photo-card-media img {
+  width: 100%;
+  height: auto;
+  max-height: min(56dvh, 440px);
+  object-fit: contain;
+}
+.feed-preview-meta {
+  padding: 14px 16px 0;
+}
+.feed-preview-meta .person-name {
+  font-size: 1rem;
+}
+.feed-preview-meta .person-bio,
+.feed-preview-meta .person-line {
+  margin-left: 0;
+  margin-right: 0;
+}
+.feed-preview-comments {
+  margin-top: 16px;
+  padding: 0 16px;
+}
 .photo-modal-secondary {
   min-width: 112px;
   min-height: 56px;
@@ -4097,6 +4157,9 @@ a.contact-row:active { background: var(--brand-100); }
     max-width: 100%;
     max-height: calc(100dvh - 20px);
   }
+  .onboarding-step .field select {
+    font-size: 0.9rem;
+  }
   .feed-composer-overlay {
     padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
   }
@@ -4119,6 +4182,19 @@ a.contact-row:active { background: var(--brand-100); }
   }
   .feed-composer-card .photo-modal-textarea {
     min-height: 76px;
+  }
+  .feed-preview-card {
+    width: 100%;
+    padding-bottom: 14px;
+  }
+  .feed-preview-card .photo-card-media {
+    min-height: min(50dvh, 360px);
+  }
+  .feed-preview-card .photo-card-media img {
+    max-height: min(50dvh, 360px);
+  }
+  .directory-card-actions {
+    padding-left: 16px;
   }
   .photo-picker {
     min-height: 184px;
