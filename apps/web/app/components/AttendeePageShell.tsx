@@ -71,7 +71,11 @@ function loadProfile() {
 export function AttendeePageShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [attendee, setAttendee] = useState<MenuAttendee | null>(null);
+  // Seed from the module-level cache so tab-to-tab navigation renders the shell
+  // (and the page's own skeleton) immediately instead of flashing the full-page
+  // loader. Safe against hydration mismatch: this cache is null on the server and
+  // on first hydration, and is only populated after a prior client-side mount.
+  const [attendee, setAttendee] = useState<MenuAttendee | null>(() => cachedMenuAttendee);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "production" && new URLSearchParams(window.location.search).get("preview") === "1") {

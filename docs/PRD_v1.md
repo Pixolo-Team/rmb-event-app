@@ -1131,6 +1131,7 @@ END: Event data captured and reported
 
 **Perceived Performance**
 - First-load data states use content-shaped loading skeletons (shimmering placeholders that mirror the target layout), not generic "Loading…" text or bare spinners. Applies to the home dashboard, matches, directory cards, feed posts and the individual attendee profile (Screen 2.3). See `DESIGN_SYSTEM.md` §Components and `SCREENS.md` per-screen loading states.
+- Tab/route navigation is instant: tapping any destination — bottom tabs (Home, People, Want to Meet, Profile) or side-drawer items (Feed, Gallery, Leaderboard, Event Summary, Feedback) — swaps to that screen's skeleton immediately (via route-level loading boundaries) rather than lingering on the previous screen while its code/data resolves, including on a route's first (uncached) visit. Persistent chrome (header, bottom tabs) stays in place across the transition.
 - On load failure the screen shows its error state rather than an indefinite skeleton.
 
 ### Security & Privacy

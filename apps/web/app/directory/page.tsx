@@ -6,6 +6,7 @@ import { AttendeePageShell } from "../components/AttendeePageShell";
 import { DirectoryAvatar } from "../components/DirectoryAvatar";
 import { directoryCache, type DirectoryAttendee, type DirectoryResponse } from "../lib/directoryCache";
 import { BookmarkButton } from "../components/BookmarkButton";
+import { DirectorySkeleton } from "./DirectorySkeleton";
 
 type CheckinFilter = "all" | "checked-in" | "not-checked-in";
 
@@ -205,7 +206,6 @@ function FilterSelect({ label, value, options, onChange }: { label: string; valu
 }
 
 function DirectoryState({ title, body }: { title: string; body: string }) { return <div className="directory-state"><h2>{title}</h2><p>{body}</p></div>; }
-function DirectorySkeleton() { return <div className="directory-grid" aria-label="Loading directory">{[1, 2, 3, 4].map((item) => <div className="directory-card skeleton-card" key={item}><span /><div><span /><span /></div></div>)}</div>; }
 function SearchIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m16 16 4 4" /></svg>; }
 function FilterIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" /></svg>; }
 function PhoneIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8c1.2 2.4 3.2 4.4 5.6 5.6l1.9-1.9c.3-.3.7-.4 1-.2 1 .4 2.1.6 3.2.6.6 0 1 .4 1 1V19c0 .6-.4 1-1 1C9.6 20 4 14.4 4 7.7c0-.6.4-1 1-1h3.1c.6 0 1 .4 1 1 0 1.1.2 2.2.6 3.2.1.3 0 .7-.2 1L6.6 10.8Z" /></svg>; }

@@ -1915,6 +1915,17 @@ p.copy {
   object-fit: cover;
   display: block;
 }
+.gallery-skeleton-tile {
+  aspect-ratio: 1;
+  border-radius: 10px;
+}
+.content-skeleton { display: grid; gap: 14px; }
+.content-skeleton .skeleton-block { border-radius: var(--radius-pill); }
+.content-skeleton-intro { width: min(70%, 320px); height: 14px; }
+.content-skeleton-card { display: grid; gap: 10px; padding: 20px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
+.content-skeleton-heading { width: 45%; height: 16px; }
+.content-skeleton-line { width: 100%; height: 12px; }
+.content-skeleton-line.short { width: 60%; }
 .gallery-grid-placeholder {
   width: 100%;
   height: 100%;
@@ -2332,6 +2343,9 @@ p.copy {
 .profile-skeleton-action { height: 48px; border-radius: var(--radius-md); }
 .profile-skeleton-heading { width: 40%; height: 14px; margin-bottom: 14px; }
 .profile-section .profile-skeleton-line + .profile-skeleton-line { margin-top: 10px; }
+.profile-skeleton-qr { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-bottom: 16px; }
+.profile-skeleton-qr .profile-skeleton-title { margin-top: 4px; }
+.profile-skeleton .profile-skeleton-qr-frame { width: 180px; height: 180px; border-radius: var(--radius-md); }
 .filter-layer { position: fixed; inset: 0; z-index: 110; }
 .filter-sheet {
   position: absolute;
