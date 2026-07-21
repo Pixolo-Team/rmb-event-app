@@ -215,26 +215,6 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
             </div>
 
             <nav className="menu-nav" aria-label="Attendee navigation">
-              {!isInstalled && (
-                <>
-                  <button
-                    type="button"
-                    className="menu-link"
-                    onClick={() => {
-                      if (canInstall) {
-                        promptInstall();
-                        setOpen(false);
-                      } else {
-                        setInstallHint(manualInstallHint());
-                      }
-                    }}
-                  >
-                    <InstallIcon />
-                    <span className="menu-link-label">Install app</span>
-                  </button>
-                  {installHint && <p className="menu-install-hint">{installHint}</p>}
-                </>
-              )}
               {DRAWER_ITEMS.filter((item) => item.available || SHOW_PLANNED_ITEMS).map((item) => {
                 if (!item.available) return <DisabledMenuItem key={item.label} item={item} />;
 
@@ -263,6 +243,26 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
                   </Link>
                 );
               })}
+              {!isInstalled && (
+                <>
+                  <button
+                    type="button"
+                    className="menu-link"
+                    onClick={() => {
+                      if (canInstall) {
+                        promptInstall();
+                        setOpen(false);
+                      } else {
+                        setInstallHint(manualInstallHint());
+                      }
+                    }}
+                  >
+                    <InstallIcon />
+                    <span className="menu-link-label">Install app</span>
+                  </button>
+                  {installHint && <p className="menu-install-hint">{installHint}</p>}
+                </>
+              )}
             </nav>
 
             <div className="menu-bottom">

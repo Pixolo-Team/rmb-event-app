@@ -1562,6 +1562,9 @@ p.copy {
   text-decoration: none;
   cursor: pointer;
 }
+.menu-link:focus-visible {
+  outline-offset: -2px;
+}
 .menu-link-label {
   min-width: 0;
   overflow: hidden;
@@ -1586,7 +1589,7 @@ p.copy {
   cursor: not-allowed;
 }
 .menu-install-hint {
-  margin: -4px 0 6px;
+  margin: 4px 0 6px;
   padding: 0 12px 8px;
   color: var(--ink-muted);
   font-size: 0.78rem;
@@ -2748,7 +2751,11 @@ a.contact-row:active { background: var(--brand-100); }
 .qr-name { margin: 16px 0 0; font: 700 1.35rem var(--font-display); color: var(--ink); }
 .qr-sub { margin: 4px 0 0; color: var(--ink-muted); font-weight: 600; }
 .qr-hint { margin: 10px 0 0; color: var(--ink-faint); font-size: 0.8rem; }
-.qr-photo-row { width: 100%; display: flex; justify-content: center; margin-top: 18px; }
+.qr-card-divider { width: 100%; height: 1px; background: var(--border); margin: 20px 0 0; }
+.qr-photo-row { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; margin-top: 18px; }
+.qr-identity-text { display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 0; }
+.qr-identity-name { margin: 0; font: 700 1.3rem var(--font-display); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.qr-identity-business { margin: 3px 0 0; color: var(--ink-muted); font-size: 0.85rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .profile-readonly-note { margin: 22px 0 0; color: var(--ink-faint); font-size: 0.8rem; }
 .business-card {
   border: 1px solid color-mix(in srgb, var(--border) 76%, var(--brand-500));

@@ -171,7 +171,7 @@ export default function ProfilePage() {
             )}
 
             <section className="qr-card">
-              <p className="qr-eyebrow">Your business card</p>
+              <p className="qr-eyebrow">Scan to connect</p>
               <div className="qr-card-container">
                 {qrDataUrl ? (
                   <button className="qr-frame" type="button" onClick={() => setEnlarged(true)} aria-label="Enlarge your QR code">
@@ -181,9 +181,10 @@ export default function ProfilePage() {
                   <div className="qr-frame qr-frame-placeholder" role="status">Preparing your QR...</div>
                 )}
               </div>
-              <p className="qr-name">{profile.name}</p>
-              {profile.businessName && <p className="qr-sub">{profile.businessName}</p>}
               <p className="qr-hint">Tap the code to enlarge it for scanning</p>
+
+              <div className="qr-card-divider" aria-hidden="true" />
+
               <div className="qr-photo-row">
                 <div className="qr-with-photo">
                   {profile.photoUrl && (
@@ -199,6 +200,10 @@ export default function ProfilePage() {
                   >
                     +
                   </button>
+                </div>
+                <div className="qr-identity-text">
+                  <p className="qr-identity-name">{profile.name}</p>
+                  {profile.businessName && <p className="qr-identity-business">{profile.businessName}</p>}
                 </div>
               </div>
             </section>
