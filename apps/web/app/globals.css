@@ -1299,6 +1299,35 @@ p.copy {
   from { transform: translateX(-100%); }
   to { transform: translateX(0); }
 }
+@keyframes menu-exit {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+.menu-layer.closing .attendee-menu {
+  animation: menu-exit 200ms ease-in forwards;
+}
+.menu-backdrop {
+  animation: menu-backdrop-in 200ms ease-out;
+}
+@keyframes menu-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.menu-layer.closing .menu-backdrop {
+  animation: menu-backdrop-out 200ms ease-in forwards;
+}
+@keyframes menu-backdrop-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .attendee-menu,
+  .menu-backdrop,
+  .menu-layer.closing .attendee-menu,
+  .menu-layer.closing .menu-backdrop {
+    animation: none;
+  }
+}
 .menu-topbar {
   min-height: 68px;
   padding: 12px 16px 12px 20px;
@@ -2378,6 +2407,13 @@ p.copy {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+@keyframes filter-backdrop-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+.filter-layer.closing .menu-backdrop {
+  animation: filter-backdrop-out 200ms ease-in forwards;
+}
 .filter-sheet {
   position: absolute;
   inset: 0 0 0 auto;
@@ -2386,15 +2422,24 @@ p.copy {
   overflow-y: auto;
   background: var(--surface);
   box-shadow: -8px 0 28px rgba(20, 40, 80, 0.2);
-  animation: filter-sheet-in 0.22s ease-out;
+  animation: filter-sheet-in 220ms ease-out;
 }
 @keyframes filter-sheet-in {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
 }
+@keyframes filter-sheet-out {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+.filter-layer.closing .filter-sheet {
+  animation: filter-sheet-out 200ms ease-in forwards;
+}
 @media (prefers-reduced-motion: reduce) {
   .filter-layer .menu-backdrop,
-  .filter-sheet {
+  .filter-layer.closing .menu-backdrop,
+  .filter-sheet,
+  .filter-layer.closing .filter-sheet {
     animation: none;
   }
 }
