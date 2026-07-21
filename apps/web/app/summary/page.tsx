@@ -7,42 +7,6 @@ import { DirectoryAvatar } from "../components/DirectoryAvatar";
 import { PoweredByFooter } from "../components/PoweredByFooter";
 import { EventSummary, summaryCache } from "../lib/summaryCache";
 
-const PREVIEW: EventSummary = {
-  attendeeName: "Radha Sharma",
-  event: {
-    name: "RMB Business Conclave 2026",
-    startAt: "2026-07-16T04:30:00.000Z",
-    endAt: "2026-07-16T13:30:00.000Z",
-  },
-  peopleMet: 12,
-  cardsCollected: 12,
-  rank: 8,
-  totalRanked: 148,
-  generatedAt: new Date().toISOString(),
-  topConnections: [
-    {
-      id: "s1",
-      name: "Aarav Mehta",
-      phone: "+919810012345",
-      email: "aarav@example.com",
-      businessName: "Mehta Packaging Solutions",
-      tableNumber: "12",
-      metAt: "2026-07-16T09:42:00.000Z",
-      note: "Follow up next week",
-    },
-    {
-      id: "s2",
-      name: "Neha Kapoor",
-      phone: "+919820067890",
-      email: "neha@example.com",
-      businessName: "Kapoor Digital",
-      tableNumber: "7",
-      metAt: "2026-07-16T08:25:00.000Z",
-      note: "",
-    },
-  ],
-};
-
 export default function SummaryPage() {
   const [data, setData] = useState<EventSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,15 +15,6 @@ export default function SummaryPage() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    const isPreview =
-      process.env.NODE_ENV !== "production" &&
-      new URLSearchParams(location.search).get("preview") === "1";
-
-    if (isPreview) {
-      setData(PREVIEW);
-      setLoading(false);
-      return;
-    }
 
     const cached = summaryCache.get();
     if (cached) {

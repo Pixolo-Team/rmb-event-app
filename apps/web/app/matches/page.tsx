@@ -10,11 +10,6 @@ import { type BookmarkConnection, connectionsCache } from "../lib/connectionsCac
 import { matchesCache, type MatchesResponse, type MatchSuggestion } from "../lib/matchesCache";
 import { MatchesSkeleton } from "./MatchesSkeleton";
 
-const PREVIEW: MatchesResponse = { profileComplete: true, totalAttendees: 148, computedAt: new Date().toISOString(), matches: [
-  { id: "match-1", name: "Ananya Desai", businessName: "Desai Retail Network", businessCategory: "Retail", city: "Mumbai, Maharashtra", chapterName: "RMB Mumbai", tableNumber: "8", photoUrl: null, checkedIn: true, phone: "+919810012345", linkedInUrl: "https://www.linkedin.com/in/ananya-desai", bookmarked: false, met: true, score: 7, reasons: ["They offer Retail Distribution, which you're looking for", "You're both in the RMB Mumbai chapter"], headline: "They offer Retail Distribution, which you're looking for", chapterRelation: "same", computedAt: new Date().toISOString() },
-  { id: "match-2", name: "Rohan Iyer", businessName: "Iyer Logistics", businessCategory: "Logistics", city: "Pune, Maharashtra", chapterName: "RMB Pune", tableNumber: "15", photoUrl: null, checkedIn: false, phone: "+919820067890", linkedInUrl: null, bookmarked: true, met: false, score: 5, reasons: ["You offer Textiles, which they're looking for", "They're in the RMB Pune chapter"], headline: "You offer Textiles, which they're looking for", chapterRelation: "cross", computedAt: new Date().toISOString() },
-] };
-
 export default function MatchesPage() {
   const [data, setData] = useState<MatchesResponse | null>(null);
   const [bookmarks, setBookmarks] = useState<BookmarkConnection[]>([]);
@@ -66,14 +61,6 @@ export default function MatchesPage() {
   }
 
   useEffect(() => {
-    const preview = process.env.NODE_ENV !== "production" && new URLSearchParams(window.location.search).get("preview") === "1";
-    if (preview) {
-      setData(PREVIEW);
-      setBookmarks([toBookmark(PREVIEW.matches[1])]);
-      setLoading(false);
-      return;
-    }
-
     const cachedMatches = matchesCache.get();
     const cachedBookmarks = connectionsCache.get()?.bookmarks ?? [];
     if (cachedMatches) {

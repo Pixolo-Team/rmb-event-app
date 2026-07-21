@@ -10,18 +10,6 @@ type FeedPageResponse = {
   nextCursor: string | null;
 };
 
-const PREVIEW_PHOTOS: FeedPhotoData[] = [
-  { id: "preview-photo-1", url: "/images/preview/networking-conversation.jpg", caption: "A great start to the evening so many useful conversations already!", createdAt: "2026-07-16T12:10:00.000Z", attendeeId: "preview-1", attendeeName: "Aarav Mehta", attendeeBusinessName: "Mehta Packaging Solutions", likeCount: 18, commentCount: 2, likedByMe: true, comments: [] },
-  { id: "preview-photo-2", url: "/images/preview/business-card-exchange.jpg", caption: "New introductions, shared ideas, and promising collaborations.", createdAt: "2026-07-16T11:35:00.000Z", attendeeId: "preview-me", attendeeName: "Radha Sharma", attendeeBusinessName: "Sharma Trading Co.", likeCount: 11, commentCount: 1, likedByMe: false, comments: [] },
-  { id: "preview-photo-3", url: "/images/preview/conference-applause.jpg", caption: "Celebrating the ideas and people moving our business community forward.", createdAt: "2026-07-16T10:50:00.000Z", attendeeId: "preview-3", attendeeName: "Neha Kapoor", attendeeBusinessName: "Kapoor Digital", likeCount: 24, commentCount: 0, likedByMe: false, comments: [] },
-  { id: "preview-photo-4", url: "/images/preview/business-card-exchange.jpg", caption: "Quick introductions turning into follow-up meetings.", createdAt: "2026-07-16T10:05:00.000Z", attendeeId: "preview-4", attendeeName: "Priya Nair", attendeeBusinessName: "Nair Advisory", likeCount: 9, commentCount: 0, likedByMe: false, comments: [] },
-  { id: "preview-photo-5", url: "/images/preview/networking-conversation.jpg", caption: "Busy corners, strong conversations, and plenty of energy.", createdAt: "2026-07-16T09:35:00.000Z", attendeeId: "preview-5", attendeeName: "Vikram Shah", attendeeBusinessName: "Shah Industrial Systems", likeCount: 14, commentCount: 1, likedByMe: false, comments: [] },
-  { id: "preview-photo-6", url: "/images/preview/conference-applause.jpg", caption: "One more moment worth saving from the event gallery.", createdAt: "2026-07-16T09:05:00.000Z", attendeeId: "preview-6", attendeeName: "Meera Joshi", attendeeBusinessName: "Joshi Consulting", likeCount: 7, commentCount: 0, likedByMe: false, comments: [] },
-  { id: "preview-photo-7", url: "/images/preview/networking-conversation.jpg", caption: "Fresh connections and warm introductions across the room.", createdAt: "2026-07-16T08:40:00.000Z", attendeeId: "preview-7", attendeeName: "Ishita Verma", attendeeBusinessName: "Verma Ventures", likeCount: 5, commentCount: 0, likedByMe: false, comments: [] },
-  { id: "preview-photo-8", url: "/images/preview/business-card-exchange.jpg", caption: "A quick exchange that turned into a meaningful conversation.", createdAt: "2026-07-16T08:15:00.000Z", attendeeId: "preview-8", attendeeName: "Kunal Bhatia", attendeeBusinessName: "Bhatia Distribution", likeCount: 6, commentCount: 0, likedByMe: false, comments: [] },
-  { id: "preview-photo-9", url: "/images/preview/conference-applause.jpg", caption: "One more polished event moment to fill out the gallery view.", createdAt: "2026-07-16T07:55:00.000Z", attendeeId: "preview-9", attendeeName: "Sana Sheikh", attendeeBusinessName: "Sheikh Advisory", likeCount: 8, commentCount: 0, likedByMe: false, comments: [] },
-];
-
 function getInitials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("") || "EV";
@@ -42,35 +30,23 @@ function downloadFileName(photo: FeedPhotoData) {
 }
 
 export default function GalleryPage() {
-  const [photos, setPhotos] = useState<FeedPhotoData[]>(PREVIEW_PHOTOS);
+  const [photos, setPhotos] = useState<FeedPhotoData[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [state, setState] = useState<"loading" | "ready">("ready");
+  const [state, setState] = useState<"loading" | "ready">("loading");
   const [loadingMore, setLoadingMore] = useState(false);
   const [openPhotoId, setOpenPhotoId] = useState<string | null>(null);
-  const [preview, setPreview] = useState(true);
 
   useEffect(() => {
-    const previewMode = process.env.NODE_ENV !== "production" && new URLSearchParams(window.location.search).get("preview") === "1";
-    if (previewMode) {
-      setPreview(true);
-      setPhotos(PREVIEW_PHOTOS);
-      setState("ready");
-      return;
-    }
-
     fetch("/api/photos", { credentials: "include" })
       .then(async (response) => {
         if (!response.ok) throw new Error();
         const data = (await response.json()) as FeedPageResponse;
-        const nextPhotos = data.photos.length > 0 ? data.photos : PREVIEW_PHOTOS;
-        setPhotos(nextPhotos);
+        setPhotos(data.photos);
         setNextCursor(data.nextCursor);
-        setPreview(data.photos.length === 0);
         setState("ready");
       })
       .catch(() => {
-        setPhotos(PREVIEW_PHOTOS);
-        setPreview(true);
+        setPhotos([]);
         setState("ready");
       });
   }, []);
@@ -96,7 +72,6 @@ export default function GalleryPage() {
       <div className="attendee-page gallery-page">
         <section className="gallery-copy-block">
           <p className="gallery-copy">Browse every photo shared from tonight.</p>
-          {preview ? <p className="gallery-preview-note">Showing sample photos so you can review the gallery UI.</p> : null}
         </section>
 
         {state === "loading" ? <GallerySkeleton /> : null}
@@ -130,7 +105,7 @@ export default function GalleryPage() {
           </div>
         ) : null}
 
-        {!preview && nextCursor ? (
+        {nextCursor ? (
           <button className="btn-primary" type="button" disabled={loadingMore} onClick={handleLoadMore}>
             {loadingMore ? "Loading..." : "Load more"}
           </button>
