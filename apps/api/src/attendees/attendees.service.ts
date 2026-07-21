@@ -454,8 +454,6 @@ export class AttendeesService {
           websiteUrl: true,
           checkIn: { select: { createdAt: true } },
           deletedAt: true,
-          linkedInUrl: true,
-          websiteUrl: true,
           ...matchSelect,
         },
       }),

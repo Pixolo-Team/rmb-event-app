@@ -6,6 +6,7 @@ import { CommentIcon } from "./icons";
 import { PoweredByFooter } from "./PoweredByFooter";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { getCsrfToken, withCsrfHeaders } from "../../lib/csrf";
+import { trackEvent } from "../../lib/gtag";
 import { compressFeedImage } from "../../lib/imageCompression";
 type FeedPageResponse = {
   photos: FeedPhotoData[];
@@ -158,6 +159,11 @@ export function PostComposerModal({
       };
       setPhotos((current) => [newPhoto, ...current]);
       setComposerStatus("success");
+      trackEvent("photo_uploaded", {
+        feature: "feed",
+        target_type: "photo_post",
+        success: true,
+      });
       closeComposer();
       return;
     }
@@ -171,10 +177,20 @@ export function PostComposerModal({
       const created = await uploadPhotoWithProgress(compressedFiles, caption, setUploadProgress);
       setPhotos((current) => [created, ...current]);
       setComposerStatus("success");
+      trackEvent("photo_uploaded", {
+        feature: "feed",
+        target_type: "photo_post",
+        success: true,
+      });
       closeComposer();
     } catch {
       setComposerStatus("error");
       setComposerError("Couldn't upload the selected photos. Try again.");
+      trackEvent("photo_uploaded", {
+        feature: "feed",
+        target_type: "photo_post",
+        success: false,
+      });
     }
   }
 
