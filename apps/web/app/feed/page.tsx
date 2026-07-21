@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { FeedSkeleton, FeedView } from "../(app)/tutorial/FeedView";
 import type { AttendeeMe } from "../(app)/tutorial/TutorialPage";
 import { AttendeePageShell } from "../components/AttendeePageShell";
+import { trackEvent } from "../lib/gtag";
 import { profileCache } from "../lib/profileCache";
 import type { FeedPhotoData } from "../lib/feedTypes";
 
@@ -14,6 +15,23 @@ export default function FeedPage() {
   const [feedLoaded, setFeedLoaded] = useState(false);
 
   useEffect(() => {
+    trackEvent("feed_opened", {
+      feature: "feed",
+      success: true,
+    });
+
+    const previewMode =
+      process.env.NODE_ENV !== "production" &&
+      new URLSearchParams(window.location.search).get("preview") === "1";
+
+    if (previewMode) {
+      setPreview(true);
+      setAttendee(PREVIEW_ATTENDEE);
+      setPhotos(PREVIEW_PHOTOS);
+      setFeedLoaded(true);
+      return;
+    }
+
     const cachedProfile = profileCache.get();
     if (cachedProfile?.profileCompletedAt) {
       setAttendee(cachedProfile);

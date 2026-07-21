@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { withCsrfHeaders } from "../lib/csrf";
+import { trackEvent } from "../lib/gtag";
 import { enqueueWrite } from "../lib/offlineQueue";
 
 export function BookmarkButton({ attendeeId, initialBookmarked, compact = false, onChange }: { attendeeId: string; initialBookmarked: boolean; compact?: boolean; onChange?: (value: boolean) => void }) {
@@ -21,9 +22,19 @@ export function BookmarkButton({ attendeeId, initialBookmarked, compact = false,
         withCsrfHeaders({ method, credentials: "include" }),
       );
       if (!response.ok) throw new Error("server rejected bookmark");
+      trackEvent(next ? "bookmark_added" : "bookmark_removed", {
+        feature: "bookmarks",
+        target_type: "attendee",
+        success: true,
+      });
     } catch (error) {
       if (error instanceof TypeError || !navigator.onLine) {
         await enqueueWrite(next ? "bookmark-add" : "bookmark-remove", `/api/bookmarks/${attendeeId}`, {}, method);
+        trackEvent(next ? "bookmark_added" : "bookmark_removed", {
+          feature: "bookmarks",
+          target_type: "attendee",
+          success: true,
+        });
       } else {
         setBookmarked(!next);
         onChange?.(!next);

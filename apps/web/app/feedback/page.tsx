@@ -5,12 +5,14 @@ import { useEffect, useState } from "react";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { PoweredByFooter } from "../components/PoweredByFooter";
 import { withCsrfHeaders } from "../lib/csrf";
+import { trackEvent } from "../lib/gtag";
 
 export default function FeedbackPage() {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
   const [preview, setPreview] = useState(false);
+  const [started, setStarted] = useState(false);
 
   useEffect(() => {
     setPreview(
@@ -37,9 +39,31 @@ export default function FeedbackPage() {
         if (!response.ok) throw new Error();
       }
       setStatus("done");
+      trackEvent("feedback_submitted", {
+        feature: "feedback",
+        target_type: "rating",
+        success: true,
+      });
     } catch {
       setStatus("error");
+      trackEvent("feedback_submitted", {
+        feature: "feedback",
+        target_type: "rating",
+        success: false,
+      });
     }
+  }
+
+  function chooseRating(value: number) {
+    if (!started) {
+      setStarted(true);
+      trackEvent("feedback_started", {
+        feature: "feedback",
+        target_type: "rating",
+        success: true,
+      });
+    }
+    setRating(value);
   }
 
   return (
@@ -74,7 +98,7 @@ export default function FeedbackPage() {
                       role="radio"
                       aria-checked={rating === value}
                       aria-label={`${value} star${value === 1 ? "" : "s"}`}
-                      onClick={() => setRating(value)}
+                      onClick={() => chooseRating(value)}
                       className={value <= rating ? "selected" : ""}
                     >
                       ★

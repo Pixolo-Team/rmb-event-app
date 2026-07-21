@@ -8,6 +8,7 @@ import { ContactRows } from "../../components/ContactRows";
 import { directoryCache, type AttendeeProfile } from "../../lib/directoryCache";
 import { SaveContactButton } from "../../components/SaveContactButton";
 import { BookmarkButton } from "../../components/BookmarkButton";
+import { trackEvent } from "../../lib/gtag";
 
 export default function AttendeeProfilePage({ params }: { params: { id: string } }) {
   const [profile, setProfile] = useState<AttendeeProfile | null>(null);
@@ -29,6 +30,11 @@ export default function AttendeeProfilePage({ params }: { params: { id: string }
         const result = (await response.json()) as AttendeeProfile;
         directoryCache.setProfile(params.id, result);
         setProfile(result);
+        trackEvent("profile_viewed", {
+          feature: "attendee_profile",
+          target_type: "attendee",
+          success: true,
+        });
         setOfflineResult(false);
         setError(false);
       })
