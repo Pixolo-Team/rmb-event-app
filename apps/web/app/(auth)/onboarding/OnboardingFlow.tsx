@@ -385,12 +385,11 @@ function CityCombobox({
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const normalizedQuery = value.trim().toLowerCase();
-  const visibleOptions = options
-    .filter((option) => {
-      if (!normalizedQuery || options.some((candidate) => candidate.value === value)) return true;
-      return `${option.name} ${option.stateOrUt}`.toLowerCase().includes(normalizedQuery);
-    })
-    .slice(0, 12);
+  const selectedKnownCity = options.some((candidate) => candidate.value === value);
+  const visibleOptions = options.filter((option) => {
+    if (!normalizedQuery || selectedKnownCity) return true;
+    return `${option.name} ${option.stateOrUt}`.toLowerCase().includes(normalizedQuery);
+  });
 
   function chooseCity(nextValue: string) {
     onChange(nextValue);
