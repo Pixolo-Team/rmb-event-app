@@ -6,6 +6,7 @@ import { AttendeePageShell } from "../components/AttendeePageShell";
 import { ContactRows } from "../components/ContactRows";
 import { PersonalStats } from "../components/PersonalStats";
 import { PhotoUploadModal } from "../components/PhotoUploadModal";
+import { withCsrfHeaders } from "../lib/csrf";
 import { profileCache, type MyProfile } from "../lib/profileCache";
 import { ProfileSkeleton } from "./ProfileSkeleton";
 
@@ -23,13 +24,16 @@ export default function ProfilePage() {
       const formData = new FormData();
       formData.append("photo", file);
 
-      const res = await fetch("/api/attendees/me/photo", {
+      const res = await fetch("/api/attendees/me/photo", withCsrfHeaders({
         method: "POST",
         credentials: "include",
         body: formData,
-      });
+      }));
 
-      if (!res.ok) throw new Error("Upload failed");
+      if (!res.ok) {
+        const body = await res.json().catch(() => null) as { message?: string } | null;
+        throw new Error(body?.message ?? "Upload failed");
+      }
 
       const data = await res.json() as { status: string; photoUrl: string };
       setProfile((prev) => (prev ? { ...prev, photoUrl: data.photoUrl } : null));

@@ -3,6 +3,7 @@
 import { useRef, useState, useCallback } from "react";
 import Cropper from "react-easy-crop";
 import type { Area } from "react-easy-crop";
+import { compressProfileImage } from "../lib/imageCompression";
 
 interface PhotoUploadModalProps {
   isOpen: boolean;
@@ -59,8 +60,9 @@ export function PhotoUploadModal({ isOpen, onClose, onPhotoUpload, isLoading = f
 
     try {
       // Get the cropped image
-      const croppedFile = await cropImageFile(previewUrl, croppedAreaPixels, selectedFile);
-      await onPhotoUpload(croppedFile);
+      const croppedFile = await cropImageFile(previewUrl, croppedAreaPixels);
+      const compressedFile = await compressProfileImage(croppedFile);
+      await onPhotoUpload(compressedFile);
 
       // Reset and close
       setSelectedFile(null);
@@ -185,7 +187,6 @@ export function PhotoUploadModal({ isOpen, onClose, onPhotoUpload, isLoading = f
 async function cropImageFile(
   previewUrl: string,
   croppedAreaPixels: Area,
-  originalFile: File,
 ): Promise<File> {
   return new Promise((resolve, reject) => {
     const image = new Image();
@@ -220,10 +221,9 @@ async function cropImageFile(
           return;
         }
 
-        const ext = originalFile.name.split(".").pop() || "jpg";
-        const file = new File([blob], `photo.${ext}`, { type: originalFile.type });
+        const file = new File([blob], "profile-photo.jpg", { type: "image/jpeg" });
         resolve(file);
-      }, originalFile.type || "image/jpeg");
+      }, "image/jpeg", 0.95);
     };
     image.onerror = () => reject(new Error("Failed to load image"));
   });
