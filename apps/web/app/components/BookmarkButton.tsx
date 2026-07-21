@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { withCsrfHeaders } from "../lib/csrf";
 import { trackEvent } from "../lib/gtag";
 import { enqueueWrite } from "../lib/offlineQueue";
@@ -11,7 +11,16 @@ export function BookmarkButton({ attendeeId, initialBookmarked, compact = false,
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [saving, setSaving] = useState(false);
 
-  async function change() {
+  useEffect(() => {
+    setBookmarked(initialBookmarked);
+  }, [initialBookmarked]);
+
+  async function change(event: MouseEvent) {
+    // The button sits inside a card that is wrapped in a navigation link on the
+    // directory/people page — stop the tap from bubbling up and navigating away
+    // before the toggle registers.
+    event.preventDefault();
+    event.stopPropagation();
     if (saving) return;
     const next = !bookmarked;
     setBookmarked(next);

@@ -355,13 +355,14 @@ export function OnboardingFlow() {
             <label htmlFor="websiteUrl">Website link (optional)</label>
             <input
               id="websiteUrl"
-              type="url"
+              type="text"
+              inputMode="url"
               value={websiteUrl}
               onChange={(e) => {
                 setWebsiteUrl(e.target.value);
                 setFieldErrors(({ websiteUrl: _drop, ...rest }) => rest);
               }}
-              placeholder="https://yourwebsite.com"
+              placeholder="yourwebsite.com"
             />
             {fieldErrors.websiteUrl && <div className="hint err">{fieldErrors.websiteUrl}</div>}
           </div>

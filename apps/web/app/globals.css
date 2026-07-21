@@ -765,6 +765,7 @@ p.copy {
 .multiselect-option input {
   width: 17px;
   height: 17px;
+  margin: 0;
   accent-color: var(--brand-500);
   flex-shrink: 0;
 }
@@ -1073,6 +1074,10 @@ p.copy {
   padding: 4px 0;
   color: var(--ink-faint);
   font-size: 0.68rem;
+}
+.powered-by-footer a {
+  display: inline-flex;
+  align-items: center;
 }
 .powered-by-footer img {
   height: 18px;
@@ -3087,6 +3092,11 @@ a.contact-row:active { background: var(--brand-100); }
   gap: 14px;
   animation: app-content-in 0.22s ease;
 }
+/* Pin the Pixolo credit to the bottom of the viewport (just above the tab bar)
+   instead of letting it float directly under short content. */
+.home-dash-body > .powered-by-footer {
+  margin-top: auto;
+}
 .home-skeleton-line,
 .home-skeleton-block,
 .home-skeleton-stats span,
@@ -3442,6 +3452,8 @@ a.contact-row:active { background: var(--brand-100); }
   padding: 0 16px 16px 88px;
   margin-top: -4px;
   justify-content: flex-end;
+  position: relative;
+  z-index: 1;
 }
 .card-icon-actions {
   margin-top: 14px;
@@ -3512,6 +3524,10 @@ a.contact-row:active { background: var(--brand-100); }
 .composer-actions { display: grid; grid-template-columns: 1fr 1fr; align-items: stretch; gap: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
 .composer-photo-button { width: 100%; min-width: 0; min-height: 44px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface); color: var(--brand-700); font: inherit; font-weight: 750; cursor: pointer; }
 .composer-photo-button svg, .person-actions svg, .comment-send svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+/* Brand glyphs (e.g. the LinkedIn "in" mark) are solid shapes, not line art —
+   keep them filled so they don't render as faint hollow outlines inside the
+   icon-button rules that otherwise force fill:none/stroke on svgs. */
+.brand-glyph, .icon-btn svg.brand-glyph, .person-actions svg.brand-glyph, .card-icon-actions svg.brand-glyph, .directory-card-actions svg.brand-glyph { fill: currentColor; stroke: none; }
 .composer-post-button { width: 100%; min-width: 0; min-height: 44px; margin: 0; padding: 0 16px; border-radius: 12px; }
 .composer-post-button:disabled { opacity: .48; }
 .feed-composer > .photo-card-media { margin-top: 12px !important; aspect-ratio: 16 / 10; }

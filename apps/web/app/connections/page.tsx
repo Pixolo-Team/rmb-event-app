@@ -103,7 +103,7 @@ function BookmarkCard({ person, onRemove }: { person: BookmarkConnection; onRemo
     <div className="card-icon-actions" aria-label={`Actions for ${person.name}`}>
       <BookmarkButton attendeeId={person.id} initialBookmarked onChange={(value) => { if (!value) onRemove(); }} compact />
       <a className="icon-btn" href={`tel:${person.phone}`} aria-label={`Call ${person.name}`} title="Call"><CallIcon /></a>
-      {person.linkedInUrl && <a className="icon-btn" href={person.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${person.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /></a>}
+      {person.linkedInUrl ? <a className="icon-btn" href={person.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${person.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /></a> : <button className="icon-btn" type="button" disabled aria-label={`${person.name} has no LinkedIn`} title="No LinkedIn"><LinkedInIcon /></button>}
       <button className="icon-btn" type="button" onClick={sharePerson} aria-label={`Share ${person.name}`} title="Share"><ShareIcon /></button>
     </div>
   </article>;
@@ -164,6 +164,7 @@ function ConnectionCard({ connection, offline, onNote, onRemove }: { connection:
     <div className="connection-actions">
       <a href={`tel:${connection.phone}`}><CallIcon /> Call</a>
       <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noreferrer"><WhatsAppIcon /> WhatsApp</a>
+      {connection.linkedInUrl && <a href={connection.linkedInUrl} target="_blank" rel="noreferrer"><LinkedInIcon /> LinkedIn</a>}
     </div>
     <SaveContactButton contact={{ name: connection.name, phone: connection.phone, email: connection.email, company: connection.businessName, note: connection.note || "Met at Evento" }} />
   </article>;
