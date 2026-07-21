@@ -182,12 +182,12 @@ export function PostComposerModal({
 
   return (
     <div
-      className={`photo-modal-overlay${closing ? " closing" : ""}`}
+      className={`photo-modal-overlay feed-composer-overlay${closing ? " closing" : ""}`}
       role="dialog"
       aria-modal="true"
       onClick={closeComposer}
     >
-      <div className="photo-modal-card" onClick={(event) => event.stopPropagation()}>
+      <div className="photo-modal-card feed-composer-card" onClick={(event) => event.stopPropagation()}>
         <div className="photo-modal-handle" aria-hidden="true" />
 
         <div className="photo-modal-header">
@@ -268,7 +268,7 @@ export function PostComposerModal({
           </div>
         ) : null}
 
-        <div className="photo-modal-actions">
+        <div className="photo-modal-actions feed-composer-actions">
           <button className="photo-modal-secondary" type="button" onClick={closeComposer} disabled={composerStatus === "compressing" || composerStatus === "uploading"}>
             Cancel
           </button>
@@ -623,7 +623,7 @@ export function FeedView({
               )}
             </div>
 
-            <p className="person-name" style={{ marginTop: 12 }}>
+            <p className="person-name" >
               {enlargedPhoto.attendeeName}
             </p>
             {enlargedPhoto.caption ? <p className="person-bio">{enlargedPhoto.caption}</p> : null}

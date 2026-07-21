@@ -10,6 +10,7 @@ export interface DirectoryAttendee {
   checkedIn: boolean;
   phone: string;
   linkedInUrl: string | null;
+  websiteUrl?: string | null;
   bookmarked: boolean;
   met: boolean;
 }
