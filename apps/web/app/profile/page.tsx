@@ -6,6 +6,7 @@ import { AttendeePageShell } from "../components/AttendeePageShell";
 import { ContactRows } from "../components/ContactRows";
 import { PersonalStats } from "../components/PersonalStats";
 import { PhotoUploadModal } from "../components/PhotoUploadModal";
+import { withCsrfHeaders } from "../lib/csrf";
 import { profileCache, type MyProfile } from "../lib/profileCache";
 
 export default function ProfilePage() {
@@ -16,28 +17,52 @@ export default function ProfilePage() {
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
 
+  const updateProfilePhoto = (photoUrl: string | null) => {
+    setProfile((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, photoUrl };
+      profileCache.set(updated);
+      return updated;
+    });
+  };
+
   const handlePhotoUpload = async (file: File) => {
     setPhotoUploading(true);
     try {
       const formData = new FormData();
       formData.append("photo", file);
 
-      const res = await fetch("/api/attendees/me/photo", {
+      const res = await fetch("/api/attendees/me/photo", withCsrfHeaders({
         method: "POST",
         credentials: "include",
         body: formData,
-      });
+      }));
 
       if (!res.ok) throw new Error("Upload failed");
 
       const data = await res.json() as { status: string; photoUrl: string };
-      setProfile((prev) => (prev ? { ...prev, photoUrl: data.photoUrl } : null));
-      profileCache.set({
-        ...profile!,
-        photoUrl: data.photoUrl,
-      });
+      updateProfilePhoto(data.photoUrl);
     } catch (error) {
       console.error("Photo upload error:", error);
+      throw error;
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
+  const handlePhotoRemove = async () => {
+    setPhotoUploading(true);
+    try {
+      const res = await fetch("/api/attendees/me/photo/remove", withCsrfHeaders({
+        method: "PATCH",
+        credentials: "include",
+      }));
+
+      if (!res.ok) throw new Error("Remove failed");
+
+      updateProfilePhoto(null);
+    } catch (error) {
+      console.error("Photo remove error:", error);
       throw error;
     } finally {
       setPhotoUploading(false);
@@ -176,6 +201,8 @@ export default function ProfilePage() {
         isOpen={photoModalOpen}
         onClose={() => setPhotoModalOpen(false)}
         onPhotoUpload={handlePhotoUpload}
+        hasExistingPhoto={Boolean(profile?.photoUrl)}
+        onPhotoRemove={handlePhotoRemove}
         isLoading={photoUploading}
       />
     </AttendeePageShell>

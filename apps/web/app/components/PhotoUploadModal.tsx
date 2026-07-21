@@ -8,10 +8,19 @@ interface PhotoUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onPhotoUpload: (file: File) => Promise<void>;
+  hasExistingPhoto?: boolean;
+  onPhotoRemove?: () => Promise<void>;
   isLoading?: boolean;
 }
 
-export function PhotoUploadModal({ isOpen, onClose, onPhotoUpload, isLoading = false }: PhotoUploadModalProps) {
+export function PhotoUploadModal({
+  isOpen,
+  onClose,
+  onPhotoUpload,
+  hasExistingPhoto = false,
+  onPhotoRemove,
+  isLoading = false,
+}: PhotoUploadModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -19,7 +28,17 @@ export function PhotoUploadModal({ isOpen, onClose, onPhotoUpload, isLoading = f
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const resetSelection = () => {
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -62,12 +81,7 @@ export function PhotoUploadModal({ isOpen, onClose, onPhotoUpload, isLoading = f
       const croppedFile = await cropImageFile(previewUrl, croppedAreaPixels, selectedFile);
       await onPhotoUpload(croppedFile);
 
-      // Reset and close
-      setSelectedFile(null);
-      setPreviewUrl(null);
-      setCrop({ x: 0, y: 0 });
-      setZoom(1);
-      setCroppedAreaPixels(null);
+      resetSelection();
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed. Try again.");
@@ -76,14 +90,26 @@ export function PhotoUploadModal({ isOpen, onClose, onPhotoUpload, isLoading = f
     }
   };
 
-  const handleCancel = () => {
-    setSelectedFile(null);
-    setPreviewUrl(null);
-    setCrop({ x: 0, y: 0 });
-    setZoom(1);
-    setCroppedAreaPixels(null);
+  const handleRemove = async () => {
+    if (!hasExistingPhoto || !onPhotoRemove) return;
+
+    setRemoving(true);
     setError(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    try {
+      await onPhotoRemove();
+      resetSelection();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Remove failed. Try again.");
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    resetSelection();
+    setError(null);
     onClose();
   };
 
@@ -149,10 +175,20 @@ export function PhotoUploadModal({ isOpen, onClose, onPhotoUpload, isLoading = f
         </div>
 
         <div className="photo-upload-footer">
+          {!previewUrl && hasExistingPhoto && onPhotoRemove ? (
+            <button
+              type="button"
+              onClick={handleRemove}
+              disabled={uploading || removing || isLoading}
+              className="btn-danger"
+            >
+              {removing ? "Removing..." : "Remove Photo"}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={handleCancel}
-            disabled={uploading || isLoading}
+            disabled={uploading || removing || isLoading}
             className="btn-secondary"
           >
             Cancel
@@ -161,7 +197,7 @@ export function PhotoUploadModal({ isOpen, onClose, onPhotoUpload, isLoading = f
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploading || isLoading}
+              disabled={uploading || removing || isLoading}
               className="btn-primary"
             >
               Choose Photo
@@ -170,7 +206,7 @@ export function PhotoUploadModal({ isOpen, onClose, onPhotoUpload, isLoading = f
             <button
               type="button"
               onClick={handleUpload}
-              disabled={uploading || isLoading || !croppedAreaPixels}
+              disabled={uploading || removing || isLoading || !croppedAreaPixels}
               className="btn-primary"
             >
               {uploading || isLoading ? "Uploading..." : "Upload Photo"}
