@@ -10,7 +10,7 @@ import { MatchingService } from "../matching/matching.service";
 import type { MatchProfile } from "../matching/matching.types";
 import { hashToken } from "../common/tokens";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
-import { GOALS_TAGS, LOOKING_FOR_TAGS, OFFERING_TAGS } from "./profile-options";
+import { GOALS_TAGS, OFFERING_TAGS } from "./profile-options";
 import { CreateAdminAttendeeDto } from "./dto/create-admin-attendee.dto";
 
 export type ResolveOnboardingResult =
@@ -178,13 +178,17 @@ export class AttendeesService {
   }
 
   async updateProfile(attendeeId: string, dto: UpdateProfileDto) {
-    const [category, validOfferingOptions, cities] = await Promise.all([
+    const [category, validOfferingOptions, validLookingForOptions, cities] = await Promise.all([
       this.prisma.businessCategoryOption.findFirst({
         where: { name: dto.businessCategory, active: true },
         select: { id: true },
       }),
       this.prisma.offeringOption.findMany({
         where: { active: true, category: { name: dto.businessCategory, active: true } },
+        select: { name: true },
+      }),
+      this.prisma.offeringOption.findMany({
+        where: { active: true, category: { active: true } },
         select: { name: true },
       }),
       this.prisma.cityOption.findMany({
@@ -196,6 +200,10 @@ export class AttendeesService {
     const validOfferings = new Set(validOfferingOptions.map((option) => option.name));
     if (dto.offering.some((offering) => !validOfferings.has(offering))) {
       throw new BadRequestException("Choose valid offerings for your business category");
+    }
+    const validLookingFor = new Set(validLookingForOptions.map((option) => option.name));
+    if (dto.lookingFor.some((lookingFor) => !validLookingFor.has(lookingFor))) {
+      throw new BadRequestException("Choose valid looking-for options");
     }
     if (!cities.some((city) => this.cityValue(city) === dto.city)) {
       throw new BadRequestException("Choose a valid city");
@@ -279,13 +287,14 @@ export class AttendeesService {
       (grouped[option.category.name] ??= []).push(option.name);
       return grouped;
     }, {});
+    const allOfferings = [...new Set(offeringOptions.map((option) => option.name))];
 
     return {
       businessCategories: businessCategories.map((option) => option.name),
       offeringsByCategory,
       cities: cities.map((city) => ({ ...city, value: this.cityValue(city) })),
       chapters: chapters.map((chapter) => chapter.name),
-      lookingFor: LOOKING_FOR_TAGS,
+      lookingFor: allOfferings,
       offering: OFFERING_TAGS,
       goals: GOALS_TAGS,
     };
