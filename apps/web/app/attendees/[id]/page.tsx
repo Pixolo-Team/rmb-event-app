@@ -103,6 +103,7 @@ function ProfileContent({ profile }: { profile: AttendeeProfile }) {
         <BookmarkButton attendeeId={profile.id} initialBookmarked={Boolean(profile.bookmarked)} onChange={(bookmarked) => directoryCache.setProfile(profile.id, { ...profile, bookmarked })} />
         <a className="profile-action call" href={`tel:${profile.phone}`}><PhoneIcon /><span>Call</span></a>
         <a className="profile-action whatsapp" href={`https://wa.me/${whatsappNumber}?text=${whatsappText}`} target="_blank" rel="noreferrer"><WhatsAppIcon /><span>WhatsApp</span></a>
+        {profile.linkedInUrl && <a className="profile-action linkedin" href={profile.linkedInUrl} target="_blank" rel="noreferrer"><LinkedInIcon /><span>LinkedIn</span></a>}
         {profile.websiteUrl && <a className="profile-action website" href={profile.websiteUrl} target="_blank" rel="noreferrer"><WebsiteIcon /><span>Website</span></a>}
         {canShare && <button className="profile-action share" type="button" onClick={() => navigator.share({ title: profile.name, text: `${profile.name} · ${profile.businessName ?? "Evento attendee"}` })}><ShareIcon /><span>Share</span></button>}
       </div>
@@ -143,7 +144,7 @@ function TagList({ values, empty }: { values: string[]; empty: string }) {
 }
 
 function PhoneIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.5h3l1.5 4.5-2 1.4a12 12 0 0 0 5.1 5.1l1.4-2 4.5 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.5 5.7 2 2 0 0 1 6.5 3.5Z" /></svg>;
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 4.5h3.2l1.6 4.2-2 1.7a14.2 14.2 0 0 0 5.3 5.3l1.7-2 4.2 1.6v3.2a1.8 1.8 0 0 1-2 1.8A15.8 15.8 0 0 1 3.7 6.5a1.8 1.8 0 0 1 1.8-2Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
 function WhatsAppIcon() {
@@ -152,6 +153,10 @@ function WhatsAppIcon() {
 
 function WebsiteIcon() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M4 12h16M12 4a13 13 0 0 1 0 16M12 4a13 13 0 0 0 0 16" /></svg>;
+}
+
+function LinkedInIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9v10M5 5.5v.1M10 19v-9M10 13.5c.7-2.2 2-3.5 4-3.5 2.6 0 4 1.7 4 5v4" /></svg>;
 }
 
 function ShareIcon() {

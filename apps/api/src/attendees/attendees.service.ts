@@ -10,6 +10,7 @@ import { MatchingService } from "../matching/matching.service";
 import type { MatchProfile } from "../matching/matching.types";
 import { hashToken } from "../common/tokens";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
+import { UpdateLinksDto } from "./dto/update-links.dto";
 import { GOALS_TAGS, OFFERING_TAGS } from "./profile-options";
 import { CreateAdminAttendeeDto } from "./dto/create-admin-attendee.dto";
 
@@ -181,6 +182,19 @@ export class AttendeesService {
       bookmarked: bookmarkedIds.has(attendee.id),
       met: metIds.has(attendee.id),
     }));
+  }
+
+  // Partial update of just the optional profile links (the /profile website editor).
+  // No required-field validation and no profileCompletedAt touch — see UpdateLinksDto.
+  async updateLinks(attendeeId: string, dto: UpdateLinksDto) {
+    return this.prisma.attendee.update({
+      where: { id: attendeeId },
+      data: {
+        ...(dto.linkedInUrl !== undefined && { linkedInUrl: dto.linkedInUrl ?? null }),
+        ...(dto.websiteUrl !== undefined && { websiteUrl: dto.websiteUrl ?? null }),
+      },
+      select: { linkedInUrl: true, websiteUrl: true },
+    });
   }
 
   async updateProfile(attendeeId: string, dto: UpdateProfileDto) {
@@ -436,6 +450,8 @@ export class AttendeesService {
           tableNumber: true,
           goals: true,
           bio: true,
+          linkedInUrl: true,
+          websiteUrl: true,
           checkIn: { select: { createdAt: true } },
           deletedAt: true,
           linkedInUrl: true,

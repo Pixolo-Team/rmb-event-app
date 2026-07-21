@@ -40,7 +40,7 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsUrl({ require_protocol: true })
   @MaxLength(300)
-  linkedInUrl?: string | null;
+  linkedInUrl?: string;
 
   @IsOptional()
   @IsUrl({ require_protocol: true })

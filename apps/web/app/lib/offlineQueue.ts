@@ -9,7 +9,7 @@ import { withCsrfHeaders } from "./csrf";
 // locally and replayed once connectivity returns. All endpoints this is used
 // against (checkin/*) are idempotent, so replaying is always safe.
 
-export type QueueKind = "checkin-geolocation" | "checkin-manual" | "checkin-qr-scan" | "meeting-scan" | "bookmark-add" | "bookmark-remove";
+export type QueueKind = "checkin-geolocation" | "checkin-manual" | "checkin-venue-qr" | "checkin-qr-scan" | "meeting-scan" | "bookmark-add" | "bookmark-remove";
 
 export interface QueuedWrite {
   id?: number;

@@ -101,7 +101,7 @@ export default function ProfilePage() {
     setWebsiteSaving(true);
     setWebsiteError(null);
     try {
-      const res = await fetch("/api/attendees/me/profile", withCsrfHeaders({
+      const res = await fetch("/api/attendees/me/links", withCsrfHeaders({
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -140,6 +140,18 @@ export default function ProfilePage() {
             <section className="qr-card">
               <p className="qr-eyebrow">Your business card</p>
               <div className="qr-card-container">
+                {qrDataUrl ? (
+                  <button className="qr-frame" type="button" onClick={() => setEnlarged(true)} aria-label="Enlarge your QR code">
+                    <img src={qrDataUrl} alt="Your personal QR code" />
+                  </button>
+                ) : (
+                  <div className="qr-frame qr-frame-placeholder" role="status">Preparing your QR...</div>
+                )}
+              </div>
+              <p className="qr-name">{profile.name}</p>
+              {profile.businessName && <p className="qr-sub">{profile.businessName}</p>}
+              <p className="qr-hint">Tap the code to enlarge it for scanning</p>
+              <div className="qr-photo-row">
                 <div className="qr-with-photo">
                   {profile.photoUrl && (
                     <img src={profile.photoUrl} alt={profile.name} className="profile-photo" />
@@ -155,17 +167,7 @@ export default function ProfilePage() {
                     +
                   </button>
                 </div>
-                {qrDataUrl ? (
-                  <button className="qr-frame" type="button" onClick={() => setEnlarged(true)} aria-label="Enlarge your QR code">
-                    <img src={qrDataUrl} alt="Your personal QR code" />
-                  </button>
-                ) : (
-                  <div className="qr-frame qr-frame-placeholder" role="status">Preparing your QR...</div>
-                )}
               </div>
-              <p className="qr-name">{profile.name}</p>
-              {profile.businessName && <p className="qr-sub">{profile.businessName}</p>}
-              <p className="qr-hint">Tap the code to enlarge it for scanning</p>
             </section>
 
             <PersonalStats />

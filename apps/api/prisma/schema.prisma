@@ -23,6 +23,7 @@ enum CheckInMethod {
   GEOLOCATION
   MANUAL
   STAFF_QR
+  VENUE_QR
 }
 
 model Chapter {
@@ -94,6 +95,10 @@ model Attendee {
   // here, so the generated client had no linkedInUrl and every reader of it failed
   // to compile. Nullable — the link is optional everywhere (PRD US1.6).
   linkedInUrl        String?
+  // Column added by 20260721123000_add_attendee_website_url (that migration file is
+  // absent from the local repo — pull it from git history). Same nullable optional
+  // link as linkedInUrl; the field was likewise missing here so the client couldn't
+  // read/write it.
   websiteUrl         String?
   profileCompletedAt DateTime?
   deletedAt          DateTime?
@@ -197,6 +202,10 @@ model Event {
   checkinRadiusM Int       @default(500)
   startAt        DateTime?
   endAt          DateTime?
+  // F3.7 — the token encoded in the printable "venue attendance" QR. Attendees
+  // scan it in-app to self-check-in (method VENUE_QR). Regenerating rotates it so
+  // an old printout stops working. Null until first generated.
+  venueCheckinToken String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 }
