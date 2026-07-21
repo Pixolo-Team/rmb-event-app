@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "Evento",
   description: "Networking, planned.",
   manifest: "/manifest.json",
-  icons: { icon: "/icon.svg" },
+  icons: { icon: "/images/rotary-favicon.png" },
 };
 
 export const viewport: Viewport = {
