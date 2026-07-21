@@ -1,9 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { withCsrfHeaders } from "../lib/csrf";
 
 const TOOLS = [
   { href: "/admin/import", title: "Attendee Import", desc: "Upload the guest list (CSV / Excel)" },
@@ -44,11 +42,9 @@ const CACHE_KEY = "evento-admin-analytics-v1";
 const REFRESH_MS = 30000;
 
 export default function AdminHome() {
-  const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [signingOut, setSigningOut] = useState(false);
   const [exporting, setExporting] = useState<"csv" | "pdf" | null>(null);
   const [online, setOnline] = useState(true);
 
@@ -101,15 +97,6 @@ export default function AdminHome() {
     };
   }, []);
 
-  async function signOut() {
-    setSigningOut(true);
-    try {
-      await fetch("/api/admin/auth/logout", withCsrfHeaders({ method: "POST", credentials: "include" }));
-    } finally {
-      router.replace("/admin/login");
-    }
-  }
-
   async function exportReport(format: "csv" | "pdf") {
     setExporting(format);
     try {
@@ -159,27 +146,28 @@ export default function AdminHome() {
           </p>
         </div>
         <div className="admin-overview-actions">
-          {stale && <span className="admin-status-pill">Offline cache</span>}
-          {formattedUpdatedAt && <span className="admin-updated-at">Updated {formattedUpdatedAt}</span>}
-          <button
-            className="btn-secondary"
-            type="button"
-            onClick={() => exportReport("csv")}
-            disabled={exporting !== null}
-          >
-            {exporting === "csv" ? "Exporting CSV…" : "Export CSV"}
-          </button>
-          <button
-            className="btn-secondary"
-            type="button"
-            onClick={() => exportReport("pdf")}
-            disabled={exporting !== null}
-          >
-            {exporting === "pdf" ? "Exporting PDF…" : "Export PDF"}
-          </button>
-          <button className="btn-secondary" type="button" onClick={signOut} disabled={signingOut}>
-            {signingOut ? "Signing out…" : "Sign out"}
-          </button>
+          <div className="admin-overview-status">
+            {stale && <span className="admin-status-pill">Offline cache</span>}
+            {formattedUpdatedAt && <span className="admin-updated-at">Updated {formattedUpdatedAt}</span>}
+          </div>
+          <div className="admin-overview-buttons">
+            <button
+              className="btn-secondary"
+              type="button"
+              onClick={() => exportReport("csv")}
+              disabled={exporting !== null}
+            >
+              {exporting === "csv" ? "Exporting CSV…" : "Export CSV"}
+            </button>
+            <button
+              className="btn-secondary"
+              type="button"
+              onClick={() => exportReport("pdf")}
+              disabled={exporting !== null}
+            >
+              {exporting === "pdf" ? "Exporting PDF…" : "Export PDF"}
+            </button>
+          </div>
         </div>
       </div>
 

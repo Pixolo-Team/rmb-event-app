@@ -23,12 +23,12 @@ type MenuItem = {
 };
 
 const DRAWER_ITEMS: MenuItem[] = [
-  { href: "/event", label: "Event Details", icon: EventIcon, available: true },
   { href: "/connections", label: "My Connections", icon: ConnectionsIcon, available: true },
   { href: "/feed", label: "Feed", icon: PhotoIcon, available: true },
   { href: "/gallery", label: "Gallery", icon: GalleryIcon, available: true },
   { href: "/leaderboard", label: "Leaderboard", icon: TrophyIcon, available: true, activePrefixes: ["/leaderboard/"] },
   { href: "/summary", label: "Event Summary", icon: SummaryIcon, available: true },
+  { href: "/event", label: "Event Details", icon: EventIcon, available: true },
   { href: "/profile?qr=1", label: "Show My QR", icon: QrIcon, available: true },
   { href: "/feedback", label: "Give Feedback", icon: FeedbackIcon, available: true },
 ];

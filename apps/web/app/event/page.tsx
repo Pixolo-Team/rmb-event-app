@@ -21,6 +21,10 @@ function formatPhone(raw: string): string {
   return raw;
 }
 
+function mapsUrl(event: CachedVenueConfig): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.venueAddress ?? "")}`;
+}
+
 export default function EventDetailsPage() {
   const [event, setEvent] = useState<CachedVenueConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,7 +69,15 @@ export default function EventDetailsPage() {
             {event.venueAddress && (
               <section className="event-details-section">
                 <h2>Venue</h2>
-                <p className="event-details-address">{event.venueAddress}</p>
+                <a className="contact-row" href={mapsUrl(event)} target="_blank" rel="noopener noreferrer">
+                  <span className="contact-row-icon">
+                    <PinIcon />
+                  </span>
+                  <span className="contact-row-body">
+                    <span className="contact-row-label">Get directions</span>
+                    <span className="contact-row-value">{event.venueAddress}</span>
+                  </span>
+                </a>
               </section>
             )}
 
@@ -105,6 +117,15 @@ function PhoneIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M4 5c0 8.3 6.7 15 15 15a2 2 0 0 0 2-2v-2.5a1 1 0 0 0-.8-1l-3-.6a1 1 0 0 0-1 .4l-.8 1.1a11.5 11.5 0 0 1-5-5l1.1-.8a1 1 0 0 0 .4-1l-.6-3a1 1 0 0 0-1-.8H6a2 2 0 0 0-2 2Z" />
+    </svg>
+  );
+}
+
+function PinIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12Z" />
+      <circle cx="12" cy="9" r="2.5" />
     </svg>
   );
 }

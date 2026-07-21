@@ -67,10 +67,6 @@ export default function AdminBadgesPage() {
   if (attendees.length === 0) {
     return (
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }}>
-        <div className="wordmark">
-          <span className="dot" />
-          Evento Admin
-        </div>
         <h1 className="title">Print badges</h1>
         <p className="copy">No attendees to print badges for yet — import attendees first.</p>
       </div>
@@ -80,10 +76,6 @@ export default function AdminBadgesPage() {
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }} className="badge-print-page">
       <div className="no-print">
-        <div className="wordmark">
-          <span className="dot" />
-          Evento Admin
-        </div>
         <h1 className="title">Print badges</h1>
         <p className="copy">
           Each badge shows the attendee&rsquo;s name in large type alongside their personal QR code, so staff and

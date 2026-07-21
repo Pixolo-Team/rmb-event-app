@@ -147,10 +147,6 @@ export default function AdminEventSettingsPage() {
 
   return (
     <div className="admin-page" style={{ maxWidth: 560 }}>
-      <div className="wordmark">
-        <span className="dot" />
-        Evento Admin
-      </div>
       <h1 className="title">Event settings</h1>
       <p className="copy">
         Configure the event details, venue location, and check-in radius. The event timing controls the attendee
