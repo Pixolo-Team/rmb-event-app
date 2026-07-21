@@ -84,10 +84,13 @@ export async function flushQueue(onSynced?: (kind: QueueKind, response: unknown)
 export type CachedVenueConfig = {
   venueLat: number | null;
   venueLng: number | null;
+  venueAddress?: string | null;
   checkinRadiusM: number;
   name?: string | null;
   startAt?: string | null;
   endAt?: string | null;
+  contactName?: string | null;
+  contactPhone?: string | null;
 };
 
 export async function cacheVenueConfig(config: CachedVenueConfig): Promise<void> {

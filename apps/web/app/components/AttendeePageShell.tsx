@@ -23,6 +23,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/leaderboard": "Leaderboard",
   "/summary": "Event Summary",
   "/feedback": "Feedback",
+  "/event": "Event Details",
 };
 
 function pageTitle(pathname: string) {

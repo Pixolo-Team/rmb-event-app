@@ -23,10 +23,25 @@ export class UpdateEventDto {
   venueLng?: number;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(240)
+  venueAddress?: string | null;
+
+  @IsOptional()
   @IsInt()
   @Min(100)
   @Max(5000)
   checkinRadiusM?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  contactName?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  contactPhone?: string | null;
 
   // "Clear location" (Screen 3.2A) — reverts to no venue configured, disabling
   // geolocation check-in until an admin sets coordinates again.

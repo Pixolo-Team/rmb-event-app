@@ -16,9 +16,12 @@ export interface HomeCacheEvent {
   name?: string | null;
   venueLat: number | null;
   venueLng: number | null;
+  venueAddress?: string | null;
   checkinRadiusM: number;
   startAt?: string | null;
   endAt?: string | null;
+  contactName?: string | null;
+  contactPhone?: string | null;
 }
 
 export interface HomeSnapshot {
