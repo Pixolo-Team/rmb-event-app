@@ -51,6 +51,7 @@ function initials(name: string): string {
 
 export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -58,6 +59,20 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
   const titleId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
+
+  // Decouples "should be open" (driven by clicks, Escape, or browser back via
+  // popstate) from "is in the DOM" — the drawer stays mounted for one more
+  // animation frame after close so the exit transition can actually play,
+  // regardless of which path triggered the close.
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      return;
+    }
+    if (!mounted) return;
+    const timeout = window.setTimeout(() => setMounted(false), 220);
+    return () => window.clearTimeout(timeout);
+  }, [open, mounted]);
 
   function removeMenuHistoryMarker() {
     if (!window.history.state?.eventoAttendeeMenu) return;
@@ -150,8 +165,8 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
         <MenuIcon />
       </button>
 
-      {open && (
-        <div className="menu-layer">
+      {mounted && (
+        <div className={`menu-layer${open ? "" : " closing"}`}>
           <button className="menu-backdrop" type="button" aria-label="Close menu" onClick={closeMenu} />
           <aside
             ref={drawerRef}
