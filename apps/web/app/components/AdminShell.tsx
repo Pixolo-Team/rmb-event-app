@@ -7,10 +7,13 @@ const LOGIN_PATH = "/admin/login";
 
 const TITLES: Record<string, string> = {
   "/admin": "Admin analytics",
+  "/admin/import": "Attendee import",
   "/admin/attendees": "Manage attendees",
   "/admin/event": "Event settings",
   "/admin/checkin": "Live check-in",
   "/admin/badges": "Print badges",
+  "/admin/feed": "Photo moderation",
+  "/admin/feedback": "Feedback",
 };
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
