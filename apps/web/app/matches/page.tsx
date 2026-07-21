@@ -80,7 +80,7 @@ export default function MatchesPage() {
   }, []);
 
   const visibleRecommendations = useMemo(
-    () => (data?.matches ?? []).filter((match) => !bookmarks.some((bookmark) => bookmark.id === match.id)),
+    () => (data?.matches ?? []).filter((match) => !match.bookmarked && !bookmarks.some((bookmark) => bookmark.id === match.id)),
     [bookmarks, data?.matches],
   );
 

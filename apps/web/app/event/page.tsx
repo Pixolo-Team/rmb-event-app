@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import QRCode from "qrcode";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { cacheVenueConfig, getCachedVenueConfig, type CachedVenueConfig } from "../lib/offlineQueue";
 
@@ -25,9 +26,27 @@ function mapsUrl(event: CachedVenueConfig): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.venueAddress ?? "")}`;
 }
 
+// "09:30" -> "9:30 AM"
+function formatClock(hhmm: string): string {
+  const [h, m] = hhmm.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return hhmm;
+  const period = h < 12 ? "AM" : "PM";
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
+function formatAgendaTime(item: { startTime?: string; endTime?: string | null; time?: string }): string {
+  if (item.startTime) {
+    const start = formatClock(item.startTime);
+    return item.endTime ? `${start} – ${formatClock(item.endTime)}` : start;
+  }
+  return item.time ?? "";
+}
+
 export default function EventDetailsPage() {
   const [event, setEvent] = useState<CachedVenueConfig | null>(null);
   const [loading, setLoading] = useState(true);
+  const [registrationQr, setRegistrationQr] = useState<string | null>(null);
 
   useEffect(() => {
     getCachedVenueConfig().then((cached) => {
@@ -48,6 +67,16 @@ export default function EventDetailsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (!event?.registrationUrl) {
+      setRegistrationQr(null);
+      return;
+    }
+    QRCode.toDataURL(event.registrationUrl, { margin: 1, width: 220 })
+      .then(setRegistrationQr)
+      .catch(() => setRegistrationQr(null));
+  }, [event?.registrationUrl]);
+
   return (
     <AttendeePageShell showFooter={false}>
       <main className="attendee-page event-details-page">
@@ -63,8 +92,46 @@ export default function EventDetailsPage() {
             <section className="event-details-hero">
               <p className="eyebrow">Event details</p>
               <h1>{event.name || "The event"}</h1>
+              {event.subtitle && <span className="event-details-subtitle">{event.subtitle}</span>}
               {event.startAt && <p className="event-details-date">{formatEventDate(event.startAt)}</p>}
             </section>
+
+            {event.chairName && (
+              <section className="event-details-section">
+                <h2>Chair</h2>
+                <div className="event-chair-card">
+                  {event.chairPhotoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img className="event-chair-photo" src={event.chairPhotoUrl} alt={event.chairName} />
+                  ) : (
+                    <div className="event-chair-photo event-chair-photo-placeholder" aria-hidden="true">
+                      {event.chairName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("")}
+                    </div>
+                  )}
+                  <div>
+                    <p className="event-chair-name">{event.chairName}</p>
+                    {event.chairTitle && <p className="event-chair-title">{event.chairTitle}</p>}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {event.agenda && event.agenda.length > 0 && (
+              <section className="event-details-section">
+                <h2>Agenda</h2>
+                <ol className="event-agenda-list">
+                  {event.agenda.map((item, index) => (
+                    <li key={index} className="event-agenda-row">
+                      <span className="event-agenda-time">{formatAgendaTime(item)}</span>
+                      <span className="event-agenda-body">
+                        <span className="event-agenda-title">{item.title}</span>
+                        {item.note && <span className="event-agenda-note">{item.note}</span>}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )}
 
             {event.venueAddress && (
               <section className="event-details-section">
@@ -78,6 +145,34 @@ export default function EventDetailsPage() {
                     <span className="contact-row-value">{event.venueAddress}</span>
                   </span>
                 </a>
+              </section>
+            )}
+
+            {(event.registrationUrl || event.registrationPricing) && (
+              <section className="event-details-section">
+                <h2>Registration</h2>
+                <div className="event-registration-card">
+                  {registrationQr && (
+                    <a
+                      className="event-registration-qr"
+                      href={event.registrationUrl ?? undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Scan to register"
+                    >
+                      <img src={registrationQr} alt="Scan to register" />
+                    </a>
+                  )}
+                  <div>
+                    {registrationQr && <p className="event-registration-hint">Scan to register</p>}
+                    {event.registrationPricing && <p className="event-registration-pricing">{event.registrationPricing}</p>}
+                    {event.registrationUrl && (
+                      <a className="link-muted" href={event.registrationUrl} target="_blank" rel="noopener noreferrer">
+                        Open registration link
+                      </a>
+                    )}
+                  </div>
+                </div>
               </section>
             )}
 

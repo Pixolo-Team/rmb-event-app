@@ -3935,6 +3935,43 @@ a.contact-row:active { background: var(--brand-100); }
 .event-details-date { margin: 0; color: #d4e5f7; }
 .event-details-section { margin-top: 18px; padding: 20px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); }
 .event-details-section h2 { margin: 3px 0 14px; font: 700 1.15rem var(--font-display); }
+.event-details-subtitle { display: inline-block; margin-top: 8px; padding: 5px 12px; border-radius: 999px; background: rgba(255,255,255,0.16); color: #fff; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.02em; }
+
+.event-chair-card { display: flex; align-items: center; gap: 14px; }
+.event-chair-photo { width: 64px; height: 64px; flex: none; border-radius: 50%; object-fit: cover; }
+.event-chair-photo-placeholder { display: grid; place-items: center; background: var(--brand-100); color: var(--brand-700); font: 700 1.1rem var(--font-display); }
+.event-chair-name { margin: 0; font: 700 1rem var(--font-display); color: var(--ink); }
+.event-chair-title { margin: 2px 0 0; color: var(--ink-muted); font-size: 0.85rem; font-weight: 600; }
+
+.event-agenda-list { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.event-agenda-row { display: flex; gap: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+.event-agenda-row:last-child { padding-bottom: 0; border-bottom: none; }
+.event-agenda-time { flex: none; width: 92px; color: var(--brand-700); font-weight: 700; font-size: 0.82rem; }
+.event-agenda-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.event-agenda-title { color: var(--ink); font-weight: 650; }
+.event-agenda-note { color: var(--ink-muted); font-size: 0.82rem; }
+
+.event-registration-card { display: flex; align-items: center; gap: 16px; }
+.event-registration-qr { flex: none; display: block; width: 96px; height: 96px; padding: 6px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
+.event-registration-qr img { width: 100%; height: 100%; display: block; }
+.event-registration-hint { margin: 0 0 4px; color: var(--ink-muted); font-size: 0.8rem; }
+.event-registration-pricing { margin: 0 0 6px; color: var(--ink); font-weight: 700; }
+
+/* Admin agenda editor */
+.agenda-editor { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+.agenda-editor-empty { margin: 0; padding: 18px; text-align: center; color: var(--ink-muted); font-size: 0.85rem; border: 1px dashed var(--border-strong); border-radius: var(--radius-md); }
+.agenda-editor-row { padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-2); }
+.agenda-editor-row-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.agenda-editor-index { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-faint); }
+.agenda-editor-actions { display: flex; gap: 6px; }
+.agenda-editor-btn { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface); color: var(--ink-muted); font-size: 0.9rem; line-height: 1; cursor: pointer; transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease; }
+.agenda-editor-btn:hover:not(:disabled) { background: var(--brand-50); border-color: var(--brand-500); color: var(--brand-700); }
+.agenda-editor-btn.danger:hover:not(:disabled) { background: var(--danger-100, #fdecec); border-color: var(--danger-500, #d64545); color: var(--danger-500, #d64545); }
+.agenda-editor-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.agenda-editor-fields { display: flex; flex-direction: column; gap: 10px; }
+.agenda-editor-fields .field { margin-bottom: 0; }
+.agenda-editor-time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.agenda-editor-add { margin-bottom: 24px; }
 
 /* F8 — attendee feedback and organizer review analytics. */
 .feedback-page{max-width:620px;display:flex;flex-direction:column;flex:1;min-height:100%}.feedback-heading{text-align:center;margin:8px auto 22px}.feedback-heading h1{margin:4px 0 7px;font:700 clamp(1.6rem,6vw,2.2rem) var(--font-display)}.feedback-heading>p:last-child{margin:0;color:var(--ink-muted)}.feedback-card{padding:22px;border:1px solid var(--border);border-radius:20px;background:var(--surface);box-shadow:0 5px 20px rgba(22,50,84,.08)}.feedback-card fieldset{margin:0;padding:0;border:0;text-align:center}.feedback-card legend{width:100%;font-weight:750}.star-rating{display:flex;justify-content:center;gap:5px;margin-top:14px}.star-rating button{width:48px;height:48px;padding:0;border:0;background:transparent;color:var(--border-strong);font-size:2.25rem;line-height:1;cursor:pointer}.star-rating button.selected{color:#e59a22}.star-rating button:focus-visible{outline:2px solid var(--brand-500);border-radius:8px}.rating-label{min-height:20px;margin:7px 0 0;color:var(--ink-muted);font-size:.82rem}.feedback-comment{display:block;margin-top:22px}.feedback-comment>span{display:block;margin-bottom:7px;font-weight:700}.feedback-comment>span small{color:var(--ink-faint);font-weight:500}.feedback-comment textarea{width:100%;min-height:120px;padding:12px;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface);color:var(--ink);font:inherit;resize:vertical}.feedback-comment>small{display:block;margin-top:4px;color:var(--ink-faint);text-align:right}.feedback-actions{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:18px}.feedback-actions>a{color:var(--ink-muted);font-size:.8rem}.feedback-error{color:var(--danger-500);font-size:.82rem}.feedback-success{margin:48px auto;text-align:center}.feedback-success>span{width:64px;height:64px;margin:0 auto 16px;display:grid;place-items:center;border-radius:50%;background:var(--success-100);color:var(--success-700);font-size:1.8rem}.feedback-success h1{margin:4px 0 8px}.feedback-success>p:not(.eyebrow){color:var(--ink-muted)}.feedback-success .btn-primary{display:inline-flex;margin-top:14px;text-decoration:none}
