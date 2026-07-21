@@ -10,8 +10,9 @@ type FeedPageResponse = {
 };
 
 const PREVIEW_PHOTOS: FeedPhotoData[] = [
-  { id: "preview-photo-1", url: null, caption: "A great start to the evening.", createdAt: "2026-07-16T12:10:00.000Z", attendeeId: "preview-1", attendeeName: "Aarav Mehta", attendeeBusinessName: "Mehta Packaging Solutions", likeCount: 0, commentCount: 0, likedByMe: false, comments: [] },
-  { id: "preview-photo-2", url: null, caption: "Connections turning into collaborations.", createdAt: "2026-07-16T11:35:00.000Z", attendeeId: "preview-2", attendeeName: "Radha Sharma", attendeeBusinessName: "Sharma Trading Co.", likeCount: 0, commentCount: 0, likedByMe: false, comments: [] },
+  { id: "preview-photo-1", url: "/images/preview/networking-conversation.jpg", caption: "A great start to the evening — so many useful conversations already!", createdAt: "2026-07-16T12:10:00.000Z", attendeeId: "preview-1", attendeeName: "Aarav Mehta", attendeeBusinessName: "Mehta Packaging Solutions", likeCount: 18, commentCount: 2, likedByMe: true, comments: [] },
+  { id: "preview-photo-2", url: "/images/preview/business-card-exchange.jpg", caption: "New introductions, shared ideas, and promising collaborations.", createdAt: "2026-07-16T11:35:00.000Z", attendeeId: "preview-me", attendeeName: "Radha Sharma", attendeeBusinessName: "Sharma Trading Co.", likeCount: 11, commentCount: 1, likedByMe: false, comments: [] },
+  { id: "preview-photo-3", url: "/images/preview/conference-applause.jpg", caption: "Celebrating the ideas and people moving our business community forward.", createdAt: "2026-07-16T10:50:00.000Z", attendeeId: "preview-3", attendeeName: "Neha Kapoor", attendeeBusinessName: "Kapoor Digital", likeCount: 24, commentCount: 0, likedByMe: false, comments: [] },
 ];
 
 function getInitials(name: string) {
@@ -76,7 +77,6 @@ export default function GalleryPage() {
     <AttendeePageShell>
       <div className="attendee-page gallery-page">
         <section className="settings-card">
-          <h1 className="settings-title">Gallery</h1>
           <p className="settings-copy">Browse every photo shared from tonight.</p>
         </section>
 

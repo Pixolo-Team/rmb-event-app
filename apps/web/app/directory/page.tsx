@@ -108,13 +108,7 @@ export default function DirectoryPage() {
   return (
     <AttendeePageShell>
       <main className="attendee-page directory-page">
-        <div className="page-heading-row">
-          <div>
-            <p className="eyebrow">Networking</p>
-            <h1>Attendee Directory</h1>
-            <p>Find the right people before and during the event.</p>
-          </div>
-        </div>
+        <p className="page-intro">Find the right people before and during the event.</p>
 
         {offlineResult && <div className="banner info"><div><b>Showing saved directory</b>You are offline. Results may be slightly out of date.</div></div>}
 

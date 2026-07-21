@@ -214,7 +214,7 @@ Acceptance Criteria:
 - "Install Evento" uses the native PWA prompt when supported; otherwise the modal explains the browser's "Add to Home Screen" action
 - Installation is optional after profile save: "Continue without installing" proceeds to the animated completion state
 - Completion detects installed/standalone mode: installed users see "Open app"; others see "Install Evento" plus "Continue in browser"
-- On first app open, auto-show 60-second tutorial: "Scan QR to meet people, check leaderboard, post photos"
+- On first app open, auto-show a focused tutorial for check-in, QR connections, People and Want to Meet. Feed/posting is learned contextually on the dedicated Feed page, not inside Tutorial.
 - Tutorial has skip button; re-accessible from settings
 - App is fully functional offline (directory, matches, and profiles load from cache)
 ```
@@ -643,12 +643,15 @@ Acceptance Criteria:
 **US7.1 - Attendee posts photo to event feed**
 ```
 As Radha (attendee)
-I want to take a selfie or upload a photo with a caption
+I want to select one or several event photos with a caption
 And share it with everyone at the event
 So that others can see who I am and feel more connected
 Acceptance Criteria:
 - "Post" button on the home feed
-- Tapping opens camera or photo library
+- Tapping opens the photo library with multi-select for up to 6 photos
+- Selected photos appear in a preview grid and publish together as one swipeable carousel post with one shared caption
+- Feed captions stay on one line by default and expose **Read more** when truncated
+- Like and Comment are compact icon actions; comments expand only after the Comment icon/count is selected
 - Photo editor: crop, brightness, optional filter
 - Caption field: up to 200 characters, emoji support
 - "Post" button publishes to the shared event feed
@@ -738,17 +741,13 @@ I want to see after the event ends:
 - How many people I met
 - How many cards I collected
 - A summary of my top connections
-- A link to download my connections list
 So that I have a record of the networking I did
 Acceptance Criteria:
 - Summary screen appears after event end time
 - Stats: "You met 7 people", "You collected 7 cards", "Your rank: 14th"
 - Top 5 connections list: name, company, phone, table number
 - "View all connections" link opens full list
-- "Download connections" button exports as CSV or vCard (for importing to contacts).
-  The CSV carries LinkedIn and website columns (US1.6) — empty for connections who
-  didn't add them
-- Attendee can share summary to WhatsApp
+- The summary remains focused on the recap, stats and top connections; bulk download/share actions are not surfaced on this screen
 ```
 
 **US9.2 - Post-event follow-up nudge (manual, via group)**
@@ -852,11 +851,12 @@ Acceptance Criteria:
 - Bottom tab bar is persistent and holds exactly four primary destinations, ordered:
   Home, People, Want to Meet, Profile
 - Each tab has a 44×44px minimum touch target, an icon plus a short label, and respects the device safe-area inset
-- The drawer holds only secondary destinations — Leaderboard, Event Summary, Give Feedback, Event Photos, Show My QR — with Sign Out visually separated at the bottom
+- The drawer holds only secondary destinations, ordered: Feed, Gallery, Leaderboard, Event Summary, Show My QR, Give Feedback; Feedback is last and Sign Out is visually separated at the bottom
 - No destination appears in both the tab bar and the drawer
-- Header shows a 44×44px menu trigger; drawer slides from the left and occupies at most 88% of a phone width / 360px
+- Header shows the RMB mark, a dynamically centered current-page title and a 44×44px menu trigger; page bodies do not repeat the page title
+- Drawer slides from the left and occupies at most 88% of a phone width / 360px
 - Scan QR is reachable in one tap from the primary navigation (proposed: a center FAB in the tab bar — OPEN, pending confirmation)
-- Current destination is visibly highlighted and programmatically marked in whichever system owns it
+- Current destination—including supported nested routes and query-driven states—is visibly highlighted and programmatically marked in whichever navigation surface owns it
 - Drawer close works through the close button, backdrop, Escape and Android/browser Back without leaving the current screen
 - Drawer traps focus while open, restores focus to its trigger, locks background scrolling and respects reduced motion
 - Navigation uses cached attendee identity offline; missing photos fall back to initials

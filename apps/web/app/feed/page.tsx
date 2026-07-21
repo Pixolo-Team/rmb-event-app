@@ -20,8 +20,7 @@ const PREVIEW_ATTENDEE: AttendeeMe = {
   profileCompletedAt: new Date().toISOString(),
 };
 const PREVIEW_PHOTOS: FeedPhotoData[] = [
-  { id: "preview-photo-1", url: null, caption: "A great start to the evening — so many useful conversations already!", createdAt: "2026-07-16T12:10:00.000Z", attendeeId: "preview-1", attendeeName: "Aarav Mehta", attendeeBusinessName: "Mehta Packaging Solutions", likeCount: 18, commentCount: 2, likedByMe: true, comments: [{ id: "c1", name: "Neha Kapoor", message: "Wonderful meeting everyone!", createdAt: "2026-07-16T12:15:00.000Z" }, { id: "c2", name: "Radha Sharma", message: "Great energy tonight.", createdAt: "2026-07-16T12:18:00.000Z" }] },
-  { id: "preview-photo-2", url: null, caption: "Connections turning into collaborations.", createdAt: "2026-07-16T11:35:00.000Z", attendeeId: "preview-me", attendeeName: "Radha Sharma", attendeeBusinessName: "Sharma Trading Co.", likeCount: 11, commentCount: 0, likedByMe: false, comments: [] },
+  { id: "preview-photo-1", url: "/images/preview/networking-conversation.jpg", urls: ["/images/preview/networking-conversation.jpg", "/images/preview/business-card-exchange.jpg", "/images/preview/conference-applause.jpg"], caption: "A great start to the evening — so many useful conversations already! New introductions, shared ideas, and promising collaborations.", createdAt: "2026-07-16T12:10:00.000Z", attendeeId: "preview-1", attendeeName: "Aarav Mehta", attendeeBusinessName: "Mehta Packaging Solutions", likeCount: 18, commentCount: 2, likedByMe: true, comments: [{ id: "c1", name: "Neha Kapoor", message: "Wonderful meeting everyone!", createdAt: "2026-07-16T12:15:00.000Z" }, { id: "c2", name: "Radha Sharma", message: "Great energy tonight.", createdAt: "2026-07-16T12:18:00.000Z" }] },
 ];
 
 export default function FeedPage() {

@@ -62,7 +62,8 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 > **Why the reversal:** the original rationale was that two navigation systems duplicate destinations and cost vertical space. The revision accepts that cost: bottom tabs are the current convention for this app category, and the four primary destinations are used constantly during the event, where a two-tap drawer is friction at exactly the wrong moment. The drawer survives for lower-frequency destinations, so nothing is duplicated across both systems — **each destination lives in exactly one place.**
 >
 > - **Bottom tabs (primary, always visible when authenticated):** Home · People · Want to Meet · Profile
-> - **Drawer (secondary):** Leaderboard, Event Summary, Give Feedback, Event Photos, Show My QR, Sign Out
+> - **Drawer (secondary):** Feed, Gallery, Leaderboard, Event Summary, Show My QR, Give Feedback, then separated Sign Out. Feedback is intentionally last.
+> - **Header:** current route title is centered dynamically; page bodies do not repeat screen titles. Active drawer rows cover exact, nested and declared query routes.
 > - **Scan QR:** proposed as a **center FAB in the tab bar** — it is the product's core loop (F4.2) and deserves to be one tap away. *This one is my recommendation, not yet confirmed — it was left open in review.*
 > - Tabs never render on login/magic-link/onboarding, mirroring the drawer's existing visibility gate.
 > - **Home is not being replaced by Posts.** Home remains a dashboard of important, at-a-glance data (see F3.6) — the Event Photo feed (F7) is deprioritized and may not ship.
@@ -220,13 +221,16 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
-| F7.1 | Post photo — camera/library, basic edit (crop/brightness/filter), caption (200 chars, emoji) | Screen 2.7 | P2 | No | F3.2 | ✅ Done |
+| F7.1 | Carousel post — library multi-select (up to 6), preview grid, aggregate upload progress, one shared caption (200 chars) | Screen 2.7 | P2 | No | F3.2 | ✅ Done |
 | F7.2 | Event photo feed — chronological view, like, flat comments, self-serve delete | Screen 2.8 | P2 | Read: yes | F7.1 | ✅ Done |
 | F7.3 | Admin feed moderation — view-all, instant delete, deleted-post history log | Screen 3.5 | P2 | No | F7.2 | ✅ Done |
 
 **F7 build notes:**
 - `/feed` is an authenticated attendee route linked from the shared navigation. It loads newest-first with pagination, likes, flat comments, full-screen viewing and owner-only deletion.
-- The composer accepts camera/library input, a 200-character caption, centered square crop, brightness and warm/monochrome filters; edits are rendered to a capped 1600px JPEG before upload.
+- Feed and its post composer are intentionally absent from `/tutorial`; the tutorial covers check-in, QR connections, People and Want to Meet, while posting is introduced contextually on `/feed` itself.
+- Feed begins with a persistent LinkedIn-style composer (identity, **Start a post**, and **Photo**) followed by posts or the empty-state message. Both entry controls open the photo/caption modal. Uploads include the shared CSRF token.
+- `/gallery` is the browse-only visual grid; creation remains centralized in Feed. Development-only `?preview=1` data uses bundled event images and never writes to Supabase.
+- The composer accepts up to six library images and a 200-character shared caption. The API stores them atomically as one post with ordered media URLs; existing one-image records remain compatible. Feed renders a carousel, one-line caption with Read more, compact Like/Comment icon actions, collapsed comments, and an icon-only comment send action.
 - `/admin/feed` provides organizer-wide moderation and the API records deleted-post history.
 
 ---
@@ -253,11 +257,11 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 | ID | Feature | Screen(s) | Priority | Offline | Depends on | Status |
 |---|---|---|---|---|---|---|
 | F9.1 | Event summary screen — people met, cards collected, rank, top 5 connections | Screen 2.10 | P1 | Partial (cached) | F4.3, F6.1 | ✅ Done |
-| F9.2 | Connections export (CSV/vCard) + WhatsApp share (`wa.me` deep link, no vendor) | Screen 2.10 (actions) | P1 | No | F9.1 | ✅ Done |
+| F9.2 | Connections export API (CSV/vCard); intentionally not surfaced in the streamlined Summary UI | API capability | P1 | No | F9.1 | ✅ Done |
 
 **F9 build notes:**
 - Authenticated `GET /attendees/me/summary` aggregates confirmed meetings, visible collected cards, leaderboard rank, event metadata and the attendee's five most recent connections. `/summary` caches the last successful response for offline reading.
-- Authenticated `GET /attendees/me/connections/export?format=csv|vcf` generates CSV and multi-contact vCard downloads server-side. WhatsApp sharing remains attendee-initiated through a pre-filled `wa.me` link; there is no messaging vendor or scheduled nudge.
+- Authenticated `GET /attendees/me/connections/export?format=csv|vcf` remains available server-side, but the former “Take your connections with you / Download and share” section was removed from Summary. The current screen ends after Top Connections.
 
 **Note:** no Day+1 follow-up scheduler to build — the follow-up nudge is a manual admin WhatsApp post per the runbook, not an app feature.
 

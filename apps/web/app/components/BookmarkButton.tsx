@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { withCsrfHeaders } from "../lib/csrf";
 import { enqueueWrite } from "../lib/offlineQueue";
 
 export function BookmarkButton({ attendeeId, initialBookmarked, compact = false, onChange }: { attendeeId: string; initialBookmarked: boolean; compact?: boolean; onChange?: (value: boolean) => void }) {
@@ -15,7 +16,10 @@ export function BookmarkButton({ attendeeId, initialBookmarked, compact = false,
     setSaving(true);
     const method = next ? "PUT" : "DELETE";
     try {
-      const response = await fetch(`/api/bookmarks/${attendeeId}`, { method, credentials: "include" });
+      const response = await fetch(
+        `/api/bookmarks/${attendeeId}`,
+        withCsrfHeaders({ method, credentials: "include" }),
+      );
       if (!response.ok) throw new Error("server rejected bookmark");
     } catch (error) {
       if (error instanceof TypeError || !navigator.onLine) {

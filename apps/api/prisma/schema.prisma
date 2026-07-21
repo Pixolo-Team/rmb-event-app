@@ -266,6 +266,7 @@ model Photo {
   // stored relative so the frontend resolves it through the same-origin Next.js
   // rewrite regardless of environment.
   url        String
+  urls       String[] @default([])
   caption    String?
   createdAt  DateTime @default(now())
 

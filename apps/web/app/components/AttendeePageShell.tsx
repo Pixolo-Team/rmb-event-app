@@ -2,12 +2,32 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { AttendeeBottomTabs, AttendeeMenu, type MenuAttendee } from "./AttendeeMenu";
 import { PoweredByFooter } from "./PoweredByFooter";
 import { RotaryLoader } from "./RotaryLoader";
 import { profileCache, type MyProfile } from "../lib/profileCache";
 
 const PROFILE_REVALIDATE_MS = 60_000;
+
+const PAGE_TITLES: Record<string, string> = {
+  "/home": "Home",
+  "/directory": "People",
+  "/matches": "Want to Meet",
+  "/profile": "Profile",
+  "/scan": "Scan",
+  "/connections": "My Connections",
+  "/feed": "Feed",
+  "/gallery": "Gallery",
+  "/leaderboard": "Leaderboard",
+  "/summary": "Event Summary",
+  "/feedback": "Feedback",
+};
+
+function pageTitle(pathname: string) {
+  if (pathname.startsWith("/attendees/")) return "Attendee Profile";
+  return PAGE_TITLES[pathname] ?? "Evento";
+}
 
 let cachedMenuAttendee: MenuAttendee | null = null;
 let lastProfileRevalidatedAt = 0;
@@ -50,6 +70,7 @@ function loadProfile() {
 
 export function AttendeePageShell({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [attendee, setAttendee] = useState<MenuAttendee | null>(null);
 
   useEffect(() => {
@@ -120,7 +141,7 @@ export function AttendeePageShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="attendee-shell">
-      <header className="full-page-header">
+      <header className="full-page-header attendee-app-header">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/images/rmb-fellowship-logo.png"
@@ -129,6 +150,7 @@ export function AttendeePageShell({ children }: { children: ReactNode }) {
           width={50}
           height={50}
         />
+        <h1 className="app-header-title">{pageTitle(pathname)}</h1>
         <AttendeeMenu attendee={attendee} />
       </header>
       <div className="attendee-shell-content">

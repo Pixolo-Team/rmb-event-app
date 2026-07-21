@@ -98,13 +98,12 @@ The approved drawer inventory is fixed as follows. This is the display order; se
 
 | Order | Menu item | Destination / owner | Initial state |
 |---|---|---|---|
-| 1 | Home | Home / Dashboard (2.1, F3.2) | Available |
-| 2 | People to Meet | Matches (1.4, F2.3) | Planned |
-| 3 | Attendee Directory | `/directory` (2.2, F2.4) | Available |
-| 4 | My Connections | Connections (2.6, F4.3/F5.2) | Planned |
-| 5 | Leaderboard | Leaderboard (2.5, F6.2) | Planned |
-| 6 | My Profile | Settings / Profile (2.11, F4.1) | Planned |
-| 7 | Show My QR | Own-QR view (2.11, F4.1) | Planned |
+| 1 | Feed | Event Photo Feed (2.8, F7.2) | Available |
+| 2 | Gallery | Photo gallery (F7.2) | Available |
+| 3 | Leaderboard | Leaderboard (2.5, F6.2) | Available |
+| 4 | Event Summary | Summary (2.10, F9.1) | Available |
+| 5 | Show My QR | Own-QR state (2.11, F4.1) | Available |
+| 6 | Give Feedback | Feedback (2.9, F8.1) | Available; deliberately last |
 | Footer | Sign Out | `POST /auth/logout` | Available |
 
 **Development preview rule:** in local development, render the complete approved inventory so its hierarchy, labels, density and scrolling can be reviewed before the dependent screens ship. Items without a working route are non-interactive, carry a compact **Soon** label and expose `aria-disabled="true"`; they must not navigate to placeholder pages. In production, omit those planned items entirely until their owning feature is enabled. Lifecycle gates still apply after a feature ships.
@@ -121,6 +120,8 @@ The approved drawer inventory is fixed as follows. This is the display order; se
 - **One-handed:** it slides from the left, occupies at most 88% of a phone width, keeps Sign Out separated from ordinary destinations, and closes after navigation.
 - **Responsive:** phones and tablets use the drawer. The attendee PWA may render it as a compact persistent rail only at desktop widths; the organizer dashboard continues to use its own unrelated admin sidebar.
 - **State-preserving:** opening or closing the menu must not restart geolocation, clear scanner state, discard unsaved profile edits or trigger a page reload.
+- **Route-active:** exact routes, registered nested prefixes and declared query parameters drive the active row, which exposes `aria-current="page"` and the design-system selected treatment.
+- **Header titles:** the shared header derives a centered title from the current attendee route. Page bodies omit duplicate screen titles while retaining meaningful content headings.
 
 ### Navigation shell implementation
 

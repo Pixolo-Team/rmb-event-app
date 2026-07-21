@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { withCsrfHeaders } from "../lib/csrf";
 import { PoweredByFooter } from "./PoweredByFooter";
@@ -23,12 +23,12 @@ type MenuItem = {
 };
 
 const DRAWER_ITEMS: MenuItem[] = [
-  { href: "/leaderboard", label: "Leaderboard", icon: TrophyIcon, available: true },
-  { href: "/summary", label: "Event Summary", icon: SummaryIcon, available: true },
-  { href: "/feedback", label: "Give Feedback", icon: FeedbackIcon, available: true },
   { href: "/feed", label: "Feed", icon: PhotoIcon, available: true },
   { href: "/gallery", label: "Gallery", icon: GalleryIcon, available: true },
+  { href: "/leaderboard", label: "Leaderboard", icon: TrophyIcon, available: true, activePrefixes: ["/leaderboard/"] },
+  { href: "/summary", label: "Event Summary", icon: SummaryIcon, available: true },
   { href: "/profile?qr=1", label: "Show My QR", icon: QrIcon, available: true },
+  { href: "/feedback", label: "Give Feedback", icon: FeedbackIcon, available: true },
 ];
 
 const TAB_ITEMS: MenuItem[] = [
@@ -53,6 +53,7 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const titleId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -186,10 +187,13 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
                 if (!item.available) return <DisabledMenuItem key={item.label} item={item} />;
 
                 const Icon = item.icon;
-                const active = Boolean(
-                  item.href &&
-                  !item.href.includes("?") &&
-                  (pathname === item.href || item.activePrefixes?.some((prefix) => pathname.startsWith(prefix))),
+                const [itemPath, itemQuery] = item.href!.split("?");
+                const queryMatches = !itemQuery || itemQuery.split("&").every((part) => {
+                  const [key, value = ""] = part.split("=");
+                  return searchParams.get(key) === value;
+                });
+                const active = queryMatches && (
+                  pathname === itemPath || Boolean(item.activePrefixes?.some((prefix) => pathname.startsWith(prefix)))
                 );
                 return (
                   <Link

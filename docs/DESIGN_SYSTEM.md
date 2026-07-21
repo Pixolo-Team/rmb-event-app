@@ -222,9 +222,9 @@ Full rendered specimens live in `DESIGN_SYSTEM.html` §Components. Inventory:
 > **Revised (UX revision v1.1).** This section previously read "authenticated side-menu drawer; no persistent bottom-tab bar" and listed every destination in one flat drawer. The pilot now leads with a bottom tab bar; the drawer keeps only secondary destinations. See PRD US12.1 / FEATURES PF7.1.
 
 - **Bottom tab bar** is persistent when authenticated: Home · People · Want to Meet · Profile. Each tab is an icon plus a short label, ≥44×44px, honouring the device safe-area inset. Active tab uses `brand-700` on `brand-100`; inactive uses `ink-muted`. Scrollable screens reserve bottom padding equal to the bar height so content is never obscured.
-- **Drawer** holds only secondary destinations: Leaderboard · Event Summary · Give Feedback · Event Photos · Show My QR. No destination appears in both systems. Sign Out is separated at the bottom and uses `danger-500`; Sign Out also appears on Profile (F4.8).
-- Header uses a 44×44px menu trigger. The left drawer is `min(88vw, 360px)`, uses `surface`, a brand-tinted identity block and a scrim over page content.
-- Active item uses `brand-100` with `brand-700`; every row is at least 48px tall. Planned items may show a caption-sized **Soon** pill in local development only and are omitted in production.
+- **Drawer** holds secondary destinations in this order: Feed · Gallery · Leaderboard · Event Summary · Show My QR · Give Feedback. Feedback is last. Sign Out is separated at the bottom and uses `danger-500`; Sign Out also appears on Profile (F4.8).
+- Header uses a three-column layout: RMB mark, dynamically centered route title, and 44×44px menu trigger. Screen bodies do not duplicate the route title. The left drawer is `min(88vw, 360px)`, uses `surface`, a brand-tinted identity block and a scrim over page content.
+- Active item uses `brand-100`, bold `brand-700` text and a 3px inset `brand-700` leading indicator; exact routes, nested route prefixes and declared query states are supported and expose `aria-current="page"`. Every row is at least 48px tall.
 - Scan QR keeps `accent-500` as the principal scanning action — proposed as a center FAB in the tab bar (OPEN, pending confirmation); until settled it stays a contextual action on Home. The accent color remains reserved for scanning and gamification; tabs, the menu trigger and ordinary menu rows do not use it.
 1. Home — check-in badge, table number, "People to meet" matches
 2. Scan confirmation — full-screen success state ("You met Deepak Sharma!")

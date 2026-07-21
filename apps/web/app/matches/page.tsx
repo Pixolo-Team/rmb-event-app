@@ -64,7 +64,7 @@ export default function MatchesPage() {
   return (
     <AttendeePageShell>
       <main className="attendee-page matches-page">
-        <div className="page-heading-row"><div><p className="eyebrow">Smart matching</p><h1>People to Meet</h1><p>Recommendations based on what you need and what others offer.</p></div></div>
+        <p className="page-intro">Recommendations based on what you need and what others offer.</p>
         <div className="matches-top-actions" aria-label="Recommendation actions"><Link className="matches-browse-top" href="/directory"><DirectoryListIcon /><span>Browse directory</span></Link><button className={`matches-refresh${refreshing ? " is-refreshing" : ""}`} type="button" disabled={refreshing} onClick={() => load(true)} aria-label={refreshing ? "Refreshing recommendations" : "Refresh recommendations"}><RefreshIcon /><span>{refreshing ? "Refreshing..." : "Refresh"}</span></button></div>
         {offline && <div className="banner info"><div><b>Showing saved recommendations</b>You are offline. These matches will refresh when you reconnect.</div></div>}
         {loading && <MatchesSkeleton />}

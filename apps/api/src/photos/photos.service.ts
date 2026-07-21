@@ -15,6 +15,7 @@ export type FeedCommentData = {
 export type FeedPhotoData = {
   id: string;
   url: string;
+  urls: string[];
   caption: string | null;
   createdAt: Date;
   attendeeId: string;
@@ -55,16 +56,18 @@ export type DeletedPhotoLogData = {
 export class PhotosService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(attendeeId: string, file: Express.Multer.File, caption?: string): Promise<FeedPhotoData> {
-    const url = `/uploads/photos/${file.filename}`;
+  async create(attendeeId: string, files: Express.Multer.File[], caption?: string): Promise<FeedPhotoData> {
+    const urls = files.map((file) => `/uploads/photos/${file.filename}`);
+    const url = urls[0];
     const photo = await this.prisma.photo.create({
-      data: { attendeeId, url, caption },
+      data: { attendeeId, url, urls, caption },
       include: { attendee: { select: { name: true, businessName: true } } },
     });
 
     return {
       id: photo.id,
       url: photo.url,
+      urls: photo.urls.length ? photo.urls : [photo.url],
       caption: photo.caption,
       createdAt: photo.createdAt,
       attendeeId,
@@ -108,6 +111,7 @@ export class PhotosService {
     const photos: FeedPhotoData[] = page.map((photo) => ({
       id: photo.id,
       url: photo.url,
+      urls: photo.urls.length ? photo.urls : [photo.url],
       caption: photo.caption,
       createdAt: photo.createdAt,
       attendeeId: photo.attendeeId,
@@ -173,7 +177,7 @@ export class PhotosService {
     }
 
     await this.prisma.photo.delete({ where: { id: photoId } });
-    await this.unlinkPhotoFile(photo.url);
+    await Promise.all((photo.urls.length ? photo.urls : [photo.url]).map((url) => this.unlinkPhotoFile(url)));
   }
 
   async adminListAll(): Promise<AdminPhotoData[]> {
@@ -216,7 +220,7 @@ export class PhotosService {
       this.prisma.photo.delete({ where: { id: photoId } }),
     ]);
 
-    await this.unlinkPhotoFile(photo.url);
+    await Promise.all((photo.urls.length ? photo.urls : [photo.url]).map((url) => this.unlinkPhotoFile(url)));
   }
 
   async adminListDeletedHistory(): Promise<DeletedPhotoLogData[]> {

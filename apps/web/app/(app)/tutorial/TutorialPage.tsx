@@ -2,16 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FeedView, PostComposerModal } from "./FeedView";
 import { AttendeeCard } from "./AttendeeCard";
 import { FullProfileModal } from "./FullProfileModal";
 import { ProfileView } from "./ProfileView";
 import { PoweredByFooter } from "./PoweredByFooter";
 import { RotaryLoader } from "../../components/RotaryLoader";
-import { AddPostIcon, BookmarkTabIcon, HomeIcon, PeopleIcon, ProfileIcon } from "./icons";
+import { BookmarkTabIcon, HomeIcon, PeopleIcon, ProfileIcon, ScanIcon } from "./icons";
 import { withCsrfHeaders } from "../../lib/csrf";
 
-type AppView = "posts" | "people" | "wantToMeet" | "profile";
+type AppView = "home" | "people" | "wantToMeet" | "profile";
 
 type TutorialCard = {
   eyebrow: string;
@@ -64,6 +63,7 @@ export type FeedCommentData = {
 export type FeedPhotoData = {
   id: string;
   url: string | null;
+  urls?: string[];
   caption: string | null;
   createdAt: string;
   attendeeId: string;
@@ -143,42 +143,6 @@ const DEMO_DIRECTORY: DirectoryAttendee[] = [
   },
 ];
 
-const DEMO_PHOTOS: FeedPhotoData[] = [
-  {
-    id: "demo-photo-1",
-    url: null,
-    caption: "Great turnout at the RMB Ahmedabad mixer tonight!",
-    createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    attendeeId: "demo-1",
-    attendeeName: "Deepak Patel",
-    attendeeBusinessName: "Patel Pipes",
-    likeCount: 3,
-    commentCount: 1,
-    likedByMe: false,
-    comments: [
-      {
-        id: "demo-comment-1",
-        name: "Neha Shah",
-        message: "Great meeting everyone!",
-        createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-      },
-    ],
-  },
-  {
-    id: "demo-photo-2",
-    url: null,
-    caption: "My table setup for the evening.",
-    createdAt: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
-    attendeeId: "demo-attendee",
-    attendeeName: "Radha Sharma",
-    attendeeBusinessName: "Sharma Trading Co.",
-    likeCount: 1,
-    commentCount: 0,
-    likedByMe: true,
-    comments: [],
-  },
-];
-
 const TUTORIAL_CARDS: readonly TutorialCard[] = [
   {
     eyebrow: "Welcome",
@@ -207,22 +171,19 @@ export function TutorialPage() {
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [attendee, setAttendee] = useState<AttendeeMe | null>(null);
   const [directory, setDirectory] = useState<DirectoryAttendee[]>([]);
-  const [view, setView] = useState<AppView>("posts");
+  const [view, setView] = useState<AppView>("home");
   const [search, setSearch] = useState("");
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [tutorialIndex, setTutorialIndex] = useState(0);
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingBookmarks, setPendingBookmarks] = useState<string[]>([]);
-  const [photos, setPhotos] = useState<FeedPhotoData[]>([]);
   const [openProfileId, setOpenProfileId] = useState<string | null>(null);
-  const [composerOpen, setComposerOpen] = useState(false);
   const [profileEditing, setProfileEditing] = useState(false);
 
   useEffect(() => {
     if (TEMP_BYPASS_LOGIN) {
       setAttendee(DEMO_ATTENDEE);
       setDirectory(DEMO_DIRECTORY);
-      setPhotos(DEMO_PHOTOS);
       setState("ready");
       setTutorialOpen(true);
       return;
@@ -380,7 +341,7 @@ export function TutorialPage() {
               RMBF Evento
             </div>
             <p className="app-kicker">
-              {view === "posts" && "Posts"}
+              {view === "home" && "Tutorial"}
               {view === "profile" && "Profile"}
             </p>
           </div>
@@ -403,15 +364,15 @@ export function TutorialPage() {
           </div>
         ) : null}
 
-        {view === "posts" ? (
-          <>
-            <FeedView
-              attendee={attendee}
-              photos={photos}
-              setPhotos={setPhotos}
-            />
+        {view === "home" ? (
+          <main className="app-content">
+            <section className="feature-card">
+              <p className="feature-title">Learn the event essentials</p>
+              <p className="feature-copy">Use the walkthrough to learn check-in, QR connections, People, and Want to Meet.</p>
+              <button className="btn-primary" type="button" onClick={restartTutorial}>Replay walkthrough</button>
+            </section>
             <PoweredByFooter />
-          </>
+          </main>
         ) : null}
 
         {view === "people" ? (
@@ -495,8 +456,8 @@ export function TutorialPage() {
       </div>
 
       {!profileEditing ? <nav className="bottom-nav">
-        <button type="button" className={`bottom-nav-item${view === "posts" ? " active" : ""}`} onClick={() => setView("posts")}>
-          <HomeIcon active={view === "posts"} />
+        <button type="button" className={`bottom-nav-item${view === "home" ? " active" : ""}`} onClick={() => setView("home")}>
+          <HomeIcon active={view === "home"} />
           <span>Home</span>
         </button>
         <button type="button" className={`bottom-nav-item${view === "people" ? " active" : ""}`} onClick={() => setView("people")}>
@@ -506,11 +467,11 @@ export function TutorialPage() {
         <button
           type="button"
           className="bottom-nav-item bottom-nav-item-create"
-          onClick={() => setComposerOpen(true)}
-          aria-label="Create a new post"
+          onClick={() => router.push("/scan")}
+          aria-label="Scan QR code"
         >
           <span className="bottom-nav-create-icon" aria-hidden="true">
-            <AddPostIcon />
+            <ScanIcon />
           </span>
         </button>
         <button type="button" className={`bottom-nav-item${view === "wantToMeet" ? " active" : ""}`} onClick={() => setView("wantToMeet")}>
@@ -531,13 +492,6 @@ export function TutorialPage() {
           onClose={() => setOpenProfileId(null)}
         />
       ) : null}
-
-      <PostComposerModal
-        attendee={attendee}
-        setPhotos={setPhotos}
-        isOpen={composerOpen}
-        onRequestClose={() => setComposerOpen(false)}
-      />
 
       {tutorialOpen && (
         <div className="tutorial-overlay" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">

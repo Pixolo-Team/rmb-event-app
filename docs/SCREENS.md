@@ -171,14 +171,14 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 
 ### Shared Authenticated Navigation (all Module 2 screens)
 
-After session verification and completion of required onboarding, every attendee screen uses the same header and left slide-over menu. Login, magic-link verification, expired-link states and focused onboarding never render attendee identity or navigation, including during loading, so private information cannot flash before authentication resolves.
+After session verification and completion of required onboarding, every attendee screen uses the same header, persistent bottom tabs and left slide-over menu. The header centers the current route title dynamically; page bodies do not repeat that screen title. Contextual headings such as an attendee name, event name, greeting, status or question remain in content. Login, magic-link verification, expired-link states and focused onboarding never render attendee identity or navigation, including during loading, so private information cannot flash before authentication resolves.
 
-The drawer contains one flat list—no main/submenu hierarchy and no section headings—in this order: **Home · People to Meet · Attendee Directory · My Connections · Leaderboard · My Profile · Show My QR**. Sign Out is separated at the bottom. Scan QR remains a prominent contextual action on Home and networking screens, not a permanent navigation item. Feed, Feedback, Summary, Tutorial, Install, About and Terms are reached contextually from Home/Profile and do not belong in the primary drawer.
+The bottom tabs own **Home · People · Scan · Want to Meet · Profile**. The drawer contains one flat list of secondary destinations—no submenu hierarchy or section headings—in this order: **Feed · Gallery · Leaderboard · Event Summary · Show My QR · Give Feedback**. Feedback is deliberately last. Sign Out is separated at the bottom. No ordinary destination is duplicated between the drawer and tabs; Show My QR is a focused Profile state.
 
 **States and rules:**
 - **Closed:** 44×44px menu trigger in the attendee header.
 - **Open:** left drawer, maximum 88% of phone width / 360px, scrim behind it, background scrolling locked.
-- **Active:** current destination uses `brand-100` background and `brand-700` text and exposes `aria-current="page"`.
+- **Active:** exact routes, nested route prefixes and declared query states use `brand-100`, a `brand-700` inset indicator and bold `brand-700` text, and expose `aria-current="page"`.
 - **Development preview:** planned routes are disabled, marked **Soon** and expose `aria-disabled="true"`; they never open placeholders.
 - **Production:** planned/disabled destinations are omitted until their owning feature is enabled.
 - Close using the close button, scrim, Escape or Android/browser Back; return focus to the trigger and remain on the current screen.
@@ -630,7 +630,7 @@ and keeps the whole check-in experience on one URL.
 ### Screen 2.7: Post Photo (Camera / Upload)
 
 **Module:** Social  
-**Purpose:** Take or upload a photo, add caption, and post to event feed
+**Purpose:** Select one or multiple photos, add a shared caption, and post them to the event feed
 
 **States:**
 - **Camera Ready:** Camera view ready to take photo
@@ -644,9 +644,10 @@ and keeps the whole check-in experience on one URL.
 - Tap shutter button → capture photo
 - Tap "Retake" → discard and re-capture
 - Tap "Use this photo" → confirm and move to caption screen
-- Tap "Upload from gallery" → select existing photo from device
+- Tap "Upload from gallery" → select up to 6 existing photos from the device
+- Multiple selections render in a responsive preview grid and publish as one swipeable carousel post using the shared caption
 - Type caption (max 200 chars) → show character counter
-- Tap "Post" button → upload and publish
+- Tap "Post" button → upload all selected photos atomically as one carousel post with aggregate progress
 - Tap "X" / close → discard post and return to feed
 - Optional: add filters or edit brightness (Phase 2)
 
@@ -689,6 +690,9 @@ and keeps the whole check-in experience on one URL.
 - Tap on photo → enlarge in modal view
 - Tap like/heart icon → like/unlike photo
 - Tap comment icon → open comment sheet
+- Captions render as one line with **Read more** / **less** expansion
+- Like and Comment use compact LinkedIn-style icon actions; the comment list and input remain collapsed until Comment is selected
+- Comment submit is an icon-only send action with an accessible label
 - Type comment → add reply to photo
 - Pull to refresh → reload latest photos
 - Tap "Post photo" button → navigate to Post Photo screen (2.7)
@@ -757,10 +761,10 @@ and keeps the whole check-in experience on one URL.
 ### Screen 2.10: Event Summary (Post-Event)
 
 **Module:** Post-Event  
-**Purpose:** Show attendee their networking results: people met, rank, key stats, and export options
+**Purpose:** Show attendee their networking results: people met, rank, key stats, and top connections
 
 **States:**
-- **Default:** Summary with stats, top connections, and action buttons
+- **Default:** Summary with event recap, stats and top connections
 - **Loading:** Skeleton for summary content
 - **Success:** All stats loaded and displayed
 - **Error:** "Can't load summary. Try again."
@@ -768,14 +772,11 @@ and keeps the whole check-in experience on one URL.
 **User Interactions:**
 - View stats: people met, rank, cards collected
 - Tap "View all connections" → open My Connections (2.6)
-- Tap "Download as CSV" → export connections as CSV file
-- Tap "Download as vCard" → export all as vCard bundle
-- Tap "Share on WhatsApp" → open WhatsApp with pre-filled summary message
 - Tap on individual connection → open Individual Profile (2.3)
 
 **Navigation:**
 - **Comes from:** Home (2.1) after event ends, or via the app link the admin posts in the WhatsApp group the day after (attendee logs in and lands on their own summary)
-- **Leads to:** My Connections (2.6), Individual Profile (2.3), native WhatsApp
+- **Leads to:** My Connections (2.6), Individual Profile (2.3)
 
 **Data Needed to Display:**
 - Total people met (count)
@@ -783,12 +784,10 @@ and keeps the whole check-in experience on one URL.
 - Total cards collected
 - Top 5 connections: name, company, phone, table number
 - Event name & date
-- Download/export options
 
 **Edge Cases:**
 - Attendee met 0 people → show "You didn't meet anyone yet. That's OK! Check out the directory."
 - Attendee still has unsync'd data → show "Syncing..." and wait before showing final summary
-- Export fails → show error "Can't export. Try again."
 - Summary not yet generated (too soon after event) → show "Summary coming soon. Check back in a few minutes."
 
 ---
@@ -917,7 +916,7 @@ Both link fields are **clearable** — emptying one and saving removes it, which
   1. "Scan QR codes to meet people"
   2. "Check the leaderboard to see who's networking most"
   3. "View the directory to find who to meet"
-  4. "Post photos to share the moment"
+  4. "Save people you want to meet"
   5. "Check your connections after the event"
 
 **Edge Cases:**

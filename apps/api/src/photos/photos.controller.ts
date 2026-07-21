@@ -8,11 +8,11 @@ import {
   Post,
   Query,
   Req,
-  UploadedFile,
+  UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
-import { FileInterceptor } from "@nestjs/platform-express";
+import { FilesInterceptor } from "@nestjs/platform-express";
 import type { Express } from "express";
 import { PhotosService } from "./photos.service";
 import { CreatePhotoDto } from "./dto/create-photo.dto";
@@ -30,14 +30,14 @@ export class PhotosController {
 
   @Post()
   @RateLimit(20)
-  @UseInterceptors(FileInterceptor("photo", photoUploadOptions))
+  @UseInterceptors(FilesInterceptor("photos", 6, photoUploadOptions))
   async create(
     @Req() req: RequestWithAttendee,
-    @UploadedFile() file: Express.Multer.File | undefined,
+    @UploadedFiles() files: Express.Multer.File[] | undefined,
     @Body() dto: CreatePhotoDto,
   ) {
-    if (!file) throw new BadRequestException("No photo uploaded");
-    return this.photos.create(req.attendeeId, file, dto.caption);
+    if (!files?.length) throw new BadRequestException("No photos uploaded");
+    return this.photos.create(req.attendeeId, files, dto.caption);
   }
 
   @Get()

@@ -826,7 +826,7 @@ function StatTile({ value, label, sub }: { value: React.ReactNode; label: string
 
 function PageHeader({ attendee }: { attendee: Attendee | null }) {
   return (
-    <div className="full-page-header">
+    <div className="full-page-header attendee-app-header">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/images/rmb-fellowship-logo.png"
@@ -835,7 +835,9 @@ function PageHeader({ attendee }: { attendee: Attendee | null }) {
         width={50}
         height={50}
       />
+      <h1 className="app-header-title">Home</h1>
       {attendee && <AttendeeMenu attendee={attendee} />}
+      {!attendee && <span className="app-header-spacer" aria-hidden="true" />}
     </div>
   );
 }
