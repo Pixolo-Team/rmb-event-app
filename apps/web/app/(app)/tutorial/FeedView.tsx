@@ -596,14 +596,14 @@ export function FeedView({
 
       {enlargedPhoto ? (
         <div
-          className={`photo-modal-overlay${enlargedClosing ? " closing" : ""}`}
+          className={`photo-modal-overlay feed-preview-overlay${enlargedClosing ? " closing" : ""}`}
           role="dialog"
           aria-modal="true"
           onClick={closeEnlarged}
         >
-          <div className="photo-modal-card" onClick={(event) => event.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-              <button className="icon-action" type="button" onClick={closeEnlarged}>
+          <div className="photo-modal-card feed-preview-card" onClick={(event) => event.stopPropagation()}>
+            <div className="feed-preview-close-row">
+              <button className="icon-action feed-preview-close" type="button" onClick={closeEnlarged}>
                 Close
               </button>
             </div>
@@ -618,13 +618,13 @@ export function FeedView({
               )}
             </div>
 
-            <p className="person-name" >
-              {enlargedPhoto.attendeeName}
-            </p>
-            {enlargedPhoto.caption ? <p className="person-bio">{enlargedPhoto.caption}</p> : null}
-            <p className="person-line muted">{formatTimestamp(enlargedPhoto.createdAt)}</p>
+            <div className="feed-preview-meta">
+              <p className="person-name">{enlargedPhoto.attendeeName}</p>
+              {enlargedPhoto.caption ? <p className="person-bio">{enlargedPhoto.caption}</p> : null}
+              <p className="person-line muted">{formatTimestamp(enlargedPhoto.createdAt)}</p>
+            </div>
 
-            <div className="comment-list" style={{ marginTop: 16 }}>
+            <div className="comment-list feed-preview-comments">
               {enlargedPhoto.comments.map((comment) => (
                 <div key={comment.id} className="comment-item">
                   <strong>{comment.name}</strong> {comment.message}
