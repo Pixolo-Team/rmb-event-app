@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AttendeePageShell } from "../components/AttendeePageShell";
+import { GallerySkeleton } from "./GallerySkeleton";
 import type { FeedPhotoData } from "../lib/feedTypes";
 
 type FeedPageResponse = {
@@ -80,11 +81,7 @@ export default function GalleryPage() {
           <p className="settings-copy">Browse every photo shared from tonight.</p>
         </section>
 
-        {state === "loading" ? (
-          <section className="feature-card">
-            <p className="feature-title">Loading the gallery&hellip;</p>
-          </section>
-        ) : null}
+        {state === "loading" ? <GallerySkeleton /> : null}
 
         {state === "error" ? (
           <section className="feature-card">

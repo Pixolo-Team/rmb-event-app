@@ -137,7 +137,7 @@ Comprehensive list of all screens, organized by module. Each screen includes sta
 
 **States:**
 - **Default:** List of top 10 matches displayed with card view
-- **Loading:** Skeleton loaders for 10 match cards
+- **Loading:** Skeleton loaders for the match cards. Tapping the "Want to Meet" tab swaps to this skeleton immediately via a route-level loading boundary — the page never lingers on the previous screen while the segment and data resolve.
 - **Empty:** "No matches yet. Complete your profile to see suggestions" (if matches not computed)
 - **Success:** Matches loaded and displayed
 - **Error:** "Can't load matches right now. Try again when you open the app at the event"
@@ -1338,6 +1338,7 @@ These states can appear on any screen depending on conditions.
 
 **Navigation:**
 - Appears on any screen during data fetch
+- **Instant on tab and drawer navigation:** each primary tab (Home, People, Want to Meet, Profile) **and each side-drawer destination** (Feed, Gallery, Leaderboard, Event Summary, Feedback) has a route-level loading boundary, so tapping it swaps to that screen's skeleton immediately rather than lingering on the previous screen while its code/data loads (notably on a route's first, uncached visit). Persistent chrome (header, bottom tabs) stays in place across the transition.
 
 **Data Needed to Display:**
 - Skeleton shapes for content type (e.g., attendee cards, leaderboard)
