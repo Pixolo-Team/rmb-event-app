@@ -24,6 +24,7 @@ import { statsCache, type PersonalStats } from "../lib/statsCache";
 import { matchesCache, type MatchSuggestion } from "../lib/matchesCache";
 import { homeCache } from "../lib/homeCache";
 import { profileCache, type MyProfile } from "../lib/profileCache";
+import { withCsrfHeaders } from "../lib/csrf";
 
 // F3.6 — Home is lifecycle-aware (PRD US3.5, SCREENS 2.1): pre-event · arrival ·
 // dashboard · ended. Only the arrival mode is the full-page check-in flow that
@@ -320,12 +321,12 @@ export default function HomePage() {
     }
 
     try {
-      const res = await fetch(url, {
+      const res = await fetch(url, withCsrfHeaders({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(body),
-      });
+      }));
       const outcome = await res.json();
       if (outcome.status === "checked_in" || outcome.status === "already_checked_in") {
         const nextCheckin: CheckinStatus = { checkedIn: true, checkedInAt: outcome.checkedInAt, method: outcome.method };

@@ -40,6 +40,17 @@ export default function DirectoryPage() {
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [filterMounted, setFilterMounted] = useState(false);
+
+  useEffect(() => {
+    if (filterOpen) {
+      setFilterMounted(true);
+      return;
+    }
+    if (!filterMounted) return;
+    const timeout = window.setTimeout(() => setFilterMounted(false), 200);
+    return () => window.clearTimeout(timeout);
+  }, [filterOpen, filterMounted]);
 
   useEffect(() => {
     let cancelled = false;
@@ -147,8 +158,8 @@ export default function DirectoryPage() {
         )}
       </main>
 
-      {filterOpen && (
-        <div className="filter-layer">
+      {filterMounted && (
+        <div className={`filter-layer${filterOpen ? "" : " closing"}`}>
           <button className="menu-backdrop" type="button" aria-label="Close filters" onClick={() => setFilterOpen(false)} />
           <section className="filter-sheet" role="dialog" aria-modal="true" aria-labelledby="filter-title">
             <div className="filter-sheet-header"><h2 id="filter-title">Filter attendees</h2><button type="button" aria-label="Close filters" onClick={() => setFilterOpen(false)}>x</button></div>
