@@ -8,8 +8,8 @@ export default function GalleryLoading() {
   return (
     <AttendeeShellSkeleton title="Gallery">
       <div className="attendee-page gallery-page">
-        <section className="settings-card">
-          <p className="settings-copy">Browse every photo shared from tonight.</p>
+        <section className="gallery-copy-block">
+          <span className="skeleton-block gallery-copy-skeleton" />
         </section>
         <GallerySkeleton />
       </div>

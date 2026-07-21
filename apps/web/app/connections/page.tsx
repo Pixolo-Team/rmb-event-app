@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { DirectoryAvatar } from "../components/DirectoryAvatar";
+import { PageIntro } from "../components/PageIntro";
 import { BookmarkConnection, Connection, ConnectionsResponse, connectionsCache } from "../lib/connectionsCache";
 import { SaveContactButton } from "../components/SaveContactButton";
 import { BookmarkButton } from "../components/BookmarkButton";
@@ -74,7 +75,7 @@ export default function ConnectionsPage() {
     <AttendeePageShell>
       <main className="attendee-page connections-page">
         <div className="page-context-row">
-          <p className="page-intro">People whose QR code you’ve scanned.</p>
+          <PageIntro>People whose QR code you’ve scanned.</PageIntro>
           <span className="connections-count">{tab === "met" ? connections.length : bookmarks.length}</span>
         </div>
 

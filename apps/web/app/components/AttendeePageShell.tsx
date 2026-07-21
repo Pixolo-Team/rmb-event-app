@@ -68,7 +68,13 @@ function loadProfile() {
   return profileRequest;
 }
 
-export function AttendeePageShell({ children }: { children: ReactNode }) {
+export function AttendeePageShell({
+  children,
+  showFooter = true,
+}: {
+  children: ReactNode;
+  showFooter?: boolean;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   // Seed from the module-level cache so tab-to-tab navigation renders the shell
@@ -159,7 +165,7 @@ export function AttendeePageShell({ children }: { children: ReactNode }) {
       </header>
       <div className="attendee-shell-content">
         {children}
-        <PoweredByFooter />
+        {showFooter ? <PoweredByFooter /> : null}
       </div>
       <AttendeeBottomTabs />
     </div>
