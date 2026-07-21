@@ -95,6 +95,8 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 | F1.4 | Profile-complete screen — animated success tick and adaptive Open App / Install / Continue in browser actions | Screen 1.3 | P2 | Yes | F1.3 | ✅ Done |
 | F1.5 | First-time tutorial — removed from the current app pending UX replanning | Screen 2.12 | Deferred | — | F1.4 | ⏸ Replan |
 
+**Install-banner note:** the authenticated shell (`AttendeePageShell`) renders a persistent `InstallBanner` ("Install Evento for quick, full-screen access") for attendees who are on a supported browser, haven't installed, and haven't dismissed it. Because onboarding already offers install (F1.3/F1.4's "Install"/"thanks" steps), completing onboarding pre-sets the banner's dismissed flag (`PWA_BANNER_DISMISSED_KEY`) so the shell banner doesn't immediately repeat the same prompt.
+
 **Feeds into:** every other epic — this is where attendee records, QR codes, and profile tags originate.
 
 ---

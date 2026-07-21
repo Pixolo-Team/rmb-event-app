@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { usePwaInstall } from "./PwaInstallProvider";
 
-const DISMISSED_KEY = "evento-pwa-banner-dismissed";
+// Exported so onboarding can pre-set it: once install has been offered in the
+// onboarding flow, the shell's auto-banner would just repeat that offer.
+export const PWA_BANNER_DISMISSED_KEY = "evento-pwa-banner-dismissed";
 
 export function InstallBanner() {
   const { canInstall, isInstalled, promptInstall } = usePwaInstall();
@@ -11,7 +13,7 @@ export function InstallBanner() {
 
   useEffect(() => {
     try {
-      setDismissed(localStorage.getItem(DISMISSED_KEY) === "1");
+      setDismissed(localStorage.getItem(PWA_BANNER_DISMISSED_KEY) === "1");
     } catch {
       setDismissed(false);
     }
@@ -22,7 +24,7 @@ export function InstallBanner() {
   function close() {
     setDismissed(true);
     try {
-      localStorage.setItem(DISMISSED_KEY, "1");
+      localStorage.setItem(PWA_BANNER_DISMISSED_KEY, "1");
     } catch {
       // Storage may be unavailable — the banner just won't stay dismissed.
     }
