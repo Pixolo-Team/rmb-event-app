@@ -11,6 +11,10 @@ import { trackEvent } from "../lib/gtag";
 import { matchesCache, type MatchesResponse, type MatchSuggestion } from "../lib/matchesCache";
 import { MatchesSkeleton } from "./MatchesSkeleton";
 
+// How many suggestions to show before the "Show more" reveal, so the first paint
+// isn't a wall of cards.
+const SUGGESTIONS_PREVIEW = 5;
+
 export default function MatchesPage() {
   const [data, setData] = useState<MatchesResponse | null>(null);
   const [bookmarks, setBookmarks] = useState<BookmarkConnection[]>([]);
@@ -18,6 +22,7 @@ export default function MatchesPage() {
   const [offline, setOffline] = useState(false);
   const [error, setError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showAllSuggestions, setShowAllSuggestions] = useState(false);
 
   async function load(refresh = false) {
     if (refresh) setRefreshing(true);
@@ -80,7 +85,7 @@ export default function MatchesPage() {
   }, []);
 
   const visibleRecommendations = useMemo(
-    () => (data?.matches ?? []).filter((match) => !bookmarks.some((bookmark) => bookmark.id === match.id)),
+    () => (data?.matches ?? []).filter((match) => !match.bookmarked && !bookmarks.some((bookmark) => bookmark.id === match.id)),
     [bookmarks, data?.matches],
   );
 
@@ -111,82 +116,110 @@ export default function MatchesPage() {
   return (
     <AttendeePageShell>
       <main className="attendee-page matches-page">
-        <PageIntro>Saved attendees appear here first, with fresh recommendations below.</PageIntro>
+        <PageIntro>Your saved list, plus smart-match suggestions you can add to it.</PageIntro>
         <div className="matches-top-actions" aria-label="Recommendation actions"><Link className="matches-browse-top" href="/directory"><DirectoryListIcon /><span>Browse directory</span></Link><button className={`matches-refresh${refreshing ? " is-refreshing" : ""}`} type="button" disabled={refreshing} onClick={() => load(true)} aria-label={refreshing ? "Refreshing attendees" : "Refresh attendees"}><RefreshIcon /><span>{refreshing ? "Refreshing..." : "Refresh"}</span></button></div>
         {offline && <div className="banner info"><div><b>Showing saved attendees</b>You are offline. Your Want to Meet list will refresh when you reconnect.</div></div>}
         {loading && <MatchesSkeleton />}
         {!loading && error && !data && bookmarks.length === 0 && <MatchState title="Can't load attendees" body="Check your connection and try again." />}
-        {!loading && bookmarks.length === 0 && !data?.profileComplete && <MatchState title="Complete your profile" body="Add what you're looking for and offering to receive useful recommendations." profileAction />}
-        {!loading && bookmarks.length === 0 && visibleRecommendations.length === 0 && data?.profileComplete && <MatchState title="Your Want to Meet list is empty" body="Save attendees from People and they'll appear here." directoryAction />}
+        {!loading && bookmarks.length === 0 && visibleRecommendations.length === 0 && !data?.profileComplete && <MatchState title="Complete your profile" body="Add what you're looking for and offering to receive useful recommendations." profileAction />}
+        {!loading && !error && data?.profileComplete && bookmarks.length === 0 && visibleRecommendations.length === 0 && <MatchState title="Your Want to Meet list is empty" body="Save attendees from People and they'll appear here." directoryAction />}
 
-        {bookmarks.length > 0 && <>
-          <div className="matches-summary"><span><b>{bookmarks.length}</b> saved attendees</span><span>ready for follow-up</span></div>
-          <div className="matches-list">{bookmarks.map((person) => <BookmarkMatchCard key={person.id} person={person} onBookmark={(value) => updateBookmark(person.id, value)} />)}</div>
-        </>}
+        {!loading && (bookmarks.length > 0 || (data?.profileComplete && visibleRecommendations.length > 0)) && (
+          <section className="matches-section" aria-label="Your saved list">
+            <div className="matches-section-head">
+              <h2><BookmarkGlyph /> Your list</h2>
+              <span className="matches-section-count">{bookmarks.length}</span>
+            </div>
+            {bookmarks.length > 0 ? (
+              <ul className="wtm-list">{bookmarks.map((person) => <SavedRow key={person.id} person={person} onBookmark={(value) => updateBookmark(person.id, value)} />)}</ul>
+            ) : (
+              <p className="empty-copy matches-section-empty">Nothing saved yet — add people from the suggestions below or from People.</p>
+            )}
+          </section>
+        )}
 
-        {visibleRecommendations.length > 0 && <>
-          <div className="matches-summary"><span><b>{visibleRecommendations.length}</b> recommendations</span><span>from {data?.totalAttendees ?? 0} profiles</span></div>
-          <div className="matches-list">{visibleRecommendations.map((match, index) => <MatchCard key={match.id} match={match} rank={index + 1} onBookmark={(value) => updateBookmark(match.id, value)} />)}</div>
-        </>}
+        {!loading && data?.profileComplete && visibleRecommendations.length > 0 && (
+          <section className="matches-section" aria-label="Suggested for you">
+            <div className="matches-section-head suggested">
+              <h2><span className="match-spark" aria-hidden="true">✦</span> Suggested for you</h2>
+              <span className="matches-section-count">{visibleRecommendations.length} · tap <BookmarkGlyph /> to add</span>
+            </div>
+            <ul className="wtm-list">{(showAllSuggestions ? visibleRecommendations : visibleRecommendations.slice(0, SUGGESTIONS_PREVIEW)).map((match) => <SuggestionRow key={match.id} match={match} onBookmark={(value) => updateBookmark(match.id, value)} />)}</ul>
+            {!showAllSuggestions && visibleRecommendations.length > SUGGESTIONS_PREVIEW && (
+              <button className="matches-show-more" type="button" onClick={() => setShowAllSuggestions(true)}>
+                Show {visibleRecommendations.length - SUGGESTIONS_PREVIEW} more suggestions
+              </button>
+            )}
+          </section>
+        )}
       </main>
     </AttendeePageShell>
   );
 }
 
-function BookmarkMatchCard({ person, onBookmark }: { person: BookmarkConnection; onBookmark: (value: boolean) => void }) {
+function PersonRow({
+  id, name, photoUrl, sub, met, checkedIn, reason, initialBookmarked, onBookmark, source,
+}: {
+  id: string; name: string; photoUrl: string | null; sub: string; met: boolean; checkedIn?: boolean;
+  reason?: string | null; initialBookmarked: boolean; onBookmark: (value: boolean) => void; source: "saved" | "recommendation";
+}) {
   return (
-    <article className="match-card is-bookmarked">
-      <span className="match-saved-label">Saved</span>
-      <Link className="match-person" href={`/attendees/${person.id}`} onClick={() => trackMatchOpen("saved")}>
-        <DirectoryAvatar name={person.name} photoUrl={person.photoUrl} />
-        <div>
-          <h2>{person.name}{person.met && <span className="met-badge">Met</span>}</h2>
-          {person.businessName && <p>{person.businessName}</p>}
-          <span>{[person.businessCategory, person.chapterName].filter(Boolean).join(" · ")}</span>
-        </div>
-      </Link>
-      <div className="card-icon-actions" aria-label={`Actions for ${person.name}`}>
-        <BookmarkButton attendeeId={person.id} initialBookmarked compact onChange={onBookmark} />
-        <a className="icon-btn" href={`tel:${person.phone}`} aria-label={`Call ${person.name}`} title="Call"><PhoneIcon /></a>
-        {person.linkedInUrl && <a className="icon-btn" href={person.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${person.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /></a>}
+    <li className="wtm-row">
+      <div className="wtm-row-top">
+        <Link className="wtm-row-main" href={`/attendees/${id}`} onClick={() => trackMatchOpen(source)}>
+          <DirectoryAvatar name={name} photoUrl={photoUrl} />
+          <span className="wtm-row-text">
+            <span className="wtm-row-name">
+              {name}
+              {met && <span className="met-badge">Met</span>}
+              {checkedIn && <span className="wtm-here">Here</span>}
+            </span>
+            {sub && <span className="wtm-row-sub">{sub}</span>}
+          </span>
+        </Link>
+        <BookmarkButton attendeeId={id} initialBookmarked={initialBookmarked} compact onChange={onBookmark} />
       </div>
-      <div className="match-explanation"><span className="match-spark">✦</span><div><b>Saved to Want to Meet</b><p>Keep this attendee handy so you can reconnect during the event.</p></div></div>
-      <div className="match-card-footer"><span>Saved {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(person.bookmarkedAt))}</span>{person.tableNumber && <span>Table {person.tableNumber}</span>}<Link href={`/attendees/${person.id}`} onClick={() => trackMatchOpen("saved")}>View profile →</Link></div>
-    </article>
+      {reason && (
+        <div className="wtm-row-reason">
+          <span className="match-spark" aria-hidden="true">✦</span>
+          <span><ReasonText text={reason} /></span>
+        </div>
+      )}
+    </li>
   );
 }
 
-function MatchCard({ match, rank, onBookmark }: { match: MatchSuggestion; rank: number; onBookmark: (value: boolean) => void }) {
-  function shareMatch() {
-    const url = `${window.location.origin}/p/${match.id}`;
-    if (navigator.share) {
-      navigator.share({ title: match.name, url }).catch(() => undefined);
-      return;
-    }
-    navigator.clipboard?.writeText(url).catch(() => undefined);
-  }
-
+// Bolds the leading "Offers:" / "Looking for:" label (matching.service.ts's
+// buildHeadline always puts one of these at the start when present) so it reads
+// as a label, not just more sentence text.
+function ReasonText({ text }: { text: string }) {
+  const match = text.match(/^(Offers|Looking for):\s*/);
+  if (!match) return <>{text}</>;
   return (
-    <article className={`match-card${match.bookmarked ? " is-bookmarked" : ""}`}>
-      <div className="match-rank">#{rank}</div>
-      <Link className="match-person" href={`/attendees/${match.id}`} onClick={() => trackMatchOpen("recommendation")}>
-        <DirectoryAvatar name={match.name} photoUrl={match.photoUrl} />
-        <div>
-          <h2>{match.name}{match.met && <span className="met-badge">Met</span>}</h2>
-          {match.businessName && <p>{match.businessName}</p>}
-          <span>{[match.businessCategory, match.chapterName].filter(Boolean).join(" · ")}</span>
-        </div>
-      </Link>
-      {match.bookmarked && <span className="match-saved-label">Saved</span>}
-      <div className="card-icon-actions" aria-label={`Actions for ${match.name}`}>
-        <BookmarkButton attendeeId={match.id} initialBookmarked={match.bookmarked} compact onChange={onBookmark} />
-        <a className="icon-btn" href={`tel:${match.phone}`} aria-label={`Call ${match.name}`} title="Call"><PhoneIcon /></a>
-        {match.linkedInUrl && <a className="icon-btn" href={match.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${match.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /></a>}
-        <button className="icon-btn" type="button" onClick={shareMatch} aria-label={`Share ${match.name}`} title="Share"><ShareIcon /></button>
-      </div>
-      <div className="match-explanation"><span className="match-spark">✦</span><div><b>Why you should meet</b><p>{match.headline}</p></div></div>
-      <div className="match-card-footer">{match.checkedIn ? <span className="match-present">At the event</span> : <span>Not checked in yet</span>}{match.tableNumber && <span>Table {match.tableNumber}</span>}<Link href={`/attendees/${match.id}`} onClick={() => trackMatchOpen("recommendation")}>View profile →</Link></div>
-    </article>
+    <>
+      <strong>{match[0]}</strong>
+      {text.slice(match[0].length)}
+    </>
+  );
+}
+
+function SavedRow({ person, onBookmark }: { person: BookmarkConnection; onBookmark: (value: boolean) => void }) {
+  return (
+    <PersonRow
+      id={person.id} name={person.name} photoUrl={person.photoUrl} met={person.met}
+      sub={[person.businessName, person.chapterName].filter(Boolean).join(" · ")}
+      initialBookmarked onBookmark={onBookmark} source="saved"
+    />
+  );
+}
+
+function SuggestionRow({ match, onBookmark }: { match: MatchSuggestion; onBookmark: (value: boolean) => void }) {
+  return (
+    <PersonRow
+      id={match.id} name={match.name} photoUrl={match.photoUrl} met={match.met} checkedIn={match.checkedIn}
+      sub={[match.businessName, match.chapterName].filter(Boolean).join(" · ")}
+      reason={match.headline} initialBookmarked={match.bookmarked} onBookmark={onBookmark} source="recommendation"
+    />
   );
 }
 
@@ -222,8 +255,6 @@ function toBookmark(match: MatchSuggestion): BookmarkConnection {
   };
 }
 
+function BookmarkGlyph() { return <svg className="matches-bookmark-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v16l-6-4-6 4z" /></svg>; }
 function DirectoryListIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="7" r="2" /><circle cx="7" cy="17" r="2" /><path d="M12 7h8M12 17h8" /></svg>; }
 function RefreshIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5" /><path d="M18.3 12A6.5 6.5 0 0 0 7 7.5L4 12M5.7 12A6.5 6.5 0 0 0 17 16.5l3-4.5" /></svg>; }
-function PhoneIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8c1.2 2.4 3.2 4.4 5.6 5.6l1.9-1.9c.3-.3.7-.4 1-.2 1 .4 2.1.6 3.2.6.6 0 1 .4 1 1V19c0 .6-.4 1-1 1C9.6 20 4 14.4 4 7.7c0-.6.4-1 1-1h3.1c.6 0 1 .4 1 1 0 1.1.2 2.2.6 3.2.1.3 0 .7-.2 1L6.6 10.8Z" /></svg>; }
-function LinkedInIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9v10M5 5.5v.1M10 19v-9M10 13.5c.7-2.2 2-3.5 4-3.5 2.6 0 4 1.7 4 5v4" /></svg>; }
-function ShareIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.2" /><circle cx="17" cy="6" r="2.2" /><circle cx="17" cy="18" r="2.2" /><path d="M8 11l7-4M8 13l7 4" /></svg>; }

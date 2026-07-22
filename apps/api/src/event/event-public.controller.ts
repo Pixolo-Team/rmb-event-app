@@ -15,6 +15,7 @@ export class EventPublicController {
       name: event.name,
       venueLat: event.venueLat,
       venueLng: event.venueLng,
+      venueAddress: event.venueAddress,
       checkinRadiusM: event.checkinRadiusM,
       // F3.6 — Home picks its mode (pre-event / arrival / dashboard / ended) from
       // these. They ride along on the already-cached venue payload so the choice
@@ -22,6 +23,15 @@ export class EventPublicController {
       // a spinner exactly when connectivity is worst.
       startAt: event.startAt?.toISOString() ?? null,
       endAt: event.endAt?.toISOString() ?? null,
+      contactName: event.contactName,
+      contactPhone: event.contactPhone,
+      subtitle: event.subtitle,
+      chairName: event.chairName,
+      chairTitle: event.chairTitle,
+      chairPhotoUrl: event.chairPhotoUrl,
+      registrationUrl: event.registrationUrl,
+      registrationPricing: event.registrationPricing,
+      agenda: event.agenda,
     };
   }
 }

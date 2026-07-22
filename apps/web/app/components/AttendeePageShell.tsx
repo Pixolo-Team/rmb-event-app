@@ -1,14 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 import { AttendeeBottomTabs, AttendeeMenu, type MenuAttendee } from "./AttendeeMenu";
+import { InstallBanner } from "./InstallBanner";
 import { PoweredByFooter } from "./PoweredByFooter";
 import { RotaryLoader } from "./RotaryLoader";
-import { profileCache, type MyProfile } from "../lib/profileCache";
-
-const PROFILE_REVALIDATE_MS = 60_000;
+import { loadMyProfile, profileCache, type MyProfile } from "../lib/profileCache";
 
 const PAGE_TITLES: Record<string, string> = {
   "/home": "Home",
@@ -22,6 +22,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/leaderboard": "Leaderboard",
   "/summary": "Event Summary",
   "/feedback": "Feedback",
+  "/event": "Event Details",
 };
 
 function pageTitle(pathname: string) {
@@ -30,8 +31,6 @@ function pageTitle(pathname: string) {
 }
 
 let cachedMenuAttendee: MenuAttendee | null = null;
-let lastProfileRevalidatedAt = 0;
-let profileRequest: Promise<MyProfile | "login" | "onboarding" | null> | null = null;
 
 function toMenuAttendee(profile: MyProfile): MenuAttendee {
   return {
@@ -42,38 +41,14 @@ function toMenuAttendee(profile: MyProfile): MenuAttendee {
   };
 }
 
-function loadProfile() {
-  if (!profileRequest) {
-    lastProfileRevalidatedAt = Date.now();
-    profileRequest = fetch("/api/attendees/me", { credentials: "include" })
-      .then(async (response) => {
-        if (response.status === 401 || response.status === 403) {
-          profileCache.clear();
-          cachedMenuAttendee = null;
-          return "login" as const;
-        }
-        if (!response.ok) return null;
-
-        const me = (await response.json()) as MyProfile;
-        profileCache.set(me);
-        cachedMenuAttendee = me.profileCompletedAt ? toMenuAttendee(me) : null;
-        return me.profileCompletedAt ? me : "onboarding";
-      })
-      .catch(() => null)
-      .finally(() => {
-        profileRequest = null;
-      });
-  }
-
-  return profileRequest;
-}
-
 export function AttendeePageShell({
   children,
   showFooter = true,
+  showTabs = true,
 }: {
   children: ReactNode;
   showFooter?: boolean;
+  showTabs?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -98,26 +73,30 @@ export function AttendeePageShell({
       setAttendee(cachedAttendee);
     }
 
-    const recentlyChecked = cachedAttendee && Date.now() - lastProfileRevalidatedAt < PROFILE_REVALIDATE_MS;
-    if (recentlyChecked) return;
-
     // Cache-first keeps tab navigation instant, while the background check still
-    // catches real sign-outs or onboarding redirects.
-    loadProfile().then((result) => {
+    // catches real sign-outs or onboarding redirects. loadMyProfile is shared
+    // with pages that need the full profile (Profile, Feed) — its own
+    // dedup/throttle means this resolves with zero network calls when another
+    // consumer already fetched within the last minute, instead of every
+    // consumer firing its own request.
+    loadMyProfile().then(({ status, profile }) => {
       if (cancelled) return;
 
-      if (result === "login") {
+      if (status === 401 || status === 403) {
+        profileCache.clear();
+        cachedMenuAttendee = null;
         router.replace("/login");
         return;
       }
 
-      if (result === "onboarding") {
-        router.replace("/onboarding");
-        return;
-      }
-
-      if (result) {
-        setAttendee(toMenuAttendee(result));
+      if (profile) {
+        if (!profile.profileCompletedAt) {
+          router.replace("/onboarding");
+          return;
+        }
+        const nextAttendee = toMenuAttendee(profile);
+        cachedMenuAttendee = nextAttendee;
+        setAttendee(nextAttendee);
         return;
       }
 
@@ -152,22 +131,25 @@ export function AttendeePageShell({
   return (
     <div className="attendee-shell">
       <header className="full-page-header attendee-app-header">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/images/rmb-fellowship-logo.png"
-          alt="Rotary Means Business Fellowship"
-          className="app-topbar-brand"
-          width={50}
-          height={50}
-        />
+        <Link href="/home" aria-label="Go to Home">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/rmb-fellowship-logo.png"
+            alt="Rotary Means Business Fellowship"
+            className="app-topbar-brand"
+            width={50}
+            height={50}
+          />
+        </Link>
         <h1 className="app-header-title">{pageTitle(pathname)}</h1>
         <AttendeeMenu attendee={attendee} />
       </header>
+      <InstallBanner />
       <div className="attendee-shell-content">
         {children}
         {showFooter ? <PoweredByFooter /> : null}
       </div>
-      <AttendeeBottomTabs />
+      {showTabs ? <AttendeeBottomTabs /> : null}
     </div>
   );
 }

@@ -129,10 +129,6 @@ export default function AdminCheckinPage() {
 
   return (
     <div className="admin-page">
-      <div className="wordmark">
-        <span className="dot" />
-        Evento Admin
-      </div>
       <h1 className="title">Check-in management</h1>
 
       {!online && (

@@ -1,5 +1,10 @@
 import { AdminGate } from "../components/AdminGate";
+import { AdminShell } from "../components/AdminShell";
 
 export default function AdminGroupLayout({ children }: { children: React.ReactNode }) {
-  return <AdminGate>{children}</AdminGate>;
+  return (
+    <AdminGate>
+      <AdminShell>{children}</AdminShell>
+    </AdminGate>
+  );
 }

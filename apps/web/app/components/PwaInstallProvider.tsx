@@ -1,13 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 type DeferredInstallPrompt = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 };
 
-export function usePwaInstall() {
+type PwaInstallContextValue = {
+  canInstall: boolean;
+  isInstalled: boolean;
+  promptInstall: () => Promise<void>;
+};
+
+const PwaInstallContext = createContext<PwaInstallContextValue | null>(null);
+
+// Mounted once at the app root so the `beforeinstallprompt` listener is
+// attached from the first paint — the browser only fires that event once per
+// page load, and any page that mounts the listener late (e.g. a hook used
+// only inside one route) misses it for good, which is why "Install" never
+// became available outside that one screen.
+export function PwaInstallProvider({ children }: { children: ReactNode }) {
   const [deferredPrompt, setDeferredPrompt] = useState<DeferredInstallPrompt | null>(null);
   const [canInstall, setCanInstall] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -45,5 +58,17 @@ export function usePwaInstall() {
     setCanInstall(false);
   }
 
-  return { canInstall, isInstalled, promptInstall };
+  return (
+    <PwaInstallContext.Provider value={{ canInstall, isInstalled, promptInstall }}>
+      {children}
+    </PwaInstallContext.Provider>
+  );
+}
+
+export function usePwaInstall(): PwaInstallContextValue {
+  const context = useContext(PwaInstallContext);
+  if (!context) {
+    throw new Error("usePwaInstall must be used within a PwaInstallProvider");
+  }
+  return context;
 }

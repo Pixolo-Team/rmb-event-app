@@ -94,7 +94,7 @@ export default function GalleryPage() {
                 aria-label={`Open photo from ${photo.attendeeName}`}
               >
                 {photo.url ? (
-                  <img src={photo.url} alt="" />
+                  <img src={photo.url} alt="" loading="lazy" decoding="async" />
                 ) : (
                   <span className="gallery-grid-placeholder" aria-hidden="true">
                     {getInitials(photo.attendeeName)}

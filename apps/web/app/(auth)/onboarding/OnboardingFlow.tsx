@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { usePwaInstall } from "./usePwaInstall";
+import { usePwaInstall } from "../../components/PwaInstallProvider";
+import { PWA_BANNER_DISMISSED_KEY } from "../../components/InstallBanner";
+import { RotaryLoader } from "../../components/RotaryLoader";
+import { ChevronDownIcon, SingleSelectDropdown } from "../../components/SingleSelectDropdown";
+import { MultiSelectDropdown } from "../../components/MultiSelectDropdown";
 import { withCsrfHeaders } from "../../lib/csrf";
 
 type Step = "loading" | "form" | "install" | "thanks";
@@ -127,6 +131,13 @@ export function OnboardingFlow() {
         setSubmitError("Couldn't save your profile. Please try again.");
         return;
       }
+      // Onboarding already offers install (the "install"/"thanks" steps below), so
+      // suppress the shell's auto-banner — it would just repeat the same prompt.
+      try {
+        localStorage.setItem(PWA_BANNER_DISMISSED_KEY, "1");
+      } catch {
+        // Storage unavailable — the banner will simply show; not worth failing over.
+      }
       setStep(isInstalled ? "thanks" : "install");
     } catch {
       setSubmitError("Couldn't reach the server. Check your connection and try again.");
@@ -156,13 +167,9 @@ export function OnboardingFlow() {
 
   if (step === "loading") {
     return (
-      <div className="card onboarding-card">
-        <div className="wordmark">
-          <span className="dot" />
-          Evento
-        </div>
+      <div className="card onboarding-card onboarding-card-center">
         <div className="center-state">
-          <span className="spinner" style={{ borderTopColor: "var(--brand-500)", borderColor: "var(--border)" }} />
+          <RotaryLoader />
           <p>Loading your profile&hellip;</p>
         </div>
       </div>
@@ -288,39 +295,30 @@ export function OnboardingFlow() {
           <h2 id="onboarding-business-title">Your business</h2>
           <p>Choose your category, then describe what you offer.</p>
 
-          <div className="field">
-            <label htmlFor="businessCategory">Business category</label>
-            <select
-              id="businessCategory"
-              value={businessCategory}
-              onChange={(e) => {
-                const nextCategory = e.target.value;
-                const compatibleOfferings = options?.offeringsByCategory[nextCategory] ?? [];
-                const hasIncompatibleSelections = offering.some((item) => !compatibleOfferings.includes(item));
-                if (
-                  hasIncompatibleSelections &&
-                  !window.confirm("Changing category will clear offerings that do not belong to the new category. Continue?")
-                ) {
-                  return;
-                }
-                setBusinessCategory(nextCategory);
-                setOffering((current) => current.filter((item) => compatibleOfferings.includes(item)));
-                setFieldErrors(({ businessCategory: _drop, ...rest }) => rest);
-              }}
-            >
-              <option value="">Select your category</option>
-              {options?.businessCategories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-            {fieldErrors.businessCategory && <div className="hint err">{fieldErrors.businessCategory}</div>}
-          </div>
+          <SingleSelectDropdown
+            label="Business category"
+            options={options?.businessCategories ?? []}
+            value={businessCategory}
+            placeholder="Select your category"
+            onChange={(nextCategory) => {
+              const compatibleOfferings = options?.offeringsByCategory?.[nextCategory] ?? [];
+              const hasIncompatibleSelections = offering.some((item) => !compatibleOfferings.includes(item));
+              if (
+                hasIncompatibleSelections &&
+                !window.confirm("Changing category will clear offerings that do not belong to the new category. Continue?")
+              ) {
+                return;
+              }
+              setBusinessCategory(nextCategory);
+              setOffering((current) => current.filter((item) => compatibleOfferings.includes(item)));
+              setFieldErrors(({ businessCategory: _drop, ...rest }) => rest);
+            }}
+          />
+          {fieldErrors.businessCategory && <div className="hint err">{fieldErrors.businessCategory}</div>}
 
           <MultiSelectDropdown
             label="Offering"
-            options={options?.offeringsByCategory[businessCategory] ?? []}
+            options={options?.offeringsByCategory?.[businessCategory] ?? []}
             selected={offering}
             onToggle={(v) => setOffering((s) => toggle(s, v))}
             disabled={!businessCategory}
@@ -355,13 +353,14 @@ export function OnboardingFlow() {
             <label htmlFor="websiteUrl">Website link (optional)</label>
             <input
               id="websiteUrl"
-              type="url"
+              type="text"
+              inputMode="url"
               value={websiteUrl}
               onChange={(e) => {
                 setWebsiteUrl(e.target.value);
                 setFieldErrors(({ websiteUrl: _drop, ...rest }) => rest);
               }}
-              placeholder="https://yourwebsite.com"
+              placeholder="yourwebsite.com"
             />
             {fieldErrors.websiteUrl && <div className="hint err">{fieldErrors.websiteUrl}</div>}
           </div>
@@ -470,11 +469,11 @@ function CityCombobox({
         />
         <button
           type="button"
-          className="city-combobox-toggle"
+          className={`city-combobox-toggle${open ? " open" : ""}`}
           aria-label={open ? "Close city options" : "Open city options"}
           onClick={() => setOpen((current) => !current)}
         >
-          <span aria-hidden="true">⌄</span>
+          <ChevronDownIcon />
         </button>
       </div>
 
@@ -507,63 +506,3 @@ function CityCombobox({
   );
 }
 
-function MultiSelectDropdown({
-  label,
-  options,
-  selected,
-  onToggle,
-  disabled = false,
-  placeholder,
-}: {
-  label: string;
-  options: readonly string[];
-  selected: string[];
-  onToggle: (value: string) => void;
-  disabled?: boolean;
-  placeholder?: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const visibleOptions = options.filter((option) => option.toLowerCase().includes(query.trim().toLowerCase()));
-
-  return (
-    <div className="field multiselect">
-      <label>{label}</label>
-      <button
-        type="button"
-        className={`multiselect-trigger${selected.length === 0 ? " placeholder" : ""}`}
-        onClick={() => setOpen((o) => !o)}
-        disabled={disabled}
-      >
-        <span>{selected.length === 0 ? (placeholder ?? `Select ${label.toLowerCase()}`) : selected.join(", ")}</span>
-        <span className="multiselect-caret">{open ? "▲" : "▼"}</span>
-      </button>
-      {open && (
-        <>
-          <div className="multiselect-backdrop" onClick={() => setOpen(false)} />
-          <div className="multiselect-panel">
-            <input
-              className="multiselect-search"
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={`Search ${label.toLowerCase()}`}
-              aria-label={`Search ${label.toLowerCase()}`}
-              autoFocus
-            />
-            {visibleOptions.map((opt) => (
-              <label key={opt} className="multiselect-option">
-                <input type="checkbox" checked={selected.includes(opt)} onChange={() => onToggle(opt)} />
-                {opt}
-              </label>
-            ))}
-            {visibleOptions.length === 0 && <div className="multiselect-empty">No options found</div>}
-            <button type="button" className="multiselect-done" onClick={() => { setOpen(false); setQuery(""); }}>
-              Done
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}

@@ -1,9 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { withCsrfHeaders } from "../lib/csrf";
 
 const TOOLS = [
   { href: "/admin/import", title: "Attendee Import", desc: "Upload the guest list (CSV / Excel)" },
@@ -16,6 +14,7 @@ const TOOLS = [
 ];
 
 type Breakdown = { GEOLOCATION: number; MANUAL: number; STAFF_QR: number; VENUE_QR: number };
+type ChapterSummary = { chapterName: string; registrations: number; attendance: number };
 type Leader = { id: string; rank: number; name: string; businessName: string | null; metCount: number };
 type TimePoint = { label: string; checkIns: number; meetings: number };
 type DashboardData = {
@@ -36,6 +35,7 @@ type DashboardData = {
     feedbackAverage: number;
   };
   breakdown: Breakdown;
+  chapterSummaries: ChapterSummary[];
   topConnectors: Leader[];
   timeseries: { windowLabel: string; points: TimePoint[] };
 };
@@ -44,11 +44,9 @@ const CACHE_KEY = "evento-admin-analytics-v1";
 const REFRESH_MS = 30000;
 
 export default function AdminHome() {
-  const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [signingOut, setSigningOut] = useState(false);
   const [exporting, setExporting] = useState<"csv" | "pdf" | null>(null);
   const [online, setOnline] = useState(true);
 
@@ -101,15 +99,6 @@ export default function AdminHome() {
     };
   }, []);
 
-  async function signOut() {
-    setSigningOut(true);
-    try {
-      await fetch("/api/admin/auth/logout", withCsrfHeaders({ method: "POST", credentials: "include" }));
-    } finally {
-      router.replace("/admin/login");
-    }
-  }
-
   async function exportReport(format: "csv" | "pdf") {
     setExporting(format);
     try {
@@ -144,6 +133,7 @@ export default function AdminHome() {
   );
 
   const stale = !online && !!data;
+  const chapterSummaries = data?.chapterSummaries ?? [];
   const formattedUpdatedAt = data
     ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(data.generatedAt))
     : null;
@@ -159,27 +149,28 @@ export default function AdminHome() {
           </p>
         </div>
         <div className="admin-overview-actions">
-          {stale && <span className="admin-status-pill">Offline cache</span>}
-          {formattedUpdatedAt && <span className="admin-updated-at">Updated {formattedUpdatedAt}</span>}
-          <button
-            className="btn-secondary"
-            type="button"
-            onClick={() => exportReport("csv")}
-            disabled={exporting !== null}
-          >
-            {exporting === "csv" ? "Exporting CSV…" : "Export CSV"}
-          </button>
-          <button
-            className="btn-secondary"
-            type="button"
-            onClick={() => exportReport("pdf")}
-            disabled={exporting !== null}
-          >
-            {exporting === "pdf" ? "Exporting PDF…" : "Export PDF"}
-          </button>
-          <button className="btn-secondary" type="button" onClick={signOut} disabled={signingOut}>
-            {signingOut ? "Signing out…" : "Sign out"}
-          </button>
+          <div className="admin-overview-status">
+            {stale && <span className="admin-status-pill">Offline cache</span>}
+            {formattedUpdatedAt && <span className="admin-updated-at">Updated {formattedUpdatedAt}</span>}
+          </div>
+          <div className="admin-overview-buttons">
+            <button
+              className="btn-secondary"
+              type="button"
+              onClick={() => exportReport("csv")}
+              disabled={exporting !== null}
+            >
+              {exporting === "csv" ? "Exporting CSV…" : "Export CSV"}
+            </button>
+            <button
+              className="btn-secondary"
+              type="button"
+              onClick={() => exportReport("pdf")}
+              disabled={exporting !== null}
+            >
+              {exporting === "pdf" ? "Exporting PDF…" : "Export PDF"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -322,6 +313,39 @@ export default function AdminHome() {
             <SmallStat label="Likes" value={data?.totals.likes ?? "—"} />
           </div>
         </article>
+      </section>
+
+      <section className="admin-overview-panel admin-tool-panel">
+        <div className="admin-panel-head">
+          <div>
+            <p className="eyebrow">Chapter wise count</p>
+            <h2>Registrations & attendance summary</h2>
+          </div>
+          <span>{chapterSummaries.length} chapters</span>
+        </div>
+        {loading && !data ? (
+          <div className="admin-list-skeleton" />
+        ) : chapterSummaries.length ? (
+          <div className="admin-chapter-summary-table">
+            <div className="admin-chapter-summary-head">
+              <span>Chapter</span>
+              <span><span className="wide-label">Registrations</span><span className="short-label">Reg.</span></span>
+              <span><span className="wide-label">Attendance</span><span className="short-label">Att.</span></span>
+            </div>
+            {chapterSummaries.map((summary) => (
+              <div key={summary.chapterName} className="admin-chapter-summary-row">
+                <b>{summary.chapterName}</b>
+                <strong>{summary.registrations}</strong>
+                <strong>{summary.attendance}</strong>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="directory-state">
+            <h2>No chapter data</h2>
+            <p>Chapter counts will appear after attendees are imported.</p>
+          </div>
+        )}
       </section>
 
       <section className="admin-overview-panel admin-tool-panel">

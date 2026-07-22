@@ -21,12 +21,17 @@ type AdminAttendee = {
 
 type LoadState = "loading" | "ready" | "error";
 
+const ATTENDEES_PER_PAGE = 10;
+
 export default function AdminAttendeesPage() {
   const [attendees, setAttendees] = useState<AdminAttendee[]>([]);
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [state, setState] = useState<LoadState>("loading");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [updatingAttendanceIds, setUpdatingAttendanceIds] = useState<Set<string>>(() => new Set());
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [actionMenuId, setActionMenuId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
@@ -36,6 +41,18 @@ export default function AdminAttendeesPage() {
   useEffect(() => {
     loadAttendees();
   }, []);
+
+  useEffect(() => {
+    if (!message || message.startsWith("Could")) return;
+    const timeout = window.setTimeout(() => {
+      setMessage((current) => current === message ? null : current);
+    }, 10000);
+    return () => window.clearTimeout(timeout);
+  }, [message]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query]);
 
   async function loadAttendees() {
     setState("loading");
@@ -61,10 +78,86 @@ export default function AdminAttendeesPage() {
       await loadAttendees();
       setMessage(`${attendee.name} was soft deleted.`);
       setConfirmingId(null);
+      setActionMenuId(null);
     } catch {
       setMessage("Could not delete attendee. Try again.");
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  async function markAsPresent(attendee: AdminAttendee) {
+    const optimisticCheckedInAt = new Date().toISOString();
+    setUpdatingAttendanceIds((current) => new Set(current).add(attendee.id));
+    setMessage(null);
+    setAttendees((current) => current.map((item) => item.id === attendee.id
+      ? { ...item, checkedInAt: optimisticCheckedInAt, checkInMethod: "MANUAL" }
+      : item));
+    try {
+      const response = await fetch(`/api/admin/checkin/manual/${attendee.id}`, withCsrfHeaders({
+        method: "POST",
+        credentials: "include",
+      }));
+      if (!response.ok) throw new Error("Failed to check in attendee");
+
+      const outcome = await response.json() as { status?: string; checkedInAt?: string; method?: AdminAttendee["checkInMethod"] };
+      setAttendees((current) =>
+        current.map((item) =>
+          item.id === attendee.id
+            ? {
+                ...item,
+                checkedInAt: outcome.checkedInAt ?? item.checkedInAt ?? new Date().toISOString(),
+                checkInMethod: outcome.method ?? item.checkInMethod ?? "MANUAL",
+              }
+            : item,
+        ),
+      );
+      setMessage(
+        outcome.status === "already_checked_in"
+          ? `${attendee.name} was already marked present.`
+          : `${attendee.name} marked as present.`,
+      );
+    } catch {
+      setAttendees((current) => current.map((item) => item.id === attendee.id && item.checkedInAt === optimisticCheckedInAt
+        ? { ...item, checkedInAt: attendee.checkedInAt, checkInMethod: attendee.checkInMethod }
+        : item));
+      setMessage("Could not mark attendee as present. Try again.");
+    } finally {
+      setUpdatingAttendanceIds((current) => {
+        const next = new Set(current);
+        next.delete(attendee.id);
+        return next;
+      });
+    }
+  }
+
+  async function markAsAbsent(attendee: AdminAttendee) {
+    const previousCheckedInAt = attendee.checkedInAt;
+    const previousMethod = attendee.checkInMethod;
+    setActionMenuId(null);
+    setMessage(null);
+    setUpdatingAttendanceIds((current) => new Set(current).add(attendee.id));
+    setAttendees((current) => current.map((item) => item.id === attendee.id
+      ? { ...item, checkedInAt: null, checkInMethod: null }
+      : item));
+    try {
+      const response = await fetch(`/api/admin/checkin/${attendee.id}`, withCsrfHeaders({
+        method: "DELETE",
+        credentials: "include",
+      }));
+      if (!response.ok) throw new Error("Failed to mark attendee absent");
+      setMessage(`${attendee.name} marked as absent.`);
+    } catch {
+      setAttendees((current) => current.map((item) => item.id === attendee.id && item.checkedInAt === null
+        ? { ...item, checkedInAt: previousCheckedInAt, checkInMethod: previousMethod }
+        : item));
+      setMessage("Could not mark attendee as absent. Try again.");
+    } finally {
+      setUpdatingAttendanceIds((current) => {
+        const next = new Set(current);
+        next.delete(attendee.id);
+        return next;
+      });
     }
   }
 
@@ -120,6 +213,19 @@ export default function AdminAttendeesPage() {
       ].some((value) => value?.toLowerCase().includes(term)),
     );
   }, [attendees, query]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ATTENDEES_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * ATTENDEES_PER_PAGE;
+  const pagedAttendees = filtered.slice(pageStart, pageStart + ATTENDEES_PER_PAGE);
+  const resultStart = filtered.length === 0 ? 0 : pageStart + 1;
+  const resultEnd = Math.min(pageStart + ATTENDEES_PER_PAGE, filtered.length);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   const activeCount = attendees.filter((attendee) => !attendee.deletedAt).length;
   const deletedCount = attendees.length - activeCount;
@@ -216,6 +322,12 @@ export default function AdminAttendeesPage() {
         />
       </div>
 
+      {filtered.length > 0 && (
+        <div className="admin-pagination-summary" aria-live="polite">
+          Showing {resultStart}-{resultEnd} of {filtered.length} attendees
+        </div>
+      )}
+
       <section className="admin-attendee-list">
         {state === "loading" && attendees.length === 0 ? (
           <div className="directory-state">
@@ -223,50 +335,94 @@ export default function AdminAttendeesPage() {
             <p>The roster will appear here in a moment.</p>
           </div>
         ) : filtered.length ? (
-          filtered.map((attendee) => (
-            <article key={attendee.id} className={`admin-attendee-row${attendee.deletedAt ? " is-deleted" : ""}`}>
-              <div>
-                <div className="admin-attendee-title">
-                  <b>{attendee.name}</b>
-                  <span className={attendee.deletedAt ? "badge-warning" : "badge-success"}>
-                    {attendee.deletedAt ? "Deleted" : "Active"}
-                  </span>
-                </div>
-                <span>{attendee.businessName ?? "No company"} · {attendee.email}</span>
-                <small>
-                  {[attendee.chapterName, attendee.businessCategory, attendee.city, attendee.tableNumber ? `Table ${attendee.tableNumber}` : null]
-                    .filter(Boolean)
-                    .join(" · ") || "No extra details"}
-                </small>
-              </div>
-              <div className="admin-attendee-meta">
-                <span>{attendee.profileCompletedAt ? "Profile complete" : "Profile pending"}</span>
-                <span>{attendee.checkedInAt ? `Checked in ${formatDate(attendee.checkedInAt)}` : "Not checked in"}</span>
-              </div>
-              {confirmingId === attendee.id ? (
-                <div className="admin-attendee-confirm" role="group" aria-label={`Confirm delete ${attendee.name}`}>
-                  <span>Soft delete this attendee?</span>
-                  <div>
-                    <button className="btn-secondary" type="button" onClick={() => setConfirmingId(null)} disabled={deletingId === attendee.id}>
-                      Cancel
-                    </button>
-                    <button className="btn-danger-soft" type="button" onClick={() => deleteAttendee(attendee)} disabled={deletingId === attendee.id}>
-                      {deletingId === attendee.id ? "Deleting..." : "Confirm delete"}
-                    </button>
+          pagedAttendees.map((attendee) => {
+            const primaryDetails = compactDetails([attendee.businessName, attendee.email]);
+            const extraDetails = compactDetails([
+              attendee.chapterName,
+              attendee.businessCategory,
+              attendee.city,
+              attendee.tableNumber ? `Table ${attendee.tableNumber}` : null,
+            ]);
+
+            return (
+              <article key={attendee.id} className={`admin-attendee-row${attendee.deletedAt ? " is-deleted" : ""}`}>
+                <div>
+                  <div className="admin-attendee-title">
+                    <b>{attendee.name}</b>
+                    <span className={attendee.deletedAt ? "badge-warning" : "badge-success"}>
+                      {attendee.deletedAt ? "Deleted" : "Active"}
+                    </span>
                   </div>
+                  {primaryDetails && <span>{primaryDetails}</span>}
+                  {extraDetails && <small>{extraDetails}</small>}
                 </div>
-              ) : (
-                <button
-                  className="btn-secondary admin-delete-button"
-                  type="button"
-                  onClick={() => setConfirmingId(attendee.id)}
-                  disabled={Boolean(attendee.deletedAt) || deletingId === attendee.id}
-                >
-                  {attendee.deletedAt ? "Deleted" : "Delete"}
-                </button>
-              )}
-            </article>
-          ))
+                <div className="admin-attendee-meta">
+                  <span>{attendee.profileCompletedAt ? "Profile complete" : "Profile pending"}</span>
+                  <span>{attendee.checkedInAt ? `Checked in ${formatDate(attendee.checkedInAt)}` : "Not checked in"}</span>
+                </div>
+                <div className="admin-attendee-actions">
+                  <button
+                    className="btn-secondary admin-present-button"
+                    type="button"
+                    onClick={() => markAsPresent(attendee)}
+                    disabled={Boolean(attendee.deletedAt) || Boolean(attendee.checkedInAt) || updatingAttendanceIds.has(attendee.id)}
+                  >
+                    {attendee.checkedInAt ? "Present" : "Mark as present"}
+                  </button>
+                  {confirmingId === attendee.id ? (
+                    <div className="admin-attendee-confirm" role="group" aria-label={`Confirm delete ${attendee.name}`}>
+                      <span>Soft delete this attendee?</span>
+                      <div>
+                        <button className="btn-secondary" type="button" onClick={() => setConfirmingId(null)} disabled={deletingId === attendee.id}>
+                          Cancel
+                        </button>
+                        <button className="btn-danger-soft" type="button" onClick={() => deleteAttendee(attendee)} disabled={deletingId === attendee.id}>
+                          {deletingId === attendee.id ? "Deleting..." : "Confirm delete"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="admin-attendee-menu">
+                      <button
+                        className="admin-attendee-menu-button"
+                        type="button"
+                        aria-label={`More actions for ${attendee.name}`}
+                        aria-expanded={actionMenuId === attendee.id}
+                        onClick={() => setActionMenuId((current) => current === attendee.id ? null : attendee.id)}
+                        disabled={Boolean(attendee.deletedAt) || deletingId === attendee.id}
+                      >
+                        <span aria-hidden="true">⋮</span>
+                      </button>
+                      {actionMenuId === attendee.id && (
+                        <div className="admin-attendee-menu-dropdown">
+                          {attendee.checkedInAt && (
+                            <button
+                              className="admin-absent-button"
+                              type="button"
+                              disabled={updatingAttendanceIds.has(attendee.id)}
+                              onClick={() => markAsAbsent(attendee)}
+                            >
+                              Mark as absent
+                            </button>
+                          )}
+                          <button
+                            className="admin-delete-button"
+                            type="button"
+                            onClick={() => {
+                              setConfirmingId(attendee.id);
+                              setActionMenuId(null);
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </article>
+            );
+          })
         ) : (
           <div className="directory-state">
             <h2>No attendees found</h2>
@@ -274,10 +430,54 @@ export default function AdminAttendeesPage() {
           </div>
         )}
       </section>
+
+      {filtered.length > ATTENDEES_PER_PAGE && (
+        <nav className="admin-pagination" aria-label="Attendee pagination">
+          <button
+            type="button"
+            className="admin-pagination-button"
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </button>
+          <div className="admin-pagination-pages">
+            {Array.from({ length: totalPages }, (_, index) => {
+              const pageNumber = index + 1;
+              return (
+                <button
+                  key={pageNumber}
+                  type="button"
+                  className={`admin-pagination-page${pageNumber === currentPage ? " active" : ""}`}
+                  aria-current={pageNumber === currentPage ? "page" : undefined}
+                  onClick={() => setPage(pageNumber)}
+                >
+                  {pageNumber}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            className="admin-pagination-button"
+            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </nav>
+      )}
     </main>
   );
 }
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}
+
+function compactDetails(values: Array<string | null>) {
+  return values
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value))
+    .join(" · ");
 }

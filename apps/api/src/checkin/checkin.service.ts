@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { CheckInMethod } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventService } from "../event/event.service";
@@ -45,6 +45,22 @@ export class CheckinService {
 
   async checkInManual(attendeeId: string): Promise<CheckinOutcome> {
     return this.recordCheckIn(attendeeId, "MANUAL");
+  }
+
+  async checkInByAdminManual(attendeeId: string): Promise<CheckinOutcome & { attendeeName: string }> {
+    const attendee = await this.prisma.attendee.findUnique({
+      where: { id: attendeeId },
+      select: { id: true, name: true, deletedAt: true },
+    });
+    if (!attendee || attendee.deletedAt) throw new NotFoundException("Attendee not found");
+
+    const outcome = await this.recordCheckIn(attendee.id, "MANUAL");
+    return { ...outcome, attendeeName: attendee.name };
+  }
+
+  async markAbsentByAdmin(attendeeId: string) {
+    const result = await this.prisma.checkIn.deleteMany({ where: { attendeeId } });
+    return { status: result.count > 0 ? "marked_absent" : "already_absent" } as const;
   }
 
   // F3.7 — attendee scanned the venue attendance QR. The token is the event's

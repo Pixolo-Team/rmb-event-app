@@ -64,13 +64,60 @@ export type PublicProfileData = {
   websiteUrl: string | null;
 };
 
+// businessCategoryOption/cityOption/chapter/offeringOption are seed-only —
+// no controller anywhere exposes create/update/delete for them — so caching
+// them in memory carries no staleness risk in practice, and cuts three DB
+// round trips off of every directory load and profile-options fetch (each
+// round trip costs ~700ms against the pooled Supabase connection).
+const REFERENCE_CACHE_TTL_MS = 5 * 60 * 1000;
+
 @Injectable()
 export class AttendeesService {
+  private referenceCache = new Map<string, { value: unknown; expiresAt: number }>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly session: SessionService,
     private readonly matching: MatchingService,
   ) {}
+
+  private async cachedReference<T>(key: string, load: () => Promise<T>): Promise<T> {
+    const hit = this.referenceCache.get(key);
+    if (hit && hit.expiresAt > Date.now()) return hit.value as T;
+    const value = await load();
+    this.referenceCache.set(key, { value, expiresAt: Date.now() + REFERENCE_CACHE_TTL_MS });
+    return value;
+  }
+
+  private cachedBusinessCategories() {
+    return this.cachedReference("businessCategories", () =>
+      this.prisma.businessCategoryOption.findMany({
+        where: { active: true },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        select: { name: true },
+      }),
+    );
+  }
+
+  private cachedCities() {
+    return this.cachedReference("cities", () =>
+      this.prisma.cityOption.findMany({
+        where: { active: true },
+        orderBy: [{ stateOrUt: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
+        select: { name: true, stateOrUt: true },
+      }),
+    );
+  }
+
+  private cachedChapters() {
+    return this.cachedReference("chapters", () =>
+      this.prisma.chapter.findMany({
+        where: { active: true },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        select: { name: true },
+      }),
+    );
+  }
 
   async resolveOnboardingToken(rawToken: string): Promise<ResolveOnboardingResult> {
     const record = await this.prisma.onboardingToken.findUnique({
@@ -310,26 +357,16 @@ export class AttendeesService {
 
   async getProfileOptions() {
     const [businessCategories, offeringOptions, cities, chapters] = await Promise.all([
-      this.prisma.businessCategoryOption.findMany({
-        where: { active: true },
-        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-        select: { name: true },
-      }),
-      this.prisma.offeringOption.findMany({
-        where: { active: true, category: { active: true } },
-        orderBy: [{ category: { sortOrder: "asc" } }, { sortOrder: "asc" }, { name: "asc" }],
-        select: { name: true, category: { select: { name: true } } },
-      }),
-      this.prisma.cityOption.findMany({
-        where: { active: true },
-        orderBy: [{ stateOrUt: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
-        select: { name: true, stateOrUt: true },
-      }),
-      this.prisma.chapter.findMany({
-        where: { active: true },
-        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-        select: { name: true },
-      }),
+      this.cachedBusinessCategories(),
+      this.cachedReference("offeringOptions", () =>
+        this.prisma.offeringOption.findMany({
+          where: { active: true, category: { active: true } },
+          orderBy: [{ category: { sortOrder: "asc" } }, { sortOrder: "asc" }, { name: "asc" }],
+          select: { name: true, category: { select: { name: true } } },
+        }),
+      ),
+      this.cachedCities(),
+      this.cachedChapters(),
     ]);
 
     const offeringsByCategory = offeringOptions.reduce<Record<string, string[]>>((grouped, option) => {
@@ -349,8 +386,15 @@ export class AttendeesService {
     };
   }
 
+  // Was $transaction([...6 queries]) — Postgres runs a transaction's statements
+  // strictly one-after-another, so that paid ~700ms of pooled-connection latency
+  // six times in a row. Three of the six are unauthenticated reference-data reads
+  // (see cachedBusinessCategories/cachedCities/cachedChapters — nothing can mutate
+  // them, so they're near-free once warm) and the rest have no atomicity
+  // requirement (independent reads for one display), so Promise.all lets them run
+  // on separate pooled connections concurrently instead of serially.
   async listDirectory(currentAttendeeId: string) {
-    const [attendees, businessCategories, cities, chapters, bookmarks, meetings] = await this.prisma.$transaction([
+    const [attendees, businessCategories, cities, chapters, bookmarks, meetings] = await Promise.all([
       this.prisma.attendee.findMany({
         where: { id: { not: currentAttendeeId }, deletedAt: null },
         select: {
@@ -369,21 +413,9 @@ export class AttendeesService {
         },
         orderBy: { name: "asc" },
       }),
-      this.prisma.businessCategoryOption.findMany({
-        where: { active: true },
-        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-        select: { name: true },
-      }),
-      this.prisma.cityOption.findMany({
-        where: { active: true },
-        orderBy: [{ stateOrUt: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
-        select: { name: true, stateOrUt: true },
-      }),
-      this.prisma.chapter.findMany({
-        where: { active: true },
-        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-        select: { name: true },
-      }),
+      this.cachedBusinessCategories(),
+      this.cachedCities(),
+      this.cachedChapters(),
       this.prisma.bookmark.findMany({ where: { attendeeId: currentAttendeeId }, select: { targetId: true } }),
       this.prisma.meeting.findMany({
         where: { OR: [{ attendeeAId: currentAttendeeId }, { attendeeBId: currentAttendeeId }] },
@@ -436,7 +468,8 @@ export class AttendeesService {
       chapter: { select: { name: true } },
     } as const;
 
-    const [attendee, viewer, bookmark] = await Promise.all([
+    const [attendeeAId, attendeeBId] = [viewerId, targetId].sort();
+    const [attendee, viewer, bookmark, meeting] = await Promise.all([
       this.prisma.attendee.findUnique({
         where: { id: targetId },
         select: {
@@ -463,6 +496,12 @@ export class AttendeesService {
       viewerId === targetId
         ? Promise.resolve(null)
         : this.prisma.bookmark.findUnique({ where: { attendeeId_targetId: { attendeeId: viewerId, targetId } } }),
+      viewerId === targetId
+        ? Promise.resolve(null)
+        : this.prisma.meeting.findUnique({
+            where: { attendeeAId_attendeeBId: { attendeeAId, attendeeBId } },
+            select: { id: true },
+          }),
     ]);
     if (!attendee || attendee.deletedAt) throw new NotFoundException("Attendee not found");
 
@@ -481,6 +520,7 @@ export class AttendeesService {
       deletedAt: undefined,
       match: match && match.headline ? match : null,
       bookmarked: Boolean(bookmark),
+      met: Boolean(meeting),
     };
   }
 

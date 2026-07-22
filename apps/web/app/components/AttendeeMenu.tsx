@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { withCsrfHeaders } from "../lib/csrf";
 import { PoweredByFooter } from "./PoweredByFooter";
+import { usePwaInstall } from "./PwaInstallProvider";
 import { profileCache } from "../lib/profileCache";
 
 export interface MenuAttendee {
@@ -23,10 +24,12 @@ type MenuItem = {
 };
 
 const DRAWER_ITEMS: MenuItem[] = [
+  { href: "/connections", label: "My Connections", icon: ConnectionsIcon, available: true },
   { href: "/feed", label: "Feed", icon: PhotoIcon, available: true },
   { href: "/gallery", label: "Gallery", icon: GalleryIcon, available: true },
   { href: "/leaderboard", label: "Leaderboard", icon: TrophyIcon, available: true, activePrefixes: ["/leaderboard/"] },
   { href: "/summary", label: "Event Summary", icon: SummaryIcon, available: true },
+  { href: "/event", label: "Event Details", icon: EventIcon, available: true },
   { href: "/profile?qr=1", label: "Show My QR", icon: QrIcon, available: true },
   { href: "/feedback", label: "Give Feedback", icon: FeedbackIcon, available: true },
 ];
@@ -49,13 +52,24 @@ function initials(name: string): string {
     .join("");
 }
 
+function manualInstallHint(): string {
+  if (typeof navigator === "undefined") return "";
+  const ua = navigator.userAgent;
+  const isIos = /iPad|iPhone|iPod/.test(ua) && !(window as unknown as { MSStream?: unknown }).MSStream;
+  if (isIos) return "Tap the Share icon, then “Add to Home Screen.”";
+  if (/Android/.test(ua)) return "Open your browser menu and choose “Install app” or “Add to Home screen.”";
+  return "Open your browser menu and choose “Install Evento” or “Add to Home screen.”";
+}
+
 export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [installHint, setInstallHint] = useState<string | null>(null);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { canInstall, isInstalled, promptInstall } = usePwaInstall();
   const titleId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
@@ -73,6 +87,10 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
     const timeout = window.setTimeout(() => setMounted(false), 220);
     return () => window.clearTimeout(timeout);
   }, [open, mounted]);
+
+  useEffect(() => {
+    if (!open) setInstallHint(null);
+  }, [open]);
 
   function removeMenuHistoryMarker() {
     if (!window.history.state?.eventoAttendeeMenu) return;
@@ -226,6 +244,26 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
                   </Link>
                 );
               })}
+              {!isInstalled && (
+                <>
+                  <button
+                    type="button"
+                    className="menu-link"
+                    onClick={() => {
+                      if (canInstall) {
+                        promptInstall();
+                        setOpen(false);
+                      } else {
+                        setInstallHint(manualInstallHint());
+                      }
+                    }}
+                  >
+                    <InstallIcon />
+                    <span className="menu-link-label">Install app</span>
+                  </button>
+                  {installHint && <p className="menu-install-hint">{installHint}</p>}
+                </>
+              )}
             </nav>
 
             <div className="menu-bottom">
@@ -340,6 +378,10 @@ function DirectoryIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3" /><path d="M3 19c.4-3.5 2.4-5.2 6-5.2s5.6 1.7 6 5.2M17 7h4M17 11h4M17 15h4" /></svg>;
 }
 
+function InstallIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 20h14" /></svg>;
+}
+
 function ConnectionsIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="3" /><circle cx="17" cy="9" r="2.5" /><path d="M2.5 20c.5-4 2.3-6 5.5-6s5 2 5.5 6M14 15c3.7-.8 6.2.8 7 4" /></svg>;
 }
@@ -355,4 +397,5 @@ function GalleryIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.2" /><rect x="14" y="3" width="7" height="7" rx="1.2" /><rect x="3" y="14" width="7" height="7" rx="1.2" /><rect x="14" y="14" width="7" height="7" rx="1.2" /></svg>;
 }
 function SummaryIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10h4v10M10 20V4h4v16M15 20v-7h4v7M3 20h18" /></svg>; }
+function EventIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M4 10h16M8 3v4M16 3v4" /><circle cx="12" cy="15" r="1.6" /></svg>; }
 function FeedbackIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" /></svg>; }

@@ -9,6 +9,7 @@ import { directoryCache, type AttendeeProfile } from "../../lib/directoryCache";
 import { SaveContactButton } from "../../components/SaveContactButton";
 import { BookmarkButton } from "../../components/BookmarkButton";
 import { trackEvent } from "../../lib/gtag";
+import { getCachedVenueConfig } from "../../lib/offlineQueue";
 
 export default function AttendeeProfilePage({ params }: { params: { id: string } }) {
   const [profile, setProfile] = useState<AttendeeProfile | null>(null);
@@ -47,7 +48,10 @@ export default function AttendeeProfilePage({ params }: { params: { id: string }
   return (
     <AttendeePageShell>
       <main className="attendee-page profile-page">
-        <Link className="back-link" href="/directory">Back to directory</Link>
+        <Link className="back-link" href="/directory">
+          <BackArrowIcon />
+          <span>Back to Directory</span>
+        </Link>
         {offlineResult && <div className="banner info"><div><b>Showing saved profile</b>You are offline. Details may be slightly out of date.</div></div>}
         {loading && <ProfileSkeleton />}
         {!loading && error && !profile && <div className="directory-state"><h1>Can&apos;t load profile</h1><p>Check your connection and try again.</p></div>}
@@ -88,10 +92,25 @@ function ProfileSkeleton() {
 
 function ProfileContent({ profile }: { profile: AttendeeProfile }) {
   const [canShare, setCanShare] = useState(false);
+  const [eventName, setEventName] = useState<string | null>(null);
   const whatsappNumber = profile.phone.replace(/[^\d]/g, "");
-  const whatsappText = encodeURIComponent(`Hi ${profile.name}, we connected through Evento.`);
+  const whatsappText = encodeURIComponent(
+    eventName ? `Hi ${profile.name}, we met at the ${eventName}.` : `Hi ${profile.name}, we met at the event.`,
+  );
 
   useEffect(() => setCanShare(typeof navigator.share === "function"), []);
+
+  useEffect(() => {
+    getCachedVenueConfig().then((cached) => {
+      if (cached?.name) setEventName(cached.name);
+    });
+    fetch("/api/event")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { name?: string } | null) => {
+        if (data?.name) setEventName(data.name);
+      })
+      .catch(() => undefined);
+  }, []);
 
   return (
     <>
@@ -106,12 +125,18 @@ function ProfileContent({ profile }: { profile: AttendeeProfile }) {
       </section>
 
       <div className="profile-actions">
-        <BookmarkButton attendeeId={profile.id} initialBookmarked={Boolean(profile.bookmarked)} onChange={(bookmarked) => directoryCache.setProfile(profile.id, { ...profile, bookmarked })} />
-        <a className="profile-action call" href={`tel:${profile.phone}`}><PhoneIcon /><span>Call</span></a>
-        <a className="profile-action whatsapp" href={`https://wa.me/${whatsappNumber}?text=${whatsappText}`} target="_blank" rel="noreferrer"><WhatsAppIcon /><span>WhatsApp</span></a>
-        {profile.linkedInUrl && <a className="profile-action linkedin" href={profile.linkedInUrl} target="_blank" rel="noreferrer"><LinkedInIcon /><span>LinkedIn</span></a>}
-        {profile.websiteUrl && <a className="profile-action website" href={profile.websiteUrl} target="_blank" rel="noreferrer"><WebsiteIcon /><span>Website</span></a>}
-        {canShare && <button className="profile-action share" type="button" onClick={() => navigator.share({ title: profile.name, text: `${profile.name} · ${profile.businessName ?? "Evento attendee"}` })}><ShareIcon /><span>Share</span></button>}
+        {profile.met ? (
+          <div className="profile-action already-met" aria-label="Already met">
+            <CheckIcon /><span>Already met</span>
+          </div>
+        ) : (
+          <BookmarkButton attendeeId={profile.id} initialBookmarked={Boolean(profile.bookmarked)} onChange={(bookmarked) => directoryCache.setProfile(profile.id, { ...profile, bookmarked })} />
+        )}
+        <a className="profile-action icon-only call" href={`tel:${profile.phone}`} aria-label={`Call ${profile.name}`} title="Call"><PhoneIcon /><span className="sr-only">Call</span></a>
+        <a className="profile-action icon-only whatsapp" href={`https://wa.me/${whatsappNumber}?text=${whatsappText}`} target="_blank" rel="noreferrer" aria-label={`WhatsApp ${profile.name}`} title="WhatsApp"><WhatsAppIcon /><span className="sr-only">WhatsApp</span></a>
+        {profile.linkedInUrl && <a className="profile-action icon-only linkedin" href={profile.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${profile.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /><span className="sr-only">LinkedIn</span></a>}
+        {profile.websiteUrl && <a className="profile-action icon-only website" href={profile.websiteUrl} target="_blank" rel="noreferrer" aria-label={`${profile.name} website`} title="Website"><WebsiteIcon /><span className="sr-only">Website</span></a>}
+        {canShare && <button className="profile-action icon-only share" type="button" aria-label={`Share ${profile.name}`} title="Share" onClick={() => navigator.share({ title: profile.name, text: `${profile.name} · ${profile.businessName ?? "Evento attendee"}` })}><ShareIcon /><span className="sr-only">Share</span></button>}
       </div>
 
       {profile.match && (
@@ -153,6 +178,10 @@ function PhoneIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 4.5h3.2l1.6 4.2-2 1.7a14.2 14.2 0 0 0 5.3 5.3l1.7-2 4.2 1.6v3.2a1.8 1.8 0 0 1-2 1.8A15.8 15.8 0 0 1 3.7 6.5a1.8 1.8 0 0 1 1.8-2Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
+function CheckIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4.5 4.5L19 7" /></svg>;
+}
+
 function WhatsAppIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-11.8 7L4 19.5l1.1-4A8 8 0 1 1 20 11.5Z" /><path d="M8.9 8.2c.2-.5.4-.5.6-.5h.5c.2 0 .4 0 .6.5l.7 1.6c.1.2 0 .4 0 .5l-.4.5c-.1.2-.3.3-.1.6a5.6 5.6 0 0 0 2.6 2.3c.3.1.4 0 .6-.1l.5-.6c.2-.2.3-.1.5-.1l1.5.8c.2.1.4.2.4.3v.6c-.1.5-.8 1-1.3 1.1-.4.1-1 .1-3-.8a8.4 8.4 0 0 1-3.4-3.3c-.3-.6-.7-1.4-.7-2.2 0-.5.2-.9.4-1.1Z" fill="currentColor" stroke="none" /></svg>;
 }
@@ -162,9 +191,13 @@ function WebsiteIcon() {
 }
 
 function LinkedInIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9v10M5 5.5v.1M10 19v-9M10 13.5c.7-2.2 2-3.5 4-3.5 2.6 0 4 1.7 4 5v4" /></svg>;
+  return <svg className="brand-glyph" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5A2.5 2.5 0 1 0 5 8.5a2.5 2.5 0 0 0-.02-5ZM3 9.5h4v11H3v-11Zm6 0h3.8v1.5h.05c.53-.95 1.83-1.95 3.77-1.95C20.3 9.05 21 11 21 14.1v6.4h-4v-5.7c0-1.36-.02-3.1-1.9-3.1-1.9 0-2.2 1.48-2.2 3v5.8H9v-11Z" /></svg>;
 }
 
 function ShareIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.2" /><circle cx="17" cy="6" r="2.2" /><circle cx="17" cy="18" r="2.2" /><path d="M8 11l7-4M8 13l7 4" /></svg>;
+}
+
+function BackArrowIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6 9 12l6 6" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }

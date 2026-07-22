@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { RegisterServiceWorker } from "./RegisterServiceWorker";
 import { GoogleAnalytics } from "./components/GoogleAnalytics";
+import { PwaInstallProvider } from "./components/PwaInstallProvider";
 
 export const metadata: Metadata = {
   title: "Evento",
@@ -24,7 +25,7 @@ export default function RootLayout({
       <body>
         <GoogleAnalytics />
         <RegisterServiceWorker />
-        {children}
+        <PwaInstallProvider>{children}</PwaInstallProvider>
       </body>
     </html>
   );

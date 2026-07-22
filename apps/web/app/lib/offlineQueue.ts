@@ -81,13 +81,33 @@ export async function flushQueue(onSynced?: (kind: QueueKind, response: unknown)
 // `name`/`startAt`/`endAt` are optional because a cache written before F3.6 shipped
 // won't have them — an attendee who installed the PWA earlier must not read
 // `undefined` as "event ended".
+export type AgendaItem = {
+  // 24-hour "HH:MM" from the admin time pickers. `time` is a legacy composed
+  // string kept for older cached payloads.
+  startTime?: string;
+  endTime?: string | null;
+  time?: string;
+  title: string;
+  note?: string | null;
+};
+
 export type CachedVenueConfig = {
   venueLat: number | null;
   venueLng: number | null;
+  venueAddress?: string | null;
   checkinRadiusM: number;
   name?: string | null;
   startAt?: string | null;
   endAt?: string | null;
+  contactName?: string | null;
+  contactPhone?: string | null;
+  subtitle?: string | null;
+  chairName?: string | null;
+  chairTitle?: string | null;
+  chairPhotoUrl?: string | null;
+  registrationUrl?: string | null;
+  registrationPricing?: string | null;
+  agenda?: AgendaItem[] | null;
 };
 
 export async function cacheVenueConfig(config: CachedVenueConfig): Promise<void> {

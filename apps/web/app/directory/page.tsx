@@ -9,6 +9,7 @@ import { directoryCache, type DirectoryAttendee, type DirectoryResponse } from "
 import { BookmarkButton } from "../components/BookmarkButton";
 import { DirectorySkeleton } from "./DirectorySkeleton";
 import { DirectoryToolbar } from "./DirectoryToolbar";
+import { SingleSelectDropdown } from "../components/SingleSelectDropdown";
 
 type CheckinFilter = "all" | "checked-in" | "not-checked-in";
 
@@ -160,12 +161,36 @@ export default function DirectoryPage() {
         <div className={`filter-layer${filterOpen ? "" : " closing"}`}>
           <button className="menu-backdrop" type="button" aria-label="Close filters" onClick={() => setFilterOpen(false)} />
           <section className="filter-sheet" role="dialog" aria-modal="true" aria-labelledby="filter-title">
-            <div className="filter-sheet-header"><h2 id="filter-title">Filter attendees</h2><button type="button" aria-label="Close filters" onClick={() => setFilterOpen(false)}>x</button></div>
-            <FilterSelect label="Business category" value={filters.category} options={data?.facets.businessCategories ?? []} onChange={(category) => setFilters({ ...filters, category })} />
-            <FilterSelect label="Company" value={filters.company} options={data?.facets.companies ?? []} onChange={(company) => setFilters({ ...filters, company })} />
-            <FilterSelect label="City" value={filters.city} options={data?.facets.cities ?? []} onChange={(city) => setFilters({ ...filters, city })} />
-            <label className="filter-field"><span>RMB chapter</span><select value={filters.chapter} onChange={(event) => setFilters({ ...filters, chapter: event.target.value })}><option value="">All chapters</option>{data?.facets.chapters.map((chapter) => <option key={chapter}>{chapter}</option>)}{data?.facets.hasAttendeesWithoutChapter && <option value="__none__">No chapter</option>}</select></label>
-            <label className="filter-field"><span>Check-in status</span><select value={filters.checkin} onChange={(event) => setFilters({ ...filters, checkin: event.target.value as CheckinFilter })}><option value="all">Everyone</option><option value="checked-in">Checked in</option><option value="not-checked-in">Not checked in</option></select></label>
+            <div className="filter-sheet-header">
+              <h2 id="filter-title">Filter attendees</h2>
+              <button className="menu-close" type="button" aria-label="Close filters" onClick={() => setFilterOpen(false)}>
+                <CloseIcon />
+              </button>
+            </div>
+            <FilterSelect label="Business category" value={filters.category} options={data?.facets.businessCategories ?? []} onChange={(category) => setFilters({ ...filters, category })} allLabel="All" />
+            <FilterSelect label="Company" value={filters.company} options={data?.facets.companies ?? []} onChange={(company) => setFilters({ ...filters, company })} allLabel="All" />
+            <FilterSelect label="City" value={filters.city} options={data?.facets.cities ?? []} onChange={(city) => setFilters({ ...filters, city })} allLabel="All" />
+            <SingleSelectDropdown
+              label="RMB chapter"
+              value={filters.chapter}
+              onChange={(chapter) => setFilters({ ...filters, chapter })}
+              placeholder="All chapters"
+              options={[
+                { value: "", label: "All chapters" },
+                ...(data?.facets.chapters ?? []).map((chapter) => ({ value: chapter, label: chapter })),
+                ...(data?.facets.hasAttendeesWithoutChapter ? [{ value: "__none__", label: "No chapter" }] : []),
+              ]}
+            />
+            <SingleSelectDropdown
+              label="Check-in status"
+              value={filters.checkin}
+              onChange={(checkin) => setFilters({ ...filters, checkin: checkin as CheckinFilter })}
+              options={[
+                { value: "all", label: "Everyone" },
+                { value: "checked-in", label: "Checked in" },
+                { value: "not-checked-in", label: "Not checked in" },
+              ]}
+            />
             <div className="filter-actions"><button className="btn-secondary" type="button" onClick={() => setFilters(EMPTY_FILTERS)}>Clear all</button><button className="btn-primary" type="button" onClick={() => setFilterOpen(false)}>Show {attendees.length} results</button></div>
           </section>
         </div>
@@ -184,6 +209,15 @@ function AttendeeCard({ attendee, onBookmark }: { attendee: DirectoryAttendee; o
     navigator.clipboard?.writeText(url).catch(() => undefined);
   }
 
+  // Real identifiers only — the Attendee model has no job-title/designation
+  // field and no mutual-connections aggregate, so those two items aren't
+  // shown; everything below is genuine profile data. City is intentionally
+  // left out per request — company + industry lead, chapter/table follow.
+  const primaryLine = attendee.businessName;
+  const secondaryLine = [attendee.businessCategory, attendee.chapterName, attendee.tableNumber && `Table ${attendee.tableNumber}`]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
     <article className="directory-card-wrap">
       <Link className="directory-card" href={`/attendees/${attendee.id}`}>
@@ -194,29 +228,56 @@ function AttendeeCard({ attendee, onBookmark }: { attendee: DirectoryAttendee; o
             {attendee.met && <span className="met-badge">Met</span>}
             {attendee.checkedIn && <span className="status-dot" title="Checked in" />}
           </div>
-          {attendee.businessName && <p className="company-name">{attendee.businessName}</p>}
-          <p className="attendee-meta">{[attendee.businessCategory, attendee.city].filter(Boolean).join(" · ") || "Profile details coming soon"}</p>
-          <div className="card-tags">{attendee.chapterName && <span>{attendee.chapterName}</span>}{attendee.tableNumber && <span>Table {attendee.tableNumber}</span>}</div>
+          {primaryLine ? <p className="attendee-meta primary">{primaryLine}</p> : null}
+          {secondaryLine ? <p className="attendee-meta secondary">{secondaryLine}</p> : null}
         </div>
-        <span className="card-arrow" aria-hidden="true">›</span>
+        <span className="directory-card-chevron" aria-hidden="true"><ChevronIcon /></span>
       </Link>
       <div className="directory-card-actions" aria-label={`Actions for ${attendee.name}`}>
-        <BookmarkButton attendeeId={attendee.id} initialBookmarked={Boolean(attendee.bookmarked)} compact onChange={onBookmark} />
-        <a className="icon-btn" href={`tel:${attendee.phone}`} aria-label={`Call ${attendee.name}`} title="Call"><PhoneIcon /></a>
-        {attendee.linkedInUrl && <a className="icon-btn" href={attendee.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${attendee.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /></a>}
-        {attendee.websiteUrl ? <a className="icon-btn" href={attendee.websiteUrl} target="_blank" rel="noreferrer" aria-label={`${attendee.name} website`} title="Website"><WebsiteIcon /></a> : <button className="icon-btn" type="button" disabled aria-label={`${attendee.name} has no website`} title="No website"><WebsiteIcon /></button>}
-        <button className="icon-btn" type="button" onClick={shareAttendee} aria-label={`Share ${attendee.name}`} title="Share"><ShareIcon /></button>
+        <BookmarkButton attendeeId={attendee.id} initialBookmarked={Boolean(attendee.bookmarked)} compact compactLabel onChange={onBookmark} />
+        <a className="icon-btn" href={`tel:${attendee.phone}`} aria-label={`Call ${attendee.name}`}><PhoneIcon /><span>Call</span></a>
+        <button className="icon-btn icon-only" type="button" onClick={shareAttendee} aria-label={`Share ${attendee.name}`} title="Share"><ShareIcon /></button>
+        {attendee.linkedInUrl && <a className="icon-btn icon-only" href={attendee.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${attendee.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /></a>}
+        {attendee.websiteUrl && <a className="icon-btn icon-only" href={attendee.websiteUrl} target="_blank" rel="noreferrer" aria-label={`${attendee.name} website`} title="Website"><WebsiteIcon /></a>}
       </div>
     </article>
   );
 }
 
-function FilterSelect({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
-  return <label className="filter-field"><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)}><option value="">All</option>{options.map((option) => <option key={option}>{option}</option>)}</select></label>;
+function ChevronIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>;
+}
+
+function FilterSelect({
+  label,
+  value,
+  options,
+  onChange,
+  allLabel,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+  allLabel: string;
+}) {
+  return (
+    <SingleSelectDropdown
+      label={label}
+      value={value}
+      onChange={onChange}
+      placeholder={allLabel}
+      options={[
+        { value: "", label: allLabel },
+        ...options.map((option) => ({ value: option, label: option })),
+      ]}
+    />
+  );
 }
 
 function DirectoryState({ title, body }: { title: string; body: string }) { return <div className="directory-state"><h2>{title}</h2><p>{body}</p></div>; }
 function PhoneIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 4.5h3.2l1.6 4.2-2 1.7a14.2 14.2 0 0 0 5.3 5.3l1.7-2 4.2 1.6v3.2a1.8 1.8 0 0 1-2 1.8A15.8 15.8 0 0 1 3.7 6.5a1.8 1.8 0 0 1 1.8-2Z" /></svg>; }
-function LinkedInIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9v10M5 5.5v.1M10 19v-9M10 13.5c.7-2.2 2-3.5 4-3.5 2.6 0 4 1.7 4 5v4" /></svg>; }
+function LinkedInIcon() { return <svg className="brand-glyph" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5A2.5 2.5 0 1 0 5 8.5a2.5 2.5 0 0 0-.02-5ZM3 9.5h4v11H3v-11Zm6 0h3.8v1.5h.05c.53-.95 1.83-1.95 3.77-1.95C20.3 9.05 21 11 21 14.1v6.4h-4v-5.7c0-1.36-.02-3.1-1.9-3.1-1.9 0-2.2 1.48-2.2 3v5.8H9v-11Z" /></svg>; }
 function WebsiteIcon() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M4 12h16M12 4a13 13 0 0 1 0 16M12 4a13 13 0 0 0 0 16" /></svg>; }
 function ShareIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.2" /><circle cx="17" cy="6" r="2.2" /><circle cx="17" cy="18" r="2.2" /><path d="M8 11l7-4M8 13l7 4" /></svg>; }
+function CloseIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>; }

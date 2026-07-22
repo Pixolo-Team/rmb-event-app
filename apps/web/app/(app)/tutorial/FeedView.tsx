@@ -734,36 +734,34 @@ function PhotoCard({
             {[photo.attendeeBusinessName, formatTimestamp(photo.createdAt)].filter(Boolean).join(" · ")}
           </p>
         </div>
-        <div className="post-menu">
-          <button className="post-menu-btn" type="button" onClick={onToggleMenu} aria-label="Post options">
-            &hellip;
-          </button>
-          {menuOpen ? (
-            <div className="post-menu-dropdown">
-              {isOwn ? (
+        {isOwn ? (
+          <div className="post-menu">
+            <button className="post-menu-btn" type="button" onClick={onToggleMenu} aria-label="Post options">
+              &hellip;
+            </button>
+            {menuOpen ? (
+              <div className="post-menu-dropdown">
                 <button type="button" onClick={onDelete}>
                   Delete
                 </button>
-              ) : (
-                <span className="person-line muted">No actions available</span>
-              )}
-            </div>
-          ) : null}
-        </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {photo.caption ? <p className={`post-caption${captionExpanded ? " expanded" : ""}`}><span>{photo.caption}</span>{photo.caption.length > 72 && <button type="button" onClick={() => setCaptionExpanded(!captionExpanded)}>{captionExpanded ? "less" : "Read more"}</button>}</p> : null}
 
       <div className="post-carousel">
-      <button type="button" className="photo-card-media" onClick={onEnlarge} aria-label="Enlarge photo">
+      <div className="photo-card-media">
         {mediaUrls[activeMedia] ? (
-          <img src={mediaUrls[activeMedia]} alt="" />
+          <img src={mediaUrls[activeMedia]} alt="" loading="lazy" decoding="async" />
         ) : (
           <div className="photo-card-placeholder" aria-hidden="true">
             {getInitials(photo.attendeeName)}
           </div>
         )}
-      </button>
+      </div>
       {mediaUrls.length > 1 && <><button className="carousel-arrow previous" type="button" aria-label="Previous photo" onClick={() => setActiveMedia((activeMedia - 1 + mediaUrls.length) % mediaUrls.length)}>‹</button><button className="carousel-arrow next" type="button" aria-label="Next photo" onClick={() => setActiveMedia((activeMedia + 1) % mediaUrls.length)}>›</button><div className="carousel-dots" aria-label={`Photo ${activeMedia + 1} of ${mediaUrls.length}`}>{mediaUrls.map((_, index) => <span key={index} className={index === activeMedia ? "active" : ""} />)}</div></>}
       </div>
 

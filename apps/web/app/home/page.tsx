@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Html5Qrcode } from "html5-qrcode";
 import { AttendeeBottomTabs, AttendeeMenu, type MenuAttendee } from "../components/AttendeeMenu";
+import { InstallBanner } from "../components/InstallBanner";
 import { PoweredByFooter } from "../components/PoweredByFooter";
 
 // OTHERS //
@@ -21,7 +22,7 @@ import {
   type QueueKind,
 } from "../lib/offlineQueue";
 import { resolveHomeMode, type HomeMode } from "../lib/homeMode";
-import { statsCache, type PersonalStats } from "../lib/statsCache";
+import { refreshPersonalStats, statsCache, type PersonalStats } from "../lib/statsCache";
 import { matchesCache, type MatchSuggestion } from "../lib/matchesCache";
 import { homeCache } from "../lib/homeCache";
 import { profileCache, type MyProfile } from "../lib/profileCache";
@@ -57,13 +58,6 @@ const COUNTDOWN_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-}
-
-function formatDuration(ms: number): string {
-  if (ms <= 0) return "0m";
-  const totalMin = Math.floor(ms / 60000);
-  const hours = Math.floor(totalMin / 60);
-  return hours > 0 ? `${hours}h ${totalMin % 60}m` : `${totalMin}m`;
 }
 
 function formatEventDate(iso: string): string {
@@ -103,6 +97,9 @@ export default function HomePage() {
       }
       setPendingSync(false);
     }
+    if (kind === "meeting-scan") {
+      refreshPersonalStats().catch(() => undefined);
+    }
   });
 
   // Cache first, then refresh — sequentially. Both are heavy aggregates and firing
@@ -117,12 +114,7 @@ export default function HomePage() {
     }
 
     try {
-      const res = await fetch("/api/attendees/me/stats", { credentials: "include" });
-      if (res.ok) {
-        const data = (await res.json()) as PersonalStats;
-        statsCache.set(data);
-        setStats(data);
-      }
+      await refreshPersonalStats();
     } catch {
       /* offline / unreachable — the cached figures stay on screen */
     }
@@ -144,6 +136,10 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    const unsubscribe = statsCache.subscribe((nextStats) => {
+      if (nextStats) setStats(nextStats);
+    });
+
     const cachedHome = homeCache.get();
     let renderedFromCache = false;
 
@@ -154,7 +150,7 @@ export default function HomePage() {
       setEvent(cachedHome.event);
       venueConfig.current = cachedHome.event;
       setReady(true);
-      loadDashboardData();
+      void loadDashboardData();
     }
 
     const deadline = AbortSignal.timeout(12_000);
@@ -203,11 +199,12 @@ export default function HomePage() {
         setCheckin(status);
         setReady(true);
         homeCache.set({ attendee: nextAttendee, checkin: status, event: config });
-        if (!renderedFromCache) loadDashboardData();
+        if (!renderedFromCache) void loadDashboardData();
       })
       .catch(() => {
         if (!renderedFromCache) setLoadFailed(true);
       });
+    return unsubscribe;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -391,6 +388,7 @@ export default function HomePage() {
   return (
     <div className="home-dash attendee-tabbed-page">
       <PageHeader attendee={attendee} />
+      <InstallBanner />
       <main className="home-dash-body">
         <h1 className="home-greeting">Hi{firstName ? `, ${firstName}` : ""} 👋</h1>
 
@@ -574,6 +572,9 @@ function PreEventTop({ event, startMs }: { event: CachedVenueConfig | null; star
       <h2 className="home-preevent-name">{name}</h2>
       {event?.startAt && <p className="home-preevent-date">{formatEventDate(event.startAt)}</p>}
       {withinCountdown && startMs !== null && <Countdown ms={Math.max(0, startMs - now)} />}
+      <Link className="home-preevent-details-link" href="/event">
+        View event details
+      </Link>
     </section>
   );
 }
@@ -607,21 +608,16 @@ function Countdown({ ms }: { ms: number }) {
 // ---------------------------------------------------------------- sections
 
 function ProgressSection({ stats }: { stats: PersonalStats | null }) {
-  const timeAtEvent =
-    stats?.checkedInAt
-      ? formatDuration(
-          Math.min(Date.now(), stats.eventEndAt ? new Date(stats.eventEndAt).getTime() : Date.now()) -
-            new Date(stats.checkedInAt).getTime(),
-        )
-      : null;
-
   return (
     <section className="profile-section" aria-label="Your progress">
       <h2>Your progress</h2>
       <div className="stats-grid home-stats-grid">
         <StatTile value={stats?.peopleMet ?? "—"} label="People met" />
         <StatTile value={stats ? `#${stats.rank}` : "—"} sub={stats ? `of ${stats.totalRanked}` : undefined} label="Rank" />
-        <StatTile value={timeAtEvent ?? "—"} label="Time at event" />
+        <Link className="stat-tile home-stat-link" href="/matches" aria-label={`${stats?.bookmarks ?? 0} bookmarks. Open Want to Meet`}>
+          <strong>{stats?.bookmarks ?? "—"}</strong>
+          <span>Bookmarks</span>
+        </Link>
       </div>
       {stats?.peopleMet === 0 && <p className="empty-copy home-nudge">No meetings yet. Start scanning!</p>}
     </section>

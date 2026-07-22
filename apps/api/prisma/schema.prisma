@@ -199,9 +199,27 @@ model Event {
   name           String    @default("Evento")
   venueLat       Float?
   venueLng       Float?
+  // Human-readable venue address shown on the attendee Event Details page.
+  // Separate from venueLat/venueLng, which are coordinates used for geofenced check-in.
+  venueAddress   String?
   checkinRadiusM Int       @default(500)
   startAt        DateTime?
   endAt          DateTime?
+  // Event contact person shown on the attendee Event Details page (click-to-call).
+  contactName    String?
+  contactPhone   String?
+  // Short badge shown under the event name, e.g. "Cross Chapter Meeting".
+  subtitle       String?
+  // Single featured chair/host shown with the agenda on the Event Details page.
+  chairName      String?
+  chairTitle     String?
+  chairPhotoUrl  String?
+  // "Scan to register" — admin pastes an external registration link (Google
+  // Form, payment page, etc); the attendee app renders a QR code for it.
+  registrationUrl      String?
+  registrationPricing  String?
+  // Ordered list of {time, title, note?} rows rendered as the event schedule.
+  agenda         Json?
   // F3.7 — the token encoded in the printable "venue attendance" QR. Attendees
   // scan it in-app to self-check-in (method VENUE_QR). Regenerating rotates it so
   // an old printout stops working. Null until first generated.

@@ -5,10 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { DirectoryAvatar } from "../components/DirectoryAvatar";
 import { PageIntro } from "../components/PageIntro";
-import { BookmarkConnection, Connection, ConnectionsResponse, connectionsCache } from "../lib/connectionsCache";
+import { Connection, ConnectionsResponse, connectionsCache } from "../lib/connectionsCache";
 import { SaveContactButton } from "../components/SaveContactButton";
-import { BookmarkButton } from "../components/BookmarkButton";
 import { withCsrfHeaders } from "../lib/csrf";
+import { getCachedVenueConfig } from "../lib/offlineQueue";
 
 type SortOption = "recent" | "name";
 
@@ -18,19 +18,37 @@ export default function ConnectionsPage() {
   const [offline, setOffline] = useState(false);
   const [error, setError] = useState(false);
   const [sort, setSort] = useState<SortOption>("recent");
-  const [tab, setTab] = useState<"met" | "want">("met");
+  const [eventName, setEventName] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCachedVenueConfig().then((cached) => {
+      if (cached?.name) setEventName(cached.name);
+    });
+    fetch("/api/event")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { name?: string } | null) => {
+        if (data?.name) setEventName(data.name);
+      })
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     const cached = connectionsCache.get();
     if (cached) {
       setData(cached);
       setOffline(!navigator.onLine);
-      setLoading(false);
+      // A populated cache is immediately useful. An empty cache is not proof
+      // that the attendee still has no connections, so keep the skeleton up
+      // until the live response confirms the empty state.
+      if (cached.connections.length > 0) setLoading(false);
     }
-    Promise.all([fetch("/api/attendees/me/connections", { credentials: "include" }), fetch("/api/bookmarks", { credentials: "include" })])
-      .then(async ([connectionsResponse, bookmarksResponse]) => {
-        if (!connectionsResponse.ok || !bookmarksResponse.ok) throw new Error("connections unavailable");
-        const result = { ...(await connectionsResponse.json()), bookmarks: await bookmarksResponse.json() } as ConnectionsResponse;
+    fetch("/api/attendees/me/connections", { credentials: "include" })
+      .then(async (connectionsResponse) => {
+        if (!connectionsResponse.ok) throw new Error("connections unavailable");
+        // My Connections only renders confirmed meetings. Preserve any cached
+        // bookmark snapshot for the Want to Meet screen instead of delaying
+        // this page on a second, unrelated API request.
+        const result = { ...(await connectionsResponse.json()), bookmarks: cached?.bookmarks ?? [] } as ConnectionsResponse;
         connectionsCache.set(result);
         setData(result);
         setOffline(false);
@@ -43,7 +61,6 @@ export default function ConnectionsPage() {
   const connections = useMemo(() => [...(data?.connections ?? [])].sort((a, b) =>
     sort === "name" ? a.name.localeCompare(b.name) : Date.parse(b.metAt) - Date.parse(a.metAt),
   ), [data, sort]);
-  const bookmarks = useMemo(() => [...(data?.bookmarks ?? [])].sort((a, b) => sort === "name" ? a.name.localeCompare(b.name) : Date.parse(b.bookmarkedAt) - Date.parse(a.bookmarkedAt)), [data, sort]);
 
   function updateConnection(id: string, update: Partial<Connection>) {
     if (!data) return;
@@ -63,58 +80,56 @@ export default function ConnectionsPage() {
     <AttendeePageShell>
       <main className="attendee-page connections-page">
         <div className="page-context-row">
-          <PageIntro>People whose QR code you’ve scanned.</PageIntro>
-          <span className="connections-count">{tab === "met" ? connections.length : bookmarks.length}</span>
+          <PageIntro>People whose QR code you’ve scanned. Saved attendees live on the Want to Meet tab.</PageIntro>
+          {!loading || connections.length > 0 ? <span className="connections-count">{connections.length}</span> : <span className="connections-count skeleton-block" aria-hidden="true" />}
         </div>
 
         {offline && <div className="banner info"><div><b>Showing saved connections</b>You’re offline. Notes and removals need a connection.</div></div>}
 
-        <div className="connections-tabs" role="tablist" aria-label="Connection type">
-          <button type="button" role="tab" aria-selected={tab === "met"} onClick={() => setTab("met")}>Already met <span>{connections.length}</span></button>
-          <button type="button" role="tab" aria-selected={tab === "want"} onClick={() => setTab("want")}>Want to meet <span>{bookmarks.length}</span></button>
-        </div>
+        {connections.length > 1 && <label className="connections-sort"><span>Sort by</span><select value={sort} onChange={(event) => setSort(event.target.value as SortOption)}><option value="recent">Most recent</option><option value="name">Name</option></select></label>}
 
-        {(tab === "met" ? connections.length : bookmarks.length) > 1 && <label className="connections-sort"><span>Sort by</span><select value={sort} onChange={(event) => setSort(event.target.value as SortOption)}><option value="recent">Most recent</option><option value="name">Name</option></select></label>}
-
-        {loading && <div className="directory-loading" role="status">Loading connections…</div>}
+        {loading && connections.length === 0 && <ConnectionsSkeleton />}
         {!loading && error && !data && <ConnectionState title="Can’t load connections" body="Check your connection and try again." />}
-        {!loading && data && tab === "met" && connections.length === 0 && <ConnectionState title="You haven’t met anyone yet" body="Scan someone’s QR code to exchange details and they’ll appear here." action />}
-        {!loading && data && tab === "want" && bookmarks.length === 0 && <ConnectionState title="Your Want to Meet list is empty" body="Save attendees from the directory and they’ll appear here." directoryAction />}
-        {tab === "met" && connections.length > 0 && <div className="connections-list">{connections.map((connection) => <ConnectionCard key={connection.id} connection={connection} offline={offline} onNote={(note) => updateConnection(connection.id, { note })} onRemove={() => removeConnection(connection.id)} />)}</div>}
-        {tab === "want" && bookmarks.length > 0 && <div className="connections-list">{bookmarks.map((person) => <BookmarkCard key={person.id} person={person} onRemove={() => { if (!data) return; const next = { ...data, bookmarks: data.bookmarks.filter((item) => item.id !== person.id) }; setData(next); connectionsCache.set(next); }} />)}</div>}
+        {!loading && data && connections.length === 0 && <ConnectionState title="You haven’t met anyone yet" body="Scan someone’s QR code to exchange details and they’ll appear here." action />}
+        {connections.length > 0 && <div className="connections-list">{connections.map((connection) => <ConnectionCard key={connection.id} connection={connection} offline={offline} eventName={eventName} onNote={(note) => updateConnection(connection.id, { note })} onRemove={() => removeConnection(connection.id)} />)}</div>}
       </main>
     </AttendeePageShell>
   );
 }
 
-function BookmarkCard({ person, onRemove }: { person: BookmarkConnection; onRemove: () => void }) {
-  function sharePerson() {
-    const url = `${window.location.origin}/p/${person.id}`;
-    if (navigator.share) {
-      navigator.share({ title: person.name, url }).catch(() => undefined);
-      return;
-    }
-    navigator.clipboard?.writeText(url).catch(() => undefined);
-  }
-
-  return <article className="connection-card bookmark-card">
-    <Link className="connection-person" href={`/attendees/${person.id}`}><DirectoryAvatar name={person.name} photoUrl={person.photoUrl} /><div><h2>{person.name}{person.met && <span className="met-badge">Met</span>}</h2>{person.businessName && <p>{person.businessName}</p>}<div className="connection-meta-line"><span>Saved {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(person.bookmarkedAt))}</span>{person.tableNumber && <span className="connection-table"><TableIcon /> Table {person.tableNumber}</span>}</div></div></Link>
-    <div className="connection-details">{person.businessCategory && <span>{person.businessCategory}</span>}{person.bio && <p>{person.bio}</p>}</div>
-    <div className="card-icon-actions" aria-label={`Actions for ${person.name}`}>
-      <BookmarkButton attendeeId={person.id} initialBookmarked onChange={(value) => { if (!value) onRemove(); }} compact />
-      <a className="icon-btn" href={`tel:${person.phone}`} aria-label={`Call ${person.name}`} title="Call"><CallIcon /></a>
-      {person.linkedInUrl && <a className="icon-btn" href={person.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${person.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /></a>}
-      <button className="icon-btn" type="button" onClick={sharePerson} aria-label={`Share ${person.name}`} title="Share"><ShareIcon /></button>
+function ConnectionsSkeleton() {
+  return (
+    <div className="connections-list connections-skeleton" role="status" aria-label="Loading connections" aria-busy="true">
+      {[0, 1, 2].map((item) => (
+        <article className="connection-card" key={item}>
+          <div className="connection-person">
+            <span className="skeleton-block connection-skeleton-avatar" />
+            <div className="connection-skeleton-copy">
+              <span className="skeleton-block connection-skeleton-name" />
+              <span className="skeleton-block connection-skeleton-line" />
+              <span className="skeleton-block connection-skeleton-line short" />
+            </div>
+          </div>
+          <div className="connection-skeleton-actions">
+            <span className="skeleton-block" />
+            <span className="skeleton-block" />
+          </div>
+        </article>
+      ))}
+      <span className="sr-only">Loading connections…</span>
     </div>
-  </article>;
+  );
 }
 
-function ConnectionCard({ connection, offline, onNote, onRemove }: { connection: Connection; offline: boolean; onNote: (note: string) => void; onRemove: () => void }) {
+function ConnectionCard({ connection, offline, eventName, onNote, onRemove }: { connection: Connection; offline: boolean; eventName: string | null; onNote: (note: string) => void; onRemove: () => void }) {
   const [editing, setEditing] = useState(false);
   const [note, setNote] = useState(connection.note);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const whatsappNumber = connection.phone.replace(/[^\d]/g, "");
+  const whatsappText = encodeURIComponent(
+    eventName ? `Hi ${connection.name}, we met at the ${eventName}.` : `Hi ${connection.name}, we met at the event.`,
+  );
 
   async function saveNote() {
     setSaving(true);
@@ -155,7 +170,6 @@ function ConnectionCard({ connection, offline, onNote, onRemove }: { connection:
     </Link>
     <div className="connection-details">
       {connection.businessCategory && <span>{connection.businessCategory}</span>}
-      {connection.bio && <p>{connection.bio}</p>}
     </div>
     {connection.note && !editing && <div className="connection-note"><div><b>Private note</b><button type="button" disabled={offline} onClick={() => setEditing(true)}>Edit</button></div><p>{connection.note}</p></div>}
     {!connection.note && !editing && <button className="connection-add-note" type="button" disabled={offline} onClick={() => setEditing(true)}>+ Add private note</button>}
@@ -163,7 +177,8 @@ function ConnectionCard({ connection, offline, onNote, onRemove }: { connection:
     {message && <p className="connection-error" role="alert">{message}</p>}
     <div className="connection-actions">
       <a href={`tel:${connection.phone}`}><CallIcon /> Call</a>
-      <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noreferrer"><WhatsAppIcon /> WhatsApp</a>
+      <a href={`https://wa.me/${whatsappNumber}?text=${whatsappText}`} target="_blank" rel="noreferrer"><WhatsAppIcon /> WhatsApp</a>
+      {connection.linkedInUrl && <a href={connection.linkedInUrl} target="_blank" rel="noreferrer"><LinkedInIcon /> LinkedIn</a>}
     </div>
     <SaveContactButton contact={{ name: connection.name, phone: connection.phone, email: connection.email, company: connection.businessName, note: connection.note || "Met at Evento" }} />
   </article>;
@@ -185,8 +200,5 @@ function WhatsAppIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.7a8 8 0 0 1-11.8 7L4 20l1.3-4.1A8 8 0 1 1 20 11.7Z" /><path d="M8.6 7.8c.5 3.5 3 6 6.5 6.6l1.3-1.5-2.2-1.1-.8.8a6 6 0 0 1-2.2-2.2l.8-.8-1.1-2.2-1.5 1.3" /></svg>;
 }
 function LinkedInIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9v10M5 5.5v.1M10 19v-9M10 13.5c.7-2.2 2-3.5 4-3.5 2.6 0 4 1.7 4 5v4" /></svg>;
-}
-function ShareIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.2" /><circle cx="17" cy="6" r="2.2" /><circle cx="17" cy="18" r="2.2" /><path d="M8 11l7-4M8 13l7 4" /></svg>;
+  return <svg className="brand-glyph" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5A2.5 2.5 0 1 0 5 8.5a2.5 2.5 0 0 0-.02-5ZM3 9.5h4v11H3v-11Zm6 0h3.8v1.5h.05c.53-.95 1.83-1.95 3.77-1.95C20.3 9.05 21 11 21 14.1v6.4h-4v-5.7c0-1.36-.02-3.1-1.9-3.1-1.9 0-2.2 1.48-2.2 3v5.8H9v-11Z" /></svg>;
 }

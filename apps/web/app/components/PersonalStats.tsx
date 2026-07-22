@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PersonalStats as Stats, statsCache } from "../lib/statsCache";
+import { PersonalStats as Stats, refreshPersonalStats, statsCache } from "../lib/statsCache";
 
 function formatDuration(ms: number): string {
   if (ms <= 0) return "0m";
@@ -21,16 +21,14 @@ export function PersonalStats() {
   useEffect(() => {
     const cached = statsCache.get();
     if (cached) setStats(cached);
-    fetch("/api/attendees/me/stats", { credentials: "include" })
-      .then(async (res) => {
-        if (!res.ok) throw new Error("unavailable");
-        const data = (await res.json()) as Stats;
-        statsCache.set(data);
-        setStats(data);
-      })
+    const unsubscribe = statsCache.subscribe((nextStats) => {
+      if (nextStats) setStats(nextStats);
+    });
+    refreshPersonalStats()
       .catch(() => {
         /* offline / unreachable — keep the cached value */
       });
+    return unsubscribe;
   }, []);
 
   // Minute granularity is enough for a "time at event" readout.
@@ -57,7 +55,6 @@ export function PersonalStats() {
         <StatTile value={`#${stats.rank}`} sub={`of ${stats.totalRanked}`} label="Rank" />
         <StatTile value={stats.bookmarks} label="Bookmarks" />
         <StatTile value={stats.photos} label="Photos posted" />
-        <StatTile value={timeAtEvent ?? "—"} label={checkedIn ? "Time at event" : "Not checked in yet"} wide />
       </div>
     </section>
   );
