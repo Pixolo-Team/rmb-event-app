@@ -28,7 +28,9 @@ export function PersonalStats() {
       .catch(() => {
         /* offline / unreachable — keep the cached value */
       });
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   // Minute granularity is enough for a "time at event" readout.
@@ -39,9 +41,9 @@ export function PersonalStats() {
 
   if (!stats) return null;
 
-  const totalRanked = Math.max(stats.totalRanked, stats.rank);
-  const rankValue = stats.rank > 0 ? `#${stats.rank}` : "-";
-  const rankSub = totalRanked > 0 ? `of ${totalRanked}` : undefined;
+  const totalRanked = Math.max(stats.totalRanked, stats.rank ?? 0);
+  const rankValue = formatRank(stats.rank);
+  const rankSub = stats.rank && totalRanked > 0 ? `of ${totalRanked}` : undefined;
 
   const checkedIn = stats.checkedInAt !== null;
   const timeAtEvent = checkedIn
@@ -62,6 +64,10 @@ export function PersonalStats() {
       </div>
     </section>
   );
+}
+
+function formatRank(rank: number | null) {
+  return rank ? `#${rank}` : "Not ranked";
 }
 
 function StatTile({
