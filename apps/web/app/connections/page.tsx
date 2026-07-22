@@ -23,12 +23,18 @@ export default function ConnectionsPage() {
     if (cached) {
       setData(cached);
       setOffline(!navigator.onLine);
-      setLoading(false);
+      // A populated cache is immediately useful. An empty cache is not proof
+      // that the attendee still has no connections, so keep the skeleton up
+      // until the live response confirms the empty state.
+      if (cached.connections.length > 0) setLoading(false);
     }
-    Promise.all([fetch("/api/attendees/me/connections", { credentials: "include" }), fetch("/api/bookmarks", { credentials: "include" })])
-      .then(async ([connectionsResponse, bookmarksResponse]) => {
-        if (!connectionsResponse.ok || !bookmarksResponse.ok) throw new Error("connections unavailable");
-        const result = { ...(await connectionsResponse.json()), bookmarks: await bookmarksResponse.json() } as ConnectionsResponse;
+    fetch("/api/attendees/me/connections", { credentials: "include" })
+      .then(async (connectionsResponse) => {
+        if (!connectionsResponse.ok) throw new Error("connections unavailable");
+        // My Connections only renders confirmed meetings. Preserve any cached
+        // bookmark snapshot for the Want to Meet screen instead of delaying
+        // this page on a second, unrelated API request.
+        const result = { ...(await connectionsResponse.json()), bookmarks: cached?.bookmarks ?? [] } as ConnectionsResponse;
         connectionsCache.set(result);
         setData(result);
         setOffline(false);
@@ -61,19 +67,43 @@ export default function ConnectionsPage() {
       <main className="attendee-page connections-page">
         <div className="page-context-row">
           <PageIntro>People whose QR code you’ve scanned. Saved attendees live on the Want to Meet tab.</PageIntro>
-          <span className="connections-count">{connections.length}</span>
+          {!loading || connections.length > 0 ? <span className="connections-count">{connections.length}</span> : <span className="connections-count skeleton-block" aria-hidden="true" />}
         </div>
 
         {offline && <div className="banner info"><div><b>Showing saved connections</b>You’re offline. Notes and removals need a connection.</div></div>}
 
         {connections.length > 1 && <label className="connections-sort"><span>Sort by</span><select value={sort} onChange={(event) => setSort(event.target.value as SortOption)}><option value="recent">Most recent</option><option value="name">Name</option></select></label>}
 
-        {loading && <div className="directory-loading" role="status">Loading connections…</div>}
+        {loading && connections.length === 0 && <ConnectionsSkeleton />}
         {!loading && error && !data && <ConnectionState title="Can’t load connections" body="Check your connection and try again." />}
         {!loading && data && connections.length === 0 && <ConnectionState title="You haven’t met anyone yet" body="Scan someone’s QR code to exchange details and they’ll appear here." action />}
         {connections.length > 0 && <div className="connections-list">{connections.map((connection) => <ConnectionCard key={connection.id} connection={connection} offline={offline} onNote={(note) => updateConnection(connection.id, { note })} onRemove={() => removeConnection(connection.id)} />)}</div>}
       </main>
     </AttendeePageShell>
+  );
+}
+
+function ConnectionsSkeleton() {
+  return (
+    <div className="connections-list connections-skeleton" role="status" aria-label="Loading connections" aria-busy="true">
+      {[0, 1, 2].map((item) => (
+        <article className="connection-card" key={item}>
+          <div className="connection-person">
+            <span className="skeleton-block connection-skeleton-avatar" />
+            <div className="connection-skeleton-copy">
+              <span className="skeleton-block connection-skeleton-name" />
+              <span className="skeleton-block connection-skeleton-line" />
+              <span className="skeleton-block connection-skeleton-line short" />
+            </div>
+          </div>
+          <div className="connection-skeleton-actions">
+            <span className="skeleton-block" />
+            <span className="skeleton-block" />
+          </div>
+        </article>
+      ))}
+      <span className="sr-only">Loading connections…</span>
+    </div>
   );
 }
 

@@ -2425,8 +2425,9 @@ p.copy {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
+  gap: 14px;
+  min-height: 84px;
+  padding: 16px 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface);
@@ -2443,9 +2444,9 @@ p.copy {
   /* Lighter than a solid border line — a hairline plus a soft shadow reads as
      "card" without competing with the attendee info for visual weight. */
   border: 1px solid rgba(15, 35, 65, 0.07);
-  border-radius: var(--radius-md);
+  border-radius: 18px;
   background: var(--surface);
-  box-shadow: 0 1px 4px rgba(20, 40, 80, 0.04);
+  box-shadow: 0 3px 12px rgba(20, 40, 80, 0.07);
   transition: border-color 120ms ease-out, transform 120ms ease-out;
   overflow: hidden;
   animation: app-content-in 0.3s ease both;
@@ -2463,7 +2464,10 @@ p.copy {
 .directory-card-wrap:hover {
   border-color: var(--brand-500);
   transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(20, 62, 110, 0.1);
 }
+.directory-card-wrap:focus-within { border-color: var(--brand-500); box-shadow: 0 0 0 3px var(--brand-100); }
+.directory-card:focus-visible { outline: none; }
 .directory-card-wrap .directory-card {
   border: none;
   box-shadow: none;
@@ -2502,11 +2506,26 @@ p.copy {
   height: 46px;
   flex-basis: 46px;
   font-size: 0.95rem;
+  border: 2px solid var(--surface);
+  box-shadow: 0 0 0 2px var(--brand-100);
 }
 .directory-card-body {
   min-width: 0;
   flex: 1;
 }
+.directory-card-chevron {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand-50);
+  color: var(--brand-700);
+  transition: transform 120ms ease-out, background 120ms ease-out;
+}
+.directory-card-chevron svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.directory-card:hover .directory-card-chevron { transform: translateX(2px); background: var(--brand-100); }
 .directory-name-row {
   display: flex;
   align-items: center;
@@ -3140,6 +3159,16 @@ a.contact-row:active { background: var(--brand-100); }
 .note-editor .btn-primary, .note-editor .btn-secondary { width: auto; min-height: 40px; margin: 0; padding: 0 13px; }
 .connection-error { margin: 10px 0 0; color: var(--danger-700, #a52828); font-size: .8rem; }
 .connections-empty-action { width: max-content; display: inline-flex; margin: 18px auto 0; padding: 0 18px; text-decoration: none; }
+.connections-count.skeleton-block { width: 32px; height: 25px; border-radius: 999px; }
+.connections-skeleton { pointer-events: none; }
+.connections-skeleton .connection-card { min-height: 190px; }
+.connection-skeleton-avatar { width: 56px; height: 56px; flex: 0 0 56px; border-radius: 50%; }
+.connection-skeleton-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 8px; }
+.connection-skeleton-name { width: min(190px, 65%); height: 18px; }
+.connection-skeleton-line { width: min(250px, 82%); height: 12px; }
+.connection-skeleton-line.short { width: min(150px, 48%); }
+.connection-skeleton-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 28px; }
+.connection-skeleton-actions .skeleton-block { height: 44px; border-radius: var(--radius-md); }
 
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
@@ -3725,15 +3754,18 @@ a.contact-row:active { background: var(--brand-100); }
 .card-icon-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
 }
 /* Sits directly under the info block (small positive gap, not the old
    -4px-margin-plus-88px-indent) — bookmark leads since Save is the primary
    action, so nothing needs to align past the avatar anymore. */
 .directory-card-actions {
-  padding: 0 12px 12px;
-  margin-top: 6px;
+  justify-content: flex-start;
+  padding: 4px 14px 16px 74px;
+  margin-top: -2px;
+  border-top: 0;
+  background: transparent;
 }
 .card-icon-actions {
   margin-top: 14px;
@@ -3755,21 +3787,26 @@ a.contact-row:active { background: var(--brand-100); }
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-/* Directory cards: smaller action row. Only icons backed by real data render
-   at all (LinkedIn/Website are omitted entirely when the attendee has none),
-   so every icon that does show up is prominent/actionable — no muted variant. */
+/* Directory cards use compact labelled pills so each action remains obvious in
+   bright venue conditions. Optional LinkedIn/Website actions simply wrap. */
 .directory-card-actions .bookmark-button,
 .directory-card-actions .icon-btn {
-  width: 34px;
-  height: 34px;
-  min-height: 34px;
-  flex: 0 0 34px;
-  border-color: var(--brand-300);
+  width: auto;
+  height: 40px;
+  min-height: 40px;
+  flex: 0 0 auto;
+  gap: 6px;
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  border-color: var(--border-strong);
   color: var(--brand-600);
+  font-size: 0.75rem;
+  font-weight: 700;
 }
+.directory-card-actions .icon-btn.icon-only { width: 40px; flex-basis: 40px; padding: 0; border-radius: 50%; }
 .directory-card-actions svg {
-  width: 15px;
-  height: 15px;
+  width: 17px;
+  height: 17px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.8;
@@ -3784,6 +3821,12 @@ a.contact-row:active { background: var(--brand-100); }
   background: var(--brand-600);
   border-color: var(--brand-600);
   color: #fff;
+}
+@media (max-width: 420px) {
+  .directory-card-actions { gap: 6px; padding-right: 8px; padding-left: 74px; }
+  .directory-card-actions .bookmark-button,
+  .directory-card-actions .icon-btn { padding-inline: 9px; }
+  .directory-card-actions .icon-btn.icon-only { padding: 0; }
 }
 
 /* F7 — lightweight, touch-friendly photo adjustments before upload. */

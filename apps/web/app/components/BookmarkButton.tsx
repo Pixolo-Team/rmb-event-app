@@ -7,7 +7,7 @@ import { enqueueWrite } from "../lib/offlineQueue";
 import { directoryCache } from "../lib/directoryCache";
 import { matchesCache } from "../lib/matchesCache";
 
-export function BookmarkButton({ attendeeId, initialBookmarked, compact = false, onChange }: { attendeeId: string; initialBookmarked: boolean; compact?: boolean; onChange?: (value: boolean) => void }) {
+export function BookmarkButton({ attendeeId, initialBookmarked, compact = false, compactLabel = false, onChange }: { attendeeId: string; initialBookmarked: boolean; compact?: boolean; compactLabel?: boolean; onChange?: (value: boolean) => void }) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [saving, setSaving] = useState(false);
 
@@ -60,7 +60,7 @@ export function BookmarkButton({ attendeeId, initialBookmarked, compact = false,
   }
 
   return <button className={`bookmark-button${bookmarked ? " is-bookmarked" : ""}${compact ? " compact" : ""}`} type="button" onClick={change} aria-pressed={bookmarked} aria-label={bookmarked ? "Remove from Want to Meet" : "Add to Want to Meet"}>
-    <BookmarkIcon />{!compact && <span>{bookmarked ? "Saved to Want to Meet" : "Want to meet"}</span>}
+    <BookmarkIcon />{(!compact || compactLabel) && <span>{compact ? (bookmarked ? "Saved" : "Save") : (bookmarked ? "Saved to Want to Meet" : "Want to meet")}</span>}
   </button>;
 }
 
