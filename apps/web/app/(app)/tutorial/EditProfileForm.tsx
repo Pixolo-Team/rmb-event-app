@@ -78,6 +78,10 @@ function initials(name: string): string {
     .join("");
 }
 
+function uniqueValues(values: readonly string[]) {
+  return [...new Set(values.filter(Boolean))];
+}
+
 export function EditProfileForm({
   attendee,
   onSaved,
@@ -144,22 +148,53 @@ export function EditProfileForm({
     };
   }, [photoPreview]);
 
+  useEffect(() => {
+    setBusinessCategory(attendee.businessCategory ?? "");
+    setCity(attendee.city ?? "");
+    setLookingFor(attendee.lookingFor ?? []);
+    setOffering(attendee.offering ?? []);
+    setGoals(attendee.goals ?? []);
+    setBio(attendee.bio ?? "");
+    setLinkedInUrl(attendee.linkedInUrl ?? "");
+    setWebsiteUrl(attendee.websiteUrl ?? "");
+    setPhotoFile(null);
+    setPhotoPreview((current) => {
+      if (current && current.startsWith("blob:")) {
+        URL.revokeObjectURL(current);
+      }
+      return attendee.photoUrl ?? null;
+    });
+    setError(null);
+  }, [attendee]);
+
   const knownCities = useMemo(() => {
     const values = new Set(options.cities.map((option) => option.value));
     if (attendee.city) values.add(attendee.city);
     return [...values];
   }, [attendee.city, options.cities]);
   const availableOfferings = useMemo(
-    () => options.offeringsByCategory[businessCategory] ?? [],
-    [businessCategory, options.offeringsByCategory],
+    () => uniqueValues([
+      ...(options.offeringsByCategory[businessCategory] ?? []),
+      ...offering,
+      ...(attendee.offering ?? []),
+    ]),
+    [attendee.offering, businessCategory, offering, options.offeringsByCategory],
   );
   const availableLookingFor = useMemo(
-    () => options.lookingFor ?? [],
-    [options.lookingFor],
+    () => uniqueValues([
+      ...(options.lookingFor ?? []),
+      ...lookingFor,
+      ...(attendee.lookingFor ?? []),
+    ]),
+    [attendee.lookingFor, lookingFor, options.lookingFor],
   );
   const availableGoals = useMemo(
-    () => options.goals ?? [],
-    [options.goals],
+    () => uniqueValues([
+      ...(options.goals ?? []),
+      ...goals,
+      ...(attendee.goals ?? []),
+    ]),
+    [attendee.goals, goals, options.goals],
   );
 
   useEffect(() => {
@@ -251,9 +286,9 @@ export function EditProfileForm({
       return;
     }
 
-    const sanitizedLookingFor = lookingFor.filter((item) => availableLookingFor.includes(item));
-    const sanitizedOffering = offering.filter((item) => availableOfferings.includes(item));
-    const sanitizedGoals = goals.filter((item) => availableGoals.includes(item));
+    const sanitizedLookingFor = lookingFor.filter((item) => (options.lookingFor ?? []).includes(item));
+    const sanitizedOffering = offering.filter((item) => (options.offeringsByCategory[businessCategory] ?? []).includes(item));
+    const sanitizedGoals = goals.filter((item) => (options.goals ?? []).includes(item));
 
 
     setSaving(true);
