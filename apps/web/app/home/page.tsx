@@ -22,7 +22,7 @@ import {
   type QueueKind,
 } from "../lib/offlineQueue";
 import { resolveHomeMode, type HomeMode } from "../lib/homeMode";
-import { statsCache, type PersonalStats } from "../lib/statsCache";
+import { refreshPersonalStats, statsCache, type PersonalStats } from "../lib/statsCache";
 import { matchesCache, type MatchSuggestion } from "../lib/matchesCache";
 import { homeCache } from "../lib/homeCache";
 import { profileCache, type MyProfile } from "../lib/profileCache";
@@ -97,6 +97,9 @@ export default function HomePage() {
       }
       setPendingSync(false);
     }
+    if (kind === "meeting-scan") {
+      refreshPersonalStats().catch(() => undefined);
+    }
   });
 
   // Cache first, then refresh — sequentially. Both are heavy aggregates and firing
@@ -111,12 +114,7 @@ export default function HomePage() {
     }
 
     try {
-      const res = await fetch("/api/attendees/me/stats", { credentials: "include" });
-      if (res.ok) {
-        const data = (await res.json()) as PersonalStats;
-        statsCache.set(data);
-        setStats(data);
-      }
+      await refreshPersonalStats();
     } catch {
       /* offline / unreachable — the cached figures stay on screen */
     }
@@ -138,6 +136,10 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    const unsubscribe = statsCache.subscribe((nextStats) => {
+      if (nextStats) setStats(nextStats);
+    });
+
     const cachedHome = homeCache.get();
     let renderedFromCache = false;
 
@@ -148,7 +150,7 @@ export default function HomePage() {
       setEvent(cachedHome.event);
       venueConfig.current = cachedHome.event;
       setReady(true);
-      loadDashboardData();
+      void loadDashboardData();
     }
 
     const deadline = AbortSignal.timeout(12_000);
@@ -197,11 +199,12 @@ export default function HomePage() {
         setCheckin(status);
         setReady(true);
         homeCache.set({ attendee: nextAttendee, checkin: status, event: config });
-        if (!renderedFromCache) loadDashboardData();
+        if (!renderedFromCache) void loadDashboardData();
       })
       .catch(() => {
         if (!renderedFromCache) setLoadFailed(true);
       });
+    return unsubscribe;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

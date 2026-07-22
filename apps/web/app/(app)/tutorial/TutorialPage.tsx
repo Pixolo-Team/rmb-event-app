@@ -34,6 +34,7 @@ export type AttendeeMe = {
   goals?: string[];
   bio?: string | null;
   linkedInUrl?: string | null;
+  websiteUrl?: string | null;
   qrToken?: string | null;
   profileCompletedAt: string | null;
 };
@@ -95,6 +96,7 @@ const DEMO_ATTENDEE: AttendeeMe = {
   goals: ["Grow network", "Find partners"],
   bio: "Third-generation trading business, expanding across west India.",
   linkedInUrl: "https://www.linkedin.com/in/radha-sharma",
+  websiteUrl: "https://sharmatrading.example.com",
   qrToken: "demo-qr-token-radha-sharma",
   profileCompletedAt: new Date().toISOString(),
 };

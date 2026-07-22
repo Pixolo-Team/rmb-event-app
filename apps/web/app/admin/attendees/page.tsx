@@ -21,9 +21,12 @@ type AdminAttendee = {
 
 type LoadState = "loading" | "ready" | "error";
 
+const ATTENDEES_PER_PAGE = 10;
+
 export default function AdminAttendeesPage() {
   const [attendees, setAttendees] = useState<AdminAttendee[]>([]);
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [state, setState] = useState<LoadState>("loading");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [updatingAttendanceIds, setUpdatingAttendanceIds] = useState<Set<string>>(() => new Set());
@@ -46,6 +49,10 @@ export default function AdminAttendeesPage() {
     }, 10000);
     return () => window.clearTimeout(timeout);
   }, [message]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query]);
 
   async function loadAttendees() {
     setState("loading");
@@ -207,6 +214,19 @@ export default function AdminAttendeesPage() {
     );
   }, [attendees, query]);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ATTENDEES_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * ATTENDEES_PER_PAGE;
+  const pagedAttendees = filtered.slice(pageStart, pageStart + ATTENDEES_PER_PAGE);
+  const resultStart = filtered.length === 0 ? 0 : pageStart + 1;
+  const resultEnd = Math.min(pageStart + ATTENDEES_PER_PAGE, filtered.length);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
   const activeCount = attendees.filter((attendee) => !attendee.deletedAt).length;
   const deletedCount = attendees.length - activeCount;
 
@@ -302,6 +322,12 @@ export default function AdminAttendeesPage() {
         />
       </div>
 
+      {filtered.length > 0 && (
+        <div className="admin-pagination-summary" aria-live="polite">
+          Showing {resultStart}-{resultEnd} of {filtered.length} attendees
+        </div>
+      )}
+
       <section className="admin-attendee-list">
         {state === "loading" && attendees.length === 0 ? (
           <div className="directory-state">
@@ -309,7 +335,7 @@ export default function AdminAttendeesPage() {
             <p>The roster will appear here in a moment.</p>
           </div>
         ) : filtered.length ? (
-          filtered.map((attendee) => {
+          pagedAttendees.map((attendee) => {
             const primaryDetails = compactDetails([attendee.businessName, attendee.email]);
             const extraDetails = compactDetails([
               attendee.chapterName,
@@ -404,6 +430,43 @@ export default function AdminAttendeesPage() {
           </div>
         )}
       </section>
+
+      {filtered.length > ATTENDEES_PER_PAGE && (
+        <nav className="admin-pagination" aria-label="Attendee pagination">
+          <button
+            type="button"
+            className="admin-pagination-button"
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </button>
+          <div className="admin-pagination-pages">
+            {Array.from({ length: totalPages }, (_, index) => {
+              const pageNumber = index + 1;
+              return (
+                <button
+                  key={pageNumber}
+                  type="button"
+                  className={`admin-pagination-page${pageNumber === currentPage ? " active" : ""}`}
+                  aria-current={pageNumber === currentPage ? "page" : undefined}
+                  onClick={() => setPage(pageNumber)}
+                >
+                  {pageNumber}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            className="admin-pagination-button"
+            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </nav>
+      )}
     </main>
   );
 }

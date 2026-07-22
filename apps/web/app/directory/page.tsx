@@ -9,6 +9,7 @@ import { directoryCache, type DirectoryAttendee, type DirectoryResponse } from "
 import { BookmarkButton } from "../components/BookmarkButton";
 import { DirectorySkeleton } from "./DirectorySkeleton";
 import { DirectoryToolbar } from "./DirectoryToolbar";
+import { SingleSelectDropdown } from "../components/SingleSelectDropdown";
 
 type CheckinFilter = "all" | "checked-in" | "not-checked-in";
 
@@ -160,12 +161,36 @@ export default function DirectoryPage() {
         <div className={`filter-layer${filterOpen ? "" : " closing"}`}>
           <button className="menu-backdrop" type="button" aria-label="Close filters" onClick={() => setFilterOpen(false)} />
           <section className="filter-sheet" role="dialog" aria-modal="true" aria-labelledby="filter-title">
-            <div className="filter-sheet-header"><h2 id="filter-title">Filter attendees</h2><button type="button" aria-label="Close filters" onClick={() => setFilterOpen(false)}>x</button></div>
-            <FilterSelect label="Business category" value={filters.category} options={data?.facets.businessCategories ?? []} onChange={(category) => setFilters({ ...filters, category })} />
-            <FilterSelect label="Company" value={filters.company} options={data?.facets.companies ?? []} onChange={(company) => setFilters({ ...filters, company })} />
-            <FilterSelect label="City" value={filters.city} options={data?.facets.cities ?? []} onChange={(city) => setFilters({ ...filters, city })} />
-            <label className="filter-field"><span>RMB chapter</span><select value={filters.chapter} onChange={(event) => setFilters({ ...filters, chapter: event.target.value })}><option value="">All chapters</option>{data?.facets.chapters.map((chapter) => <option key={chapter}>{chapter}</option>)}{data?.facets.hasAttendeesWithoutChapter && <option value="__none__">No chapter</option>}</select></label>
-            <label className="filter-field"><span>Check-in status</span><select value={filters.checkin} onChange={(event) => setFilters({ ...filters, checkin: event.target.value as CheckinFilter })}><option value="all">Everyone</option><option value="checked-in">Checked in</option><option value="not-checked-in">Not checked in</option></select></label>
+            <div className="filter-sheet-header">
+              <h2 id="filter-title">Filter attendees</h2>
+              <button className="menu-close" type="button" aria-label="Close filters" onClick={() => setFilterOpen(false)}>
+                <CloseIcon />
+              </button>
+            </div>
+            <FilterSelect label="Business category" value={filters.category} options={data?.facets.businessCategories ?? []} onChange={(category) => setFilters({ ...filters, category })} allLabel="All" />
+            <FilterSelect label="Company" value={filters.company} options={data?.facets.companies ?? []} onChange={(company) => setFilters({ ...filters, company })} allLabel="All" />
+            <FilterSelect label="City" value={filters.city} options={data?.facets.cities ?? []} onChange={(city) => setFilters({ ...filters, city })} allLabel="All" />
+            <SingleSelectDropdown
+              label="RMB chapter"
+              value={filters.chapter}
+              onChange={(chapter) => setFilters({ ...filters, chapter })}
+              placeholder="All chapters"
+              options={[
+                { value: "", label: "All chapters" },
+                ...(data?.facets.chapters ?? []).map((chapter) => ({ value: chapter, label: chapter })),
+                ...(data?.facets.hasAttendeesWithoutChapter ? [{ value: "__none__", label: "No chapter" }] : []),
+              ]}
+            />
+            <SingleSelectDropdown
+              label="Check-in status"
+              value={filters.checkin}
+              onChange={(checkin) => setFilters({ ...filters, checkin: checkin as CheckinFilter })}
+              options={[
+                { value: "all", label: "Everyone" },
+                { value: "checked-in", label: "Checked in" },
+                { value: "not-checked-in", label: "Not checked in" },
+              ]}
+            />
             <div className="filter-actions"><button className="btn-secondary" type="button" onClick={() => setFilters(EMPTY_FILTERS)}>Clear all</button><button className="btn-primary" type="button" onClick={() => setFilterOpen(false)}>Show {attendees.length} results</button></div>
           </section>
         </div>
@@ -223,8 +248,31 @@ function ChevronIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>;
 }
 
-function FilterSelect({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
-  return <label className="filter-field"><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)}><option value="">All</option>{options.map((option) => <option key={option}>{option}</option>)}</select></label>;
+function FilterSelect({
+  label,
+  value,
+  options,
+  onChange,
+  allLabel,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+  allLabel: string;
+}) {
+  return (
+    <SingleSelectDropdown
+      label={label}
+      value={value}
+      onChange={onChange}
+      placeholder={allLabel}
+      options={[
+        { value: "", label: allLabel },
+        ...options.map((option) => ({ value: option, label: option })),
+      ]}
+    />
+  );
 }
 
 function DirectoryState({ title, body }: { title: string; body: string }) { return <div className="directory-state"><h2>{title}</h2><p>{body}</p></div>; }
@@ -232,3 +280,4 @@ function PhoneIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path 
 function LinkedInIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9v10M5 5.5v.1M10 19v-9M10 13.5c.7-2.2 2-3.5 4-3.5 2.6 0 4 1.7 4 5v4" /></svg>; }
 function WebsiteIcon() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M4 12h16M12 4a13 13 0 0 1 0 16M12 4a13 13 0 0 0 0 16" /></svg>; }
 function ShareIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.2" /><circle cx="17" cy="6" r="2.2" /><circle cx="17" cy="18" r="2.2" /><path d="M8 11l7-4M8 13l7 4" /></svg>; }
+function CloseIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>; }
