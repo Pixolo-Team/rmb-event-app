@@ -2078,7 +2078,6 @@ p.copy {
   border: none;
   padding: 0;
   background: var(--surface-2);
-  cursor: pointer;
 }
 .photo-card-media img {
   width: 100%;
