@@ -5,9 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { DirectoryAvatar } from "../components/DirectoryAvatar";
 import { PageIntro } from "../components/PageIntro";
-import { BookmarkConnection, Connection, ConnectionsResponse, connectionsCache } from "../lib/connectionsCache";
+import { Connection, ConnectionsResponse, connectionsCache } from "../lib/connectionsCache";
 import { SaveContactButton } from "../components/SaveContactButton";
-import { BookmarkButton } from "../components/BookmarkButton";
 import { withCsrfHeaders } from "../lib/csrf";
 
 type SortOption = "recent" | "name";
@@ -18,7 +17,6 @@ export default function ConnectionsPage() {
   const [offline, setOffline] = useState(false);
   const [error, setError] = useState(false);
   const [sort, setSort] = useState<SortOption>("recent");
-  const [tab, setTab] = useState<"met" | "want">("met");
 
   useEffect(() => {
     const cached = connectionsCache.get();
@@ -43,7 +41,6 @@ export default function ConnectionsPage() {
   const connections = useMemo(() => [...(data?.connections ?? [])].sort((a, b) =>
     sort === "name" ? a.name.localeCompare(b.name) : Date.parse(b.metAt) - Date.parse(a.metAt),
   ), [data, sort]);
-  const bookmarks = useMemo(() => [...(data?.bookmarks ?? [])].sort((a, b) => sort === "name" ? a.name.localeCompare(b.name) : Date.parse(b.bookmarkedAt) - Date.parse(a.bookmarkedAt)), [data, sort]);
 
   function updateConnection(id: string, update: Partial<Connection>) {
     if (!data) return;
@@ -63,50 +60,21 @@ export default function ConnectionsPage() {
     <AttendeePageShell>
       <main className="attendee-page connections-page">
         <div className="page-context-row">
-          <PageIntro>People whose QR code you’ve scanned.</PageIntro>
-          <span className="connections-count">{tab === "met" ? connections.length : bookmarks.length}</span>
+          <PageIntro>People whose QR code you’ve scanned. Saved attendees live on the Want to Meet tab.</PageIntro>
+          <span className="connections-count">{connections.length}</span>
         </div>
 
         {offline && <div className="banner info"><div><b>Showing saved connections</b>You’re offline. Notes and removals need a connection.</div></div>}
 
-        <div className="connections-tabs" role="tablist" aria-label="Connection type">
-          <button type="button" role="tab" aria-selected={tab === "met"} onClick={() => setTab("met")}>Already met <span>{connections.length}</span></button>
-          <button type="button" role="tab" aria-selected={tab === "want"} onClick={() => setTab("want")}>Want to meet <span>{bookmarks.length}</span></button>
-        </div>
-
-        {(tab === "met" ? connections.length : bookmarks.length) > 1 && <label className="connections-sort"><span>Sort by</span><select value={sort} onChange={(event) => setSort(event.target.value as SortOption)}><option value="recent">Most recent</option><option value="name">Name</option></select></label>}
+        {connections.length > 1 && <label className="connections-sort"><span>Sort by</span><select value={sort} onChange={(event) => setSort(event.target.value as SortOption)}><option value="recent">Most recent</option><option value="name">Name</option></select></label>}
 
         {loading && <div className="directory-loading" role="status">Loading connections…</div>}
         {!loading && error && !data && <ConnectionState title="Can’t load connections" body="Check your connection and try again." />}
-        {!loading && data && tab === "met" && connections.length === 0 && <ConnectionState title="You haven’t met anyone yet" body="Scan someone’s QR code to exchange details and they’ll appear here." action />}
-        {!loading && data && tab === "want" && bookmarks.length === 0 && <ConnectionState title="Your Want to Meet list is empty" body="Save attendees from the directory and they’ll appear here." directoryAction />}
-        {tab === "met" && connections.length > 0 && <div className="connections-list">{connections.map((connection) => <ConnectionCard key={connection.id} connection={connection} offline={offline} onNote={(note) => updateConnection(connection.id, { note })} onRemove={() => removeConnection(connection.id)} />)}</div>}
-        {tab === "want" && bookmarks.length > 0 && <div className="connections-list">{bookmarks.map((person) => <BookmarkCard key={person.id} person={person} onRemove={() => { if (!data) return; const next = { ...data, bookmarks: data.bookmarks.filter((item) => item.id !== person.id) }; setData(next); connectionsCache.set(next); }} />)}</div>}
+        {!loading && data && connections.length === 0 && <ConnectionState title="You haven’t met anyone yet" body="Scan someone’s QR code to exchange details and they’ll appear here." action />}
+        {connections.length > 0 && <div className="connections-list">{connections.map((connection) => <ConnectionCard key={connection.id} connection={connection} offline={offline} onNote={(note) => updateConnection(connection.id, { note })} onRemove={() => removeConnection(connection.id)} />)}</div>}
       </main>
     </AttendeePageShell>
   );
-}
-
-function BookmarkCard({ person, onRemove }: { person: BookmarkConnection; onRemove: () => void }) {
-  function sharePerson() {
-    const url = `${window.location.origin}/p/${person.id}`;
-    if (navigator.share) {
-      navigator.share({ title: person.name, url }).catch(() => undefined);
-      return;
-    }
-    navigator.clipboard?.writeText(url).catch(() => undefined);
-  }
-
-  return <article className="connection-card bookmark-card">
-    <Link className="connection-person" href={`/attendees/${person.id}`}><DirectoryAvatar name={person.name} photoUrl={person.photoUrl} /><div><h2>{person.name}{person.met && <span className="met-badge">Met</span>}</h2>{person.businessName && <p>{person.businessName}</p>}<div className="connection-meta-line"><span>Saved {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(person.bookmarkedAt))}</span>{person.tableNumber && <span className="connection-table"><TableIcon /> Table {person.tableNumber}</span>}</div></div></Link>
-    <div className="connection-details">{person.businessCategory && <span>{person.businessCategory}</span>}{person.bio && <p>{person.bio}</p>}</div>
-    <div className="card-icon-actions" aria-label={`Actions for ${person.name}`}>
-      <BookmarkButton attendeeId={person.id} initialBookmarked onChange={(value) => { if (!value) onRemove(); }} compact />
-      <a className="icon-btn" href={`tel:${person.phone}`} aria-label={`Call ${person.name}`} title="Call"><CallIcon /></a>
-      {person.linkedInUrl ? <a className="icon-btn" href={person.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${person.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /></a> : <button className="icon-btn" type="button" disabled aria-label={`${person.name} has no LinkedIn`} title="No LinkedIn"><LinkedInIcon /></button>}
-      <button className="icon-btn" type="button" onClick={sharePerson} aria-label={`Share ${person.name}`} title="Share"><ShareIcon /></button>
-    </div>
-  </article>;
 }
 
 function ConnectionCard({ connection, offline, onNote, onRemove }: { connection: Connection; offline: boolean; onNote: (note: string) => void; onRemove: () => void }) {
@@ -155,7 +123,6 @@ function ConnectionCard({ connection, offline, onNote, onRemove }: { connection:
     </Link>
     <div className="connection-details">
       {connection.businessCategory && <span>{connection.businessCategory}</span>}
-      {connection.bio && <p>{connection.bio}</p>}
     </div>
     {connection.note && !editing && <div className="connection-note"><div><b>Private note</b><button type="button" disabled={offline} onClick={() => setEditing(true)}>Edit</button></div><p>{connection.note}</p></div>}
     {!connection.note && !editing && <button className="connection-add-note" type="button" disabled={offline} onClick={() => setEditing(true)}>+ Add private note</button>}
@@ -187,7 +154,4 @@ function WhatsAppIcon() {
 }
 function LinkedInIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9v10M5 5.5v.1M10 19v-9M10 13.5c.7-2.2 2-3.5 4-3.5 2.6 0 4 1.7 4 5v4" /></svg>;
-}
-function ShareIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.2" /><circle cx="17" cy="6" r="2.2" /><circle cx="17" cy="18" r="2.2" /><path d="M8 11l7-4M8 13l7 4" /></svg>;
 }

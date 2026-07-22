@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { usePwaInstall } from "../../components/PwaInstallProvider";
+import { PWA_BANNER_DISMISSED_KEY } from "../../components/InstallBanner";
 import { RotaryLoader } from "../../components/RotaryLoader";
 import { ChevronDownIcon, SingleSelectDropdown } from "../../components/SingleSelectDropdown";
 import { MultiSelectDropdown } from "../../components/MultiSelectDropdown";
@@ -129,6 +130,13 @@ export function OnboardingFlow() {
       if (!res.ok) {
         setSubmitError("Couldn't save your profile. Please try again.");
         return;
+      }
+      // Onboarding already offers install (the "install"/"thanks" steps below), so
+      // suppress the shell's auto-banner — it would just repeat the same prompt.
+      try {
+        localStorage.setItem(PWA_BANNER_DISMISSED_KEY, "1");
+      } catch {
+        // Storage unavailable — the banner will simply show; not worth failing over.
       }
       setStep(isInstalled ? "thanks" : "install");
     } catch {

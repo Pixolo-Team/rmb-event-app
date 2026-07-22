@@ -2,7 +2,7 @@ export function DirectoryAvatar({ name, photoUrl, large = false }: { name: strin
   const letters = name.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("");
   return photoUrl ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img className={`directory-avatar${large ? " large" : ""}`} src={photoUrl} alt="" />
+    <img className={`directory-avatar${large ? " large" : ""}`} src={photoUrl} alt="" loading="lazy" decoding="async" />
   ) : (
     <span className={`directory-avatar fallback${large ? " large" : ""}`} aria-hidden="true">{letters}</span>
   );

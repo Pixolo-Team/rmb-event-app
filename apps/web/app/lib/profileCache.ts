@@ -52,3 +52,38 @@ export const profileCache = {
     }
   },
 };
+
+const PROFILE_REVALIDATE_MS = 60_000;
+let lastFetchedAt = 0;
+let inFlight: Promise<{ status: number; profile: MyProfile | null }> | null = null;
+
+// Single shared, deduplicated fetch of /attendees/me. AttendeePageShell's
+// header and whichever page also needs the full profile (Profile, Feed) used
+// to each fire their own independent request on the same page load — this
+// collapses concurrent callers onto one in-flight network call, and throttles
+// repeat calls within PROFILE_REVALIDATE_MS to zero network calls, cutting a
+// real DB round trip off of every page that previously duplicated the shell's
+// own fetch.
+export function loadMyProfile(options?: { force?: boolean }): Promise<{ status: number; profile: MyProfile | null }> {
+  const cached = profileCache.get();
+  const recentlyFetched = Date.now() - lastFetchedAt < PROFILE_REVALIDATE_MS;
+  if (!options?.force && cached && recentlyFetched) {
+    return Promise.resolve({ status: 200, profile: cached });
+  }
+
+  if (!inFlight) {
+    lastFetchedAt = Date.now();
+    inFlight = fetch("/api/attendees/me", { credentials: "include" })
+      .then(async (response) => {
+        if (!response.ok) return { status: response.status, profile: null };
+        const profile = (await response.json()) as MyProfile;
+        profileCache.set(profile);
+        return { status: response.status, profile };
+      })
+      .catch(() => ({ status: 0, profile: null }))
+      .finally(() => {
+        inFlight = null;
+      });
+  }
+  return inFlight;
+}

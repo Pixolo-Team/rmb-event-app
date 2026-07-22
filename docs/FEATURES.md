@@ -95,6 +95,8 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 | F1.4 | Profile-complete screen — animated success tick and adaptive Open App / Install / Continue in browser actions | Screen 1.3 | P2 | Yes | F1.3 | ✅ Done |
 | F1.5 | First-time tutorial — removed from the current app pending UX replanning | Screen 2.12 | Deferred | — | F1.4 | ⏸ Replan |
 
+**Install-banner note:** the authenticated shell (`AttendeePageShell`) renders a persistent `InstallBanner` ("Install Evento for quick, full-screen access") for attendees who are on a supported browser, haven't installed, and haven't dismissed it. Because onboarding already offers install (F1.3/F1.4's "Install"/"thanks" steps), completing onboarding pre-sets the banner's dismissed flag (`PWA_BANNER_DISMISSED_KEY`) so the shell banner doesn't immediately repeat the same prompt.
+
 **Feeds into:** every other epic — this is where attendee records, QR codes, and profile tags originate.
 
 ---
@@ -335,6 +337,7 @@ Every buildable unit, in dependency order within each group. **Status:** ✅ Don
 | F2.6 | **"Met" indicator on cards** — attendee/match/directory cards show when you've already met the person. Data already exists (`Meeting`, F4.2); this is the missing card affordance | Screens 2.2, 2.3, 1.4 | P1 | Yes | F4.2, F2.4 | ⬜ Not started |
 | F2.7 | **Icon action row on People / Want-to-Meet cards** — bookmark, call, LinkedIn/website and share as icon buttons, consistent with the polished F2.5 profile action row; link icons are omitted (never disabled) when the attendee has no link; cards open the full profile | Screens 2.2, 2.6 | P1 | Partial | F2.4, F4.7 | ⬜ Not started |
 | F7.4 | **LinkedIn-grade feed UI** — rebuild like/comment/post affordances to the social-network standard already named as the reference in `DESIGN_SYSTEM.md` ("LinkedIn / Facebook-familiar patterns"). Deprioritized with F7 overall | Screens 2.7, 2.8 | P2 | Read: yes | F7.2 | ⬜ Not started |
+| F2.8 | **"Want to Meet" = saved list; smart matches become suggestions into it** — the tab's top section is **Your list** (bookmarks); a distinct **Suggested for you** section below lists the full ranked matches (✦ reason + bookmark-to-add, first 5 then "Show more"), and bookmarking a suggestion moves it into Your list. Removes the duplicate saved list from My Connections (Screen 2.6 → *Already met* only). Tab keeps the name. See `SCREENS.md` 1.4/2.6 revision v1.3 | Screens 1.4, 2.6 | P1 | Yes (cached) | F2.3, F5.1 | ✅ Done |
 
 **F3.6 scope notes (decided 2026-07-17 — owner: Jyoti):**
 - **The diagnosis isn't "Home lacks stats", it's that Home is a check-in receipt forever.** All four of today's states are about check-in; once checked in, the screen shows the desk receipt and a Scan button for the remaining ~7 hours of the event. Check-in owns 100% of the screen for a job that's done 90 seconds after arrival. F3.6 makes Home **lifecycle-aware** instead of bolting tiles onto the receipt.

@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import QRCode from "qrcode";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { ContactRows } from "../components/ContactRows";
 import { PersonalStats } from "../components/PersonalStats";
 import { PhotoUploadModal } from "../components/PhotoUploadModal";
 import { PoweredByFooter } from "../components/PoweredByFooter";
 import { withCsrfHeaders } from "../lib/csrf";
-import { profileCache, type MyProfile } from "../lib/profileCache";
+import { loadMyProfile, profileCache, type MyProfile } from "../lib/profileCache";
 import { ProfileSkeleton } from "./ProfileSkeleton";
 
 export default function ProfilePage() {
@@ -90,7 +89,11 @@ export default function ProfilePage() {
   };
 
   // Cache-first so the screen (and QR) appear instantly and work offline, then
-  // refresh from the network when reachable.
+  // refresh from the network when reachable. loadMyProfile is shared with
+  // AttendeePageShell's own header fetch — this used to be an independent
+  // fetch("/api/attendees/me") duplicating the shell's request on every
+  // Profile load; now it dedupes/throttles onto the same in-flight or
+  // recently-cached result instead of a second DB round trip.
   useEffect(() => {
     const cached = profileCache.get();
     if (cached) {
@@ -99,11 +102,9 @@ export default function ProfilePage() {
       setLinkedInDraft(cached.linkedInUrl ?? "");
       setOffline(!navigator.onLine);
     }
-    fetch("/api/attendees/me", { credentials: "include" })
-      .then(async (res) => {
-        if (!res.ok) throw new Error("unavailable");
-        const me = (await res.json()) as MyProfile;
-        profileCache.set(me);
+    loadMyProfile()
+      .then(({ profile: me }) => {
+        if (!me) throw new Error("unavailable");
         setProfile(me);
         setWebsiteDraft(me.websiteUrl ?? "");
         setLinkedInDraft(me.linkedInUrl ?? "");
@@ -114,9 +115,15 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!profile?.qrToken) return;
-    QRCode.toDataURL(profile.qrToken, { margin: 1, width: 512, errorCorrectionLevel: "M" })
-      .then(setQrDataUrl)
-      .catch(() => setQrDataUrl(null));
+    // Dynamically imported: qrcode is a meaningfully-sized library only this
+    // effect needs, so it shouldn't sit in Profile's initial JS bundle.
+    let cancelled = false;
+    import("qrcode").then(({ default: QRCode }) =>
+      QRCode.toDataURL(profile.qrToken, { margin: 1, width: 512, errorCorrectionLevel: "M" }),
+    )
+      .then((url) => { if (!cancelled) setQrDataUrl(url); })
+      .catch(() => { if (!cancelled) setQrDataUrl(null); });
+    return () => { cancelled = true; };
   }, [profile?.qrToken]);
 
   useEffect(() => {

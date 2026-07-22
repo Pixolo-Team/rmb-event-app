@@ -30,10 +30,10 @@ export class MatchingService {
     // Ordered by priority — the first non-chapter clause becomes the headline lead.
     const primaryClauses: string[] = [];
     if (wantsFromThem.length) {
-      primaryClauses.push(`They offer ${humanList(wantsFromThem)}, which you're looking for`);
+      primaryClauses.push(`Offers: ${humanList(wantsFromThem)}`);
     }
     if (offersToThem.length) {
-      primaryClauses.push(`You offer ${humanList(offersToThem)}, which they're looking for`);
+      primaryClauses.push(`Looking for: ${humanList(offersToThem)}`);
     }
     if (sharedCategory) {
       primaryClauses.push(`You're both in ${viewer.businessCategory}`);

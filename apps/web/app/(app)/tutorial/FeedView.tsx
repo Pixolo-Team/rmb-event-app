@@ -734,22 +734,20 @@ function PhotoCard({
             {[photo.attendeeBusinessName, formatTimestamp(photo.createdAt)].filter(Boolean).join(" · ")}
           </p>
         </div>
-        <div className="post-menu">
-          <button className="post-menu-btn" type="button" onClick={onToggleMenu} aria-label="Post options">
-            &hellip;
-          </button>
-          {menuOpen ? (
-            <div className="post-menu-dropdown">
-              {isOwn ? (
+        {isOwn ? (
+          <div className="post-menu">
+            <button className="post-menu-btn" type="button" onClick={onToggleMenu} aria-label="Post options">
+              &hellip;
+            </button>
+            {menuOpen ? (
+              <div className="post-menu-dropdown">
                 <button type="button" onClick={onDelete}>
                   Delete
                 </button>
-              ) : (
-                <span className="person-line muted">No actions available</span>
-              )}
-            </div>
-          ) : null}
-        </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {photo.caption ? <p className={`post-caption${captionExpanded ? " expanded" : ""}`}><span>{photo.caption}</span>{photo.caption.length > 72 && <button type="button" onClick={() => setCaptionExpanded(!captionExpanded)}>{captionExpanded ? "less" : "Read more"}</button>}</p> : null}
@@ -757,7 +755,7 @@ function PhotoCard({
       <div className="post-carousel">
       <button type="button" className="photo-card-media" onClick={onEnlarge} aria-label="Enlarge photo">
         {mediaUrls[activeMedia] ? (
-          <img src={mediaUrls[activeMedia]} alt="" />
+          <img src={mediaUrls[activeMedia]} alt="" loading="lazy" decoding="async" />
         ) : (
           <div className="photo-card-placeholder" aria-hidden="true">
             {getInitials(photo.attendeeName)}
