@@ -43,9 +43,11 @@ function toMenuAttendee(profile: MyProfile): MenuAttendee {
 export function AttendeePageShell({
   children,
   showFooter = true,
+  showTabs = true,
 }: {
   children: ReactNode;
   showFooter?: boolean;
+  showTabs?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -144,7 +146,7 @@ export function AttendeePageShell({
         {children}
         {showFooter ? <PoweredByFooter /> : null}
       </div>
-      <AttendeeBottomTabs />
+      {showTabs ? <AttendeeBottomTabs /> : null}
     </div>
   );
 }

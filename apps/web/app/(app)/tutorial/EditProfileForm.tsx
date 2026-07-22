@@ -16,7 +16,7 @@ type ProfileOptions = {
   businessCategories: string[];
   cities: CityOption[];
   lookingFor: string[];
-  offering: string[];
+  offeringsByCategory: Record<string, string[]>;
   goals: string[];
 };
 
@@ -29,7 +29,13 @@ const DEMO_OPTIONS: ProfileOptions = {
     { name: "Rajkot", stateOrUt: "Gujarat", value: "Rajkot, Gujarat" },
   ],
   lookingFor: ["Distributors", "Suppliers", "Clients", "Investors", "Partners", "Mentors"],
-  offering: ["Wholesale", "Logistics", "Consulting", "Manufacturing", "Retail space", "Financing"],
+  offeringsByCategory: {
+    Manufacturer: ["Manufacturing", "Wholesale"],
+    "Trader/Distributor": ["Wholesale", "Logistics"],
+    "Service Provider": ["Consulting", "Logistics"],
+    Retailer: ["Retail space", "Wholesale"],
+    Consultant: ["Consulting", "Financing"],
+  },
   goals: ["Grow network", "Find partners", "Generate leads", "Learn", "Hire"],
 };
 
@@ -43,6 +49,19 @@ function isValidLinkedInUrl(value: string) {
     return url.protocol === "https:" && url.hostname.includes("linkedin.");
   } catch {
     return false;
+  }
+}
+
+function normalizeWebsiteUrl(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const url = new URL(withProtocol);
+    if (!["http:", "https:"].includes(url.protocol) || !url.hostname.includes(".")) return null;
+    return url.toString();
+  } catch {
+    return null;
   }
 }
 
@@ -80,9 +99,9 @@ export function EditProfileForm({
   const [goals, setGoals] = useState<string[]>(attendee.goals ?? []);
   const [bio, setBio] = useState(attendee.bio ?? "");
   const [linkedInUrl, setLinkedInUrl] = useState(attendee.linkedInUrl ?? "");
+  const [websiteUrl, setWebsiteUrl] = useState(attendee.websiteUrl ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [readOnlyHint, setReadOnlyHint] = useState<string | null>(null);
 
   useEffect(() => {
     setIsOffline(typeof navigator !== "undefined" ? !navigator.onLine : false);
@@ -109,7 +128,7 @@ export function EditProfileForm({
             businessCategories: data.businessCategories ?? [],
             cities: data.cities ?? [],
             lookingFor: data.lookingFor ?? [],
-            offering: data.offering ?? [],
+            offeringsByCategory: data.offeringsByCategory ?? {},
             goals: data.goals ?? [],
           });
         }
@@ -130,6 +149,33 @@ export function EditProfileForm({
     if (attendee.city) values.add(attendee.city);
     return [...values];
   }, [attendee.city, options.cities]);
+  const availableOfferings = useMemo(
+    () => options.offeringsByCategory[businessCategory] ?? [],
+    [businessCategory, options.offeringsByCategory],
+  );
+  const availableLookingFor = useMemo(
+    () => options.lookingFor ?? [],
+    [options.lookingFor],
+  );
+  const availableGoals = useMemo(
+    () => options.goals ?? [],
+    [options.goals],
+  );
+
+  useEffect(() => {
+    if (availableLookingFor.length === 0) return;
+    setLookingFor((current) => current.filter((item) => availableLookingFor.includes(item)));
+  }, [availableLookingFor]);
+
+  useEffect(() => {
+    if (availableOfferings.length === 0) return;
+    setOffering((current) => current.filter((item) => availableOfferings.includes(item)));
+  }, [availableOfferings]);
+
+  useEffect(() => {
+    if (availableGoals.length === 0) return;
+    setGoals((current) => current.filter((item) => availableGoals.includes(item)));
+  }, [availableGoals]);
 
   const initialSnapshot = useMemo(
     () =>
@@ -141,6 +187,7 @@ export function EditProfileForm({
         goals: attendee.goals ?? [],
         bio: attendee.bio ?? "",
         linkedInUrl: attendee.linkedInUrl ?? "",
+        websiteUrl: attendee.websiteUrl ?? "",
         photoUrl: attendee.photoUrl ?? null,
       }),
     [attendee],
@@ -154,6 +201,7 @@ export function EditProfileForm({
     goals,
     bio,
     linkedInUrl,
+    websiteUrl,
     photoUrl: photoPreview,
   });
   const isDirty = initialSnapshot !== currentSnapshot;
@@ -176,7 +224,6 @@ export function EditProfileForm({
 
   async function handleSave() {
     setError(null);
-    setReadOnlyHint(null);
 
     if (isOffline) {
       setError("You're offline — reconnect to save.");
@@ -198,6 +245,15 @@ export function EditProfileForm({
       setError("Enter a valid LinkedIn profile URL.");
       return;
     }
+    const normalizedWebsiteUrl = normalizeWebsiteUrl(websiteUrl);
+    if (websiteUrl.trim() && !normalizedWebsiteUrl) {
+      setError("Enter a valid website link.");
+      return;
+    }
+
+    const sanitizedLookingFor = lookingFor.filter((item) => availableLookingFor.includes(item));
+    const sanitizedOffering = offering.filter((item) => availableOfferings.includes(item));
+    const sanitizedGoals = goals.filter((item) => availableGoals.includes(item));
 
 
     setSaving(true);
@@ -209,15 +265,17 @@ export function EditProfileForm({
         body: JSON.stringify({
           businessCategory,
           city: city.trim(),
-          lookingFor,
-          offering,
-          goals,
+          lookingFor: sanitizedLookingFor,
+          offering: sanitizedOffering,
+          goals: sanitizedGoals,
           bio: bio.trim() || undefined,
           linkedInUrl: linkedInUrl.trim() || undefined,
+          websiteUrl: normalizedWebsiteUrl || undefined,
         }),
       }));
       if (!res.ok) {
-        setError("Couldn't save your profile. Please try again.");
+        const body = await res.json().catch(() => null) as { message?: string } | null;
+        setError(body?.message ?? "Couldn't save your profile. Please try again.");
         return;
       }
 
@@ -235,11 +293,12 @@ export function EditProfileForm({
           onSaved({
             businessCategory,
             city: city.trim(),
-            lookingFor,
-            offering,
-            goals,
+            lookingFor: sanitizedLookingFor,
+            offering: sanitizedOffering,
+            goals: sanitizedGoals,
             bio: bio.trim() || null,
             linkedInUrl: linkedInUrl.trim() || null,
+            websiteUrl: normalizedWebsiteUrl || null,
           });
           return;
         }
@@ -255,11 +314,12 @@ export function EditProfileForm({
           onSaved({
             businessCategory,
             city: city.trim(),
-            lookingFor,
-            offering,
-            goals,
+            lookingFor: sanitizedLookingFor,
+            offering: sanitizedOffering,
+            goals: sanitizedGoals,
             bio: bio.trim() || null,
             linkedInUrl: linkedInUrl.trim() || null,
+            websiteUrl: normalizedWebsiteUrl || null,
           });
           return;
         }
@@ -269,11 +329,12 @@ export function EditProfileForm({
       onSaved({
         businessCategory,
         city: city.trim(),
-        lookingFor,
-        offering,
-        goals,
+        lookingFor: sanitizedLookingFor,
+        offering: sanitizedOffering,
+        goals: sanitizedGoals,
         bio: bio.trim() || null,
         linkedInUrl: linkedInUrl.trim() || null,
+        websiteUrl: normalizedWebsiteUrl || null,
         photoUrl,
       });
       onClose();
@@ -285,7 +346,7 @@ export function EditProfileForm({
   }
 
   return (
-    <main className="app-content">
+    <main className="app-content attendee-page profile-edit-page">
       <section className="settings-card profile-edit-shell">
         <div className="profile-edit-header">
           <div>
@@ -331,14 +392,14 @@ export function EditProfileForm({
           <h2 className="profile-edit-section-title">Registered details</h2>
           <p className="settings-copy">These are controlled by the event organizer.</p>
           <div className="profile-readonly-grid">
-            <ReadOnlyField label="Name" value={readOnlyValue(attendee.name)} onTap={() => setReadOnlyHint("Contact the event organizer to change your registered details.")} />
-            <ReadOnlyField label="Company" value={readOnlyValue(attendee.businessName)} onTap={() => setReadOnlyHint("Contact the event organizer to change your registered details.")} />
-            <ReadOnlyField label="Phone" value={readOnlyValue(attendee.phone)} onTap={() => setReadOnlyHint("Contact the event organizer to change your registered details.")} />
-            <ReadOnlyField label="Email" value={readOnlyValue(attendee.email)} onTap={() => setReadOnlyHint("Contact the event organizer to change your registered details.")} />
-            <ReadOnlyField label="Chapter" value={readOnlyValue(attendee.chapterName)} onTap={() => setReadOnlyHint("Contact the event organizer to change your registered details.")} />
-            <ReadOnlyField label="Table number" value={readOnlyValue(attendee.tableNumber)} onTap={() => setReadOnlyHint("Contact the event organizer to change your registered details.")} />
+            <ReadOnlyField label="Name" value={readOnlyValue(attendee.name)} />
+            <ReadOnlyField label="Company" value={readOnlyValue(attendee.businessName)} />
+            <ReadOnlyField label="Phone" value={readOnlyValue(attendee.phone)} />
+            <ReadOnlyField label="Email" value={readOnlyValue(attendee.email)} />
+            <ReadOnlyField label="Chapter" value={readOnlyValue(attendee.chapterName)} />
+            <ReadOnlyField label="Table number" value={readOnlyValue(attendee.tableNumber)} />
           </div>
-          {readOnlyHint ? <p className="profile-readonly-hint">{readOnlyHint}</p> : null}
+          <p className="profile-readonly-hint">Contact the event organizer to update these details.</p>
         </section>
 
         <section className="profile-edit-section">
@@ -350,7 +411,12 @@ export function EditProfileForm({
             options={options.businessCategories}
             value={businessCategory}
             placeholder="Select your category"
-            onChange={setBusinessCategory}
+            onChange={(nextCategory) => {
+              const compatibleOfferings = options.offeringsByCategory[nextCategory] ?? [];
+              setBusinessCategory(nextCategory);
+              setOffering((current) => current.filter((item) => compatibleOfferings.includes(item)));
+              setError(null);
+            }}
           />
 
           <div className="field">
@@ -371,7 +437,14 @@ export function EditProfileForm({
           </div>
 
           <MultiSelectDropdown label="Looking for" options={options.lookingFor} selected={lookingFor} onToggle={(v) => setLookingFor((s) => toggle(s, v))} />
-          <MultiSelectDropdown label="Offering" options={options.offering} selected={offering} onToggle={(v) => setOffering((s) => toggle(s, v))} />
+          <MultiSelectDropdown
+            label="Offering"
+            options={availableOfferings}
+            selected={offering}
+            onToggle={(v) => setOffering((s) => toggle(s, v))}
+            disabled={!businessCategory}
+            placeholder={businessCategory ? "Select offerings" : "Select a business category first"}
+          />
           <MultiSelectDropdown label="Goals" options={options.goals} selected={goals} onToggle={(v) => setGoals((s) => toggle(s, v))} />
 
           <div className="field">
@@ -382,6 +455,17 @@ export function EditProfileForm({
               value={linkedInUrl}
               onChange={(e) => setLinkedInUrl(e.target.value)}
               placeholder="https://www.linkedin.com/in/you"
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="edit-website">Website link</label>
+            <input
+              id="edit-website"
+              type="url"
+              value={websiteUrl}
+              onChange={(e) => setWebsiteUrl(e.target.value)}
+              placeholder="https://yourwebsite.com"
             />
           </div>
 
@@ -416,13 +500,12 @@ export function EditProfileForm({
   );
 }
 
-function ReadOnlyField({ label, value, onTap }: { label: string; value: string; onTap: () => void }) {
+function ReadOnlyField({ label, value }: { label: string; value: string }) {
   return (
-    <button type="button" className="profile-readonly-card" onClick={onTap}>
+    <div className="profile-readonly-card">
       <span className="profile-readonly-label">{label}</span>
       <strong>{value}</strong>
-      <small>Contact the event organizer to change this</small>
-    </button>
+    </div>
   );
 }
 
