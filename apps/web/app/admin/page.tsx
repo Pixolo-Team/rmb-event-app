@@ -133,6 +133,7 @@ export default function AdminHome() {
   );
 
   const stale = !online && !!data;
+  const chapterSummaries = data?.chapterSummaries ?? [];
   const formattedUpdatedAt = data
     ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(data.generatedAt))
     : null;
@@ -320,18 +321,18 @@ export default function AdminHome() {
             <p className="eyebrow">Chapter wise count</p>
             <h2>Registrations & attendance summary</h2>
           </div>
-          <span>{data?.chapterSummaries.length ?? 0} chapters</span>
+          <span>{chapterSummaries.length} chapters</span>
         </div>
         {loading && !data ? (
           <div className="admin-list-skeleton" />
-        ) : data?.chapterSummaries.length ? (
+        ) : chapterSummaries.length ? (
           <div className="admin-chapter-summary-table">
             <div className="admin-chapter-summary-head">
               <span>Chapter</span>
-              <span>Registrations</span>
-              <span>Attendance</span>
+              <span><span className="wide-label">Registrations</span><span className="short-label">Reg.</span></span>
+              <span><span className="wide-label">Attendance</span><span className="short-label">Att.</span></span>
             </div>
-            {data.chapterSummaries.map((summary) => (
+            {chapterSummaries.map((summary) => (
               <div key={summary.chapterName} className="admin-chapter-summary-row">
                 <b>{summary.chapterName}</b>
                 <strong>{summary.registrations}</strong>
