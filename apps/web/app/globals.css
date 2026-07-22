@@ -2658,7 +2658,23 @@ p.copy {
 .filter-actions { position: sticky; bottom: -20px; display: grid; grid-template-columns: 1fr 1.2fr; gap: 10px; margin: 24px -20px -20px; padding: 16px 20px max(16px, env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--surface); }
 .filter-actions .btn-primary,
 .filter-actions .btn-secondary { margin-top: 0; }
-.back-link { display: inline-flex; min-height: 44px; align-items: center; margin-bottom: 20px; color: var(--brand-600); font-weight: 600; text-decoration: none; }
+.back-link {
+  min-height: 44px;
+  margin-top: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  color: var(--brand-600);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.back-link svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
 .profile-hero { display: flex; align-items: center; gap: 14px; padding: 18px; border: 1px solid var(--border); border-radius: var(--radius-lg, 18px); background: var(--surface); }
 .profile-hero > div { min-width: 0; }
 .profile-name-line { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }

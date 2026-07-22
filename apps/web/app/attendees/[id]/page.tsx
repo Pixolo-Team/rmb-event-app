@@ -48,7 +48,10 @@ export default function AttendeeProfilePage({ params }: { params: { id: string }
   return (
     <AttendeePageShell>
       <main className="attendee-page profile-page">
-        <Link className="back-link" href="/directory">Back to directory</Link>
+        <Link className="back-link" href="/directory">
+          <BackArrowIcon />
+          <span>Back to Directory</span>
+        </Link>
         {offlineResult && <div className="banner info"><div><b>Showing saved profile</b>You are offline. Details may be slightly out of date.</div></div>}
         {loading && <ProfileSkeleton />}
         {!loading && error && !profile && <div className="directory-state"><h1>Can&apos;t load profile</h1><p>Check your connection and try again.</p></div>}
@@ -193,4 +196,8 @@ function LinkedInIcon() {
 
 function ShareIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.2" /><circle cx="17" cy="6" r="2.2" /><circle cx="17" cy="18" r="2.2" /><path d="M8 11l7-4M8 13l7 4" /></svg>;
+}
+
+function BackArrowIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6 9 12l6 6" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
