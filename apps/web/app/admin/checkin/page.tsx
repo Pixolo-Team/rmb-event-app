@@ -5,6 +5,7 @@ import QRCode from "qrcode";
 import type { Html5Qrcode } from "html5-qrcode";
 import { enqueueWrite, useOfflineSync } from "../../lib/offlineQueue";
 import { withCsrfHeaders } from "../../lib/csrf";
+import { stopAndClearScanner } from "../../lib/html5QrCode";
 
 type Method = "GEOLOCATION" | "MANUAL" | "STAFF_QR" | "VENUE_QR";
 
@@ -111,10 +112,7 @@ export default function AdminCheckinPage() {
 
     return () => {
       cancelled = true;
-      scanner
-        ?.stop()
-        .then(() => scanner?.clear())
-        .catch(() => {});
+      void stopAndClearScanner(scanner);
     };
   }, [scannerOpen]);
 

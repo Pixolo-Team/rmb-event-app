@@ -27,6 +27,7 @@ import { matchesCache, type MatchSuggestion } from "../lib/matchesCache";
 import { homeCache } from "../lib/homeCache";
 import { profileCache, type MyProfile } from "../lib/profileCache";
 import { withCsrfHeaders } from "../lib/csrf";
+import { stopAndClearScanner } from "../lib/html5QrCode";
 
 // F3.6/F3.7 — Home is one constant dashboard. The event's start/end times decide
 // the top block (pre-event countdown · check-in · checked-in · ended); the rest —
@@ -55,6 +56,7 @@ const METHOD_LABEL: Record<CheckinMethod, string> = {
 // Within 3 days of the start we show a live ticking countdown; further out, a
 // calmer "Coming soon" with the date. (PRD US3.5.)
 const COUNTDOWN_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
+const MAX_LIFECYCLE_TIMER_MS = 60 * 60 * 1000;
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
@@ -84,6 +86,7 @@ export default function HomePage() {
   const [ready, setReady] = useState(false);
   const [checkinPhase, setCheckinPhase] = useState<CheckinPhase>("idle");
   const [checkinError, setCheckinError] = useState<string | null>(null);
+  const [lifecycleNow, setLifecycleNow] = useState(() => Date.now());
   const coords = useRef<{ lat: number; lng: number } | null>(null);
   const venueConfig = useRef<CachedVenueConfig | null>(null);
 
@@ -210,10 +213,25 @@ export default function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Resolved once (Date.now() captured on first compute) — no 30s re-evaluation.
+  // Recompute only at real lifecycle boundaries. A checked-in attendee who keeps
+  // Home open past endAt must still see the ended state without refreshing.
+  useEffect(() => {
+    const now = Date.now();
+    const boundaries = [event?.startAt, event?.endAt]
+      .map((value) => (value ? new Date(value).getTime() : NaN))
+      .filter((ms) => Number.isFinite(ms) && ms > now)
+      .sort((a, b) => a - b);
+    const nextBoundary = boundaries[0];
+    if (!nextBoundary) return;
+
+    const delay = Math.min(Math.max(0, nextBoundary - now + 250), MAX_LIFECYCLE_TIMER_MS);
+    const id = window.setTimeout(() => setLifecycleNow(Date.now()), delay);
+    return () => window.clearTimeout(id);
+  }, [event, lifecycleNow]);
+
   const mode: HomeMode | null = useMemo(
-    () => (checkin === null ? null : resolveHomeMode(event, checkin.checkedIn, Date.now())),
-    [event, checkin],
+    () => (checkin === null ? null : resolveHomeMode(event, checkin.checkedIn, lifecycleNow)),
+    [event, checkin, lifecycleNow],
   );
 
   // ---- check-in flow (inline in the top card) ----
@@ -282,6 +300,7 @@ export default function HomePage() {
     const config = venueConfig.current;
     // No usable location → go straight to scanning the venue QR.
     if (!navigator.geolocation || !config || config.venueLat == null || config.venueLng == null) {
+      setCheckinError("Location check-in isn't available for this event right now. Use the venue QR instead.");
       setCheckinPhase("scanning");
       return;
     }
@@ -295,12 +314,21 @@ export default function HomePage() {
         if (distanceM <= config.checkinRadiusM) {
           submitCheckin("GEOLOCATION", "/api/checkin/geolocation", { lat, lng }, "checkin-geolocation");
         } else {
+          setCheckinError("You're outside the venue radius. Move closer or scan the venue QR.");
           setCheckinPhase("scanning");
         }
       },
-      () => setCheckinPhase("scanning"),
+      () => {
+        setCheckinError("We couldn't get your location. Try again, or scan the venue QR.");
+        setCheckinPhase("scanning");
+      },
       { timeout: 5000 },
     );
+  }
+
+  function startVenueScan() {
+    setCheckinError(null);
+    setCheckinPhase("scanning");
   }
 
   // Latest-value ref so the html5-qrcode decode callback (bound once) never runs a
@@ -348,10 +376,7 @@ export default function HomePage() {
 
     return () => {
       cancelled = true;
-      scanner
-        ?.stop()
-        .then(() => scanner?.clear())
-        .catch(() => {});
+      void stopAndClearScanner(scanner);
     };
   }, [checkinPhase]);
 
@@ -425,6 +450,7 @@ export default function HomePage() {
               error={checkinError}
               online={online}
               onStart={startCheckin}
+              onScan={startVenueScan}
               onCancel={() => {
                 setCheckinPhase("idle");
                 setCheckinError(null);
@@ -478,12 +504,14 @@ function CheckInCard({
   error,
   online,
   onStart,
+  onScan,
   onCancel,
 }: {
   phase: CheckinPhase;
   error: string | null;
   online: boolean;
   onStart: () => void;
+  onScan: () => void;
   onCancel: () => void;
 }) {
   const busy = phase === "locating" || phase === "submitting";
@@ -504,24 +532,36 @@ function CheckInCard({
         <>
           <p className="home-checkin-hint">Point your camera at the venue QR code to check in.</p>
           <div id="home-qr-reader" className="home-qr-reader" />
-          <button className="btn-secondary" type="button" onClick={onCancel}>
-            Cancel
-          </button>
+          <div className="home-checkin-actions">
+            <button className="btn-secondary" type="button" onClick={onStart}>
+              Try location again
+            </button>
+            <button className="btn-secondary" type="button" onClick={onCancel}>
+              Cancel
+            </button>
+          </div>
         </>
       ) : (
-        <button className="btn-primary" type="button" disabled={busy} onClick={onStart}>
-          {phase === "locating" ? (
-            <>
-              <span className="spinner" /> Finding the venue&hellip;
-            </>
-          ) : phase === "submitting" ? (
-            <>
-              <span className="spinner" /> Checking you in&hellip;
-            </>
-          ) : (
-            "Check in"
+        <div className="home-checkin-actions">
+          <button className="btn-primary" type="button" disabled={busy} onClick={onStart}>
+            {phase === "locating" ? (
+              <>
+                <span className="spinner" /> Finding the venue&hellip;
+              </>
+            ) : phase === "submitting" ? (
+              <>
+                <span className="spinner" /> Checking you in&hellip;
+              </>
+            ) : (
+              "Check in with location"
+            )}
+          </button>
+          {phase === "idle" && (
+            <button className="btn-secondary" type="button" onClick={onScan}>
+              Scan venue QR
+            </button>
           )}
-        </button>
+        </div>
       )}
 
       {!online && phase === "idle" && (

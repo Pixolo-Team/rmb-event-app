@@ -3441,6 +3441,9 @@ a.contact-row:active { background: var(--brand-100); }
 .home-checkin-head b { display: block; font-size: 0.98rem; }
 .home-checkin-head em { display: block; margin-top: 3px; font-style: normal; font-size: 0.82rem; color: var(--ink-muted); }
 .home-checkin-hint { margin: 0; font-size: 0.82rem; color: var(--ink-muted); }
+.home-checkin-actions { display: grid; gap: 10px; }
+.home-checkin-actions .btn-primary,
+.home-checkin-actions .btn-secondary { margin-top: 0; }
 .home-qr-reader { width: 100%; max-width: 300px; margin: 0 auto; border-radius: var(--radius-md); overflow: hidden; }
 
 /* checked-in / ended status banner */
