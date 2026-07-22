@@ -130,7 +130,7 @@ export function AttendeePageShell({
 
   return (
     <div className="attendee-shell">
-      <header className="full-page-header attendee-app-header">
+      <header className={`full-page-header attendee-app-header${pathname === "/matches" ? " no-divider" : ""}`}>
         <Link href="/home" aria-label="Go to Home">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
