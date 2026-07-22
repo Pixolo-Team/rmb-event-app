@@ -113,11 +113,11 @@ function ProfileContent({ profile }: { profile: AttendeeProfile }) {
         ) : (
           <BookmarkButton attendeeId={profile.id} initialBookmarked={Boolean(profile.bookmarked)} onChange={(bookmarked) => directoryCache.setProfile(profile.id, { ...profile, bookmarked })} />
         )}
-        <a className="profile-action call" href={`tel:${profile.phone}`}><PhoneIcon /><span>Call</span></a>
-        <a className="profile-action whatsapp" href={`https://wa.me/${whatsappNumber}?text=${whatsappText}`} target="_blank" rel="noreferrer"><WhatsAppIcon /><span>WhatsApp</span></a>
-        {profile.linkedInUrl && <a className="profile-action linkedin" href={profile.linkedInUrl} target="_blank" rel="noreferrer"><LinkedInIcon /><span>LinkedIn</span></a>}
-        {profile.websiteUrl && <a className="profile-action website" href={profile.websiteUrl} target="_blank" rel="noreferrer"><WebsiteIcon /><span>Website</span></a>}
-        {canShare && <button className="profile-action share" type="button" onClick={() => navigator.share({ title: profile.name, text: `${profile.name} · ${profile.businessName ?? "Evento attendee"}` })}><ShareIcon /><span>Share</span></button>}
+        <a className="profile-action icon-only call" href={`tel:${profile.phone}`} aria-label={`Call ${profile.name}`} title="Call"><PhoneIcon /><span className="sr-only">Call</span></a>
+        <a className="profile-action icon-only whatsapp" href={`https://wa.me/${whatsappNumber}?text=${whatsappText}`} target="_blank" rel="noreferrer" aria-label={`WhatsApp ${profile.name}`} title="WhatsApp"><WhatsAppIcon /><span className="sr-only">WhatsApp</span></a>
+        {profile.linkedInUrl && <a className="profile-action icon-only linkedin" href={profile.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${profile.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /><span className="sr-only">LinkedIn</span></a>}
+        {profile.websiteUrl && <a className="profile-action icon-only website" href={profile.websiteUrl} target="_blank" rel="noreferrer" aria-label={`${profile.name} website`} title="Website"><WebsiteIcon /><span className="sr-only">Website</span></a>}
+        {canShare && <button className="profile-action icon-only share" type="button" aria-label={`Share ${profile.name}`} title="Share" onClick={() => navigator.share({ title: profile.name, text: `${profile.name} · ${profile.businessName ?? "Evento attendee"}` })}><ShareIcon /><span className="sr-only">Share</span></button>}
       </div>
 
       {profile.match && (
