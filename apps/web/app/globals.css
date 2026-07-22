@@ -4062,6 +4062,10 @@ a.contact-row:active { background: var(--brand-100); }
 .summary-section{margin-top:18px;padding:20px;border:1px solid var(--border);border-radius:18px;background:var(--surface)}.summary-section h2{margin:3px 0 14px;font:700 1.15rem var(--font-display)}.summary-section-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}.summary-section-heading a{margin-bottom:14px;color:var(--brand-700);font-size:.8rem;font-weight:750;text-decoration:none}
 .summary-connections { display: grid; gap: 4px; }
 .summary-person {
+  /* Grid items default to min-width:auto, refusing to shrink below their
+     content's natural size — a long name/company line was ballooning the
+     whole row (and bleeding past the card) instead of truncating. */
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 11px;
@@ -4079,8 +4083,13 @@ a.contact-row:active { background: var(--brand-100); }
 .summary-person:hover { background: var(--surface-2); }
 .summary-person:active { transform: scale(0.99); }
 .summary-person > div { min-width: 0; flex: 1; }
-.summary-person b, .summary-person span, .summary-person small { display: block; }
-.summary-person span { overflow: hidden; color: var(--ink-muted); font-size: .8rem; text-overflow: ellipsis; white-space: nowrap; }
+.summary-person b, .summary-person span, .summary-person small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.summary-person span { color: var(--ink-muted); font-size: .8rem; }
 .summary-person small { margin-top: 3px; color: var(--ink-faint); }
 .summary-person-arrow { flex: 0 0 auto; color: var(--brand-600); font-size: 1.4rem; }
 .summary-empty { text-align: center; color: var(--ink-muted); }
