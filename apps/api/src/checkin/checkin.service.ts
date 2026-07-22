@@ -58,6 +58,11 @@ export class CheckinService {
     return { ...outcome, attendeeName: attendee.name };
   }
 
+  async markAbsentByAdmin(attendeeId: string) {
+    const result = await this.prisma.checkIn.deleteMany({ where: { attendeeId } });
+    return { status: result.count > 0 ? "marked_absent" : "already_absent" } as const;
+  }
+
   // F3.7 — attendee scanned the venue attendance QR. The token is the event's
   // current venueCheckinToken; a stale/forged one is rejected so a random string
   // can't self-check-in.

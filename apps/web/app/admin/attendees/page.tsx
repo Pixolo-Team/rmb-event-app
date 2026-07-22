@@ -26,7 +26,7 @@ export default function AdminAttendeesPage() {
   const [query, setQuery] = useState("");
   const [state, setState] = useState<LoadState>("loading");
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [checkingInId, setCheckingInId] = useState<string | null>(null);
+  const [updatingAttendanceIds, setUpdatingAttendanceIds] = useState<Set<string>>(() => new Set());
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [actionMenuId, setActionMenuId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -80,8 +80,12 @@ export default function AdminAttendeesPage() {
   }
 
   async function markAsPresent(attendee: AdminAttendee) {
-    setCheckingInId(attendee.id);
+    const optimisticCheckedInAt = new Date().toISOString();
+    setUpdatingAttendanceIds((current) => new Set(current).add(attendee.id));
     setMessage(null);
+    setAttendees((current) => current.map((item) => item.id === attendee.id
+      ? { ...item, checkedInAt: optimisticCheckedInAt, checkInMethod: "MANUAL" }
+      : item));
     try {
       const response = await fetch(`/api/admin/checkin/manual/${attendee.id}`, withCsrfHeaders({
         method: "POST",
@@ -107,9 +111,46 @@ export default function AdminAttendeesPage() {
           : `${attendee.name} marked as present.`,
       );
     } catch {
+      setAttendees((current) => current.map((item) => item.id === attendee.id && item.checkedInAt === optimisticCheckedInAt
+        ? { ...item, checkedInAt: attendee.checkedInAt, checkInMethod: attendee.checkInMethod }
+        : item));
       setMessage("Could not mark attendee as present. Try again.");
     } finally {
-      setCheckingInId(null);
+      setUpdatingAttendanceIds((current) => {
+        const next = new Set(current);
+        next.delete(attendee.id);
+        return next;
+      });
+    }
+  }
+
+  async function markAsAbsent(attendee: AdminAttendee) {
+    const previousCheckedInAt = attendee.checkedInAt;
+    const previousMethod = attendee.checkInMethod;
+    setActionMenuId(null);
+    setMessage(null);
+    setUpdatingAttendanceIds((current) => new Set(current).add(attendee.id));
+    setAttendees((current) => current.map((item) => item.id === attendee.id
+      ? { ...item, checkedInAt: null, checkInMethod: null }
+      : item));
+    try {
+      const response = await fetch(`/api/admin/checkin/${attendee.id}`, withCsrfHeaders({
+        method: "DELETE",
+        credentials: "include",
+      }));
+      if (!response.ok) throw new Error("Failed to mark attendee absent");
+      setMessage(`${attendee.name} marked as absent.`);
+    } catch {
+      setAttendees((current) => current.map((item) => item.id === attendee.id && item.checkedInAt === null
+        ? { ...item, checkedInAt: previousCheckedInAt, checkInMethod: previousMethod }
+        : item));
+      setMessage("Could not mark attendee as absent. Try again.");
+    } finally {
+      setUpdatingAttendanceIds((current) => {
+        const next = new Set(current);
+        next.delete(attendee.id);
+        return next;
+      });
     }
   }
 
@@ -293,9 +334,9 @@ export default function AdminAttendeesPage() {
                   className="btn-secondary admin-present-button"
                   type="button"
                   onClick={() => markAsPresent(attendee)}
-                  disabled={Boolean(attendee.deletedAt) || Boolean(attendee.checkedInAt) || checkingInId === attendee.id}
+                  disabled={Boolean(attendee.deletedAt) || Boolean(attendee.checkedInAt) || updatingAttendanceIds.has(attendee.id)}
                 >
-                  {checkingInId === attendee.id ? "Marking..." : attendee.checkedInAt ? "Present" : "Mark as present"}
+                  {attendee.checkedInAt ? "Present" : "Mark as present"}
                 </button>
                 {confirmingId === attendee.id ? (
                   <div className="admin-attendee-confirm" role="group" aria-label={`Confirm delete ${attendee.name}`}>
@@ -323,6 +364,16 @@ export default function AdminAttendeesPage() {
                     </button>
                     {actionMenuId === attendee.id && (
                       <div className="admin-attendee-menu-dropdown">
+                        {attendee.checkedInAt && (
+                          <button
+                            className="admin-absent-button"
+                            type="button"
+                            disabled={updatingAttendanceIds.has(attendee.id)}
+                            onClick={() => markAsAbsent(attendee)}
+                          >
+                            Mark as absent
+                          </button>
+                        )}
                         <button
                           className="admin-delete-button"
                           type="button"

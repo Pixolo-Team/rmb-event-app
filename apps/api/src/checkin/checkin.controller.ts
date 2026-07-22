@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Req, UseGuards } from "@nestjs/common";
 import { CheckinService } from "./checkin.service";
 import { GeolocationCheckinDto } from "./dto/geolocation-checkin.dto";
 import { QrScanCheckinDto } from "./dto/qr-scan-checkin.dto";
@@ -51,6 +51,13 @@ export class CheckinController {
   @RateLimit(120)
   async adminManual(@Param("attendeeId") attendeeId: string) {
     return this.checkin.checkInByAdminManual(attendeeId);
+  }
+
+  @Delete("admin/checkin/:attendeeId")
+  @UseGuards(AdminGuard, RateLimitGuard)
+  @RateLimit(120)
+  async adminAbsent(@Param("attendeeId") attendeeId: string) {
+    return this.checkin.markAbsentByAdmin(attendeeId);
   }
 
   @Get("admin/checkin/status")
