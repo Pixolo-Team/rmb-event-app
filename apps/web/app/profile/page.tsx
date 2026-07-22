@@ -9,6 +9,8 @@ import { PhotoUploadModal } from "../components/PhotoUploadModal";
 import { PoweredByFooter } from "../components/PoweredByFooter";
 import { withCsrfHeaders } from "../lib/csrf";
 import { profileCache, type MyProfile } from "../lib/profileCache";
+import { EditProfileForm } from "../(app)/tutorial/EditProfileForm";
+import type { AttendeeMe } from "../(app)/tutorial/TutorialPage";
 import { ProfileSkeleton } from "./ProfileSkeleton";
 
 export default function ProfilePage() {
@@ -18,15 +20,21 @@ export default function ProfilePage() {
   const [offline, setOffline] = useState(false);
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [websiteDraft, setWebsiteDraft] = useState("");
   const [websiteEditing, setWebsiteEditing] = useState(false);
   const [websiteSaving, setWebsiteSaving] = useState(false);
   const [websiteError, setWebsiteError] = useState<string | null>(null);
+  const [linkedInDraft, setLinkedInDraft] = useState("");
+  const [linkedInEditing, setLinkedInEditing] = useState(false);
+  const [linkedInSaving, setLinkedInSaving] = useState(false);
+  const [linkedInError, setLinkedInError] = useState<string | null>(null);
 
   function syncProfile(nextProfile: MyProfile) {
     setProfile(nextProfile);
     profileCache.set(nextProfile);
     setWebsiteDraft(nextProfile.websiteUrl ?? "");
+    setLinkedInDraft(nextProfile.linkedInUrl ?? "");
   }
 
   const updateProfilePhoto = (photoUrl: string | null) => {
@@ -91,6 +99,7 @@ export default function ProfilePage() {
     if (cached) {
       setProfile(cached);
       setWebsiteDraft(cached.websiteUrl ?? "");
+      setLinkedInDraft(cached.linkedInUrl ?? "");
       setOffline(!navigator.onLine);
     }
     fetch("/api/attendees/me", { credentials: "include" })
@@ -100,6 +109,7 @@ export default function ProfilePage() {
         profileCache.set(me);
         setProfile(me);
         setWebsiteDraft(me.websiteUrl ?? "");
+        setLinkedInDraft(me.linkedInUrl ?? "");
         setOffline(false);
       })
       .catch(() => setOffline(!navigator.onLine));
@@ -157,6 +167,57 @@ export default function ProfilePage() {
     }
   }
 
+  async function saveLinkedIn() {
+    if (!profile) return;
+    const normalizedLinkedInUrl = normalizeLinkedInUrl(linkedInDraft);
+    if (linkedInDraft.trim() && !normalizedLinkedInUrl) {
+      setLinkedInError("Enter a valid LinkedIn profile URL.");
+      return;
+    }
+
+    setLinkedInSaving(true);
+    setLinkedInError(null);
+    try {
+      const res = await fetch("/api/attendees/me/links", withCsrfHeaders({
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          linkedInUrl: normalizedLinkedInUrl || null,
+        }),
+      }));
+
+      if (!res.ok) {
+        setLinkedInError("Couldn't save your LinkedIn right now.");
+        return;
+      }
+
+      syncProfile({ ...profile, linkedInUrl: normalizedLinkedInUrl || null });
+      setLinkedInEditing(false);
+    } catch {
+      setLinkedInError("Couldn't reach the server. Check your connection and try again.");
+    } finally {
+      setLinkedInSaving(false);
+    }
+  }
+
+  if (editing && profile) {
+    return (
+      <EditProfileForm
+        attendee={profile as AttendeeMe}
+        onSaved={(patch) => {
+          setProfile((current) => {
+            if (!current) return current;
+            const next = { ...current, ...patch } as MyProfile;
+            profileCache.set(next);
+            return next;
+          });
+        }}
+        onClose={() => setEditing(false)}
+      />
+    );
+  }
+
   return (
     <AttendeePageShell showFooter={false}>
       <main className="attendee-page profile-page">
@@ -210,6 +271,10 @@ export default function ProfilePage() {
 
             <PersonalStats />
 
+            <button type="button" className="btn-secondary profile-edit-button" onClick={() => setEditing(true)}>
+              Edit profile
+            </button>
+
             <div className="profile-details-grid">
               <ProfileSection title="Contact">
                 <ContactRows phone={profile.phone} email={profile.email} tableNumber={profile.tableNumber} />
@@ -258,6 +323,55 @@ export default function ProfilePage() {
                         </button>
                       </div>
                       {websiteError ? <p className="hint err">{websiteError}</p> : null}
+                    </div>
+                  )}
+                </div>
+
+                <div className="profile-website-panel">
+                  <div className="profile-website-header">
+                    <span className="contact-row-label">LinkedIn</span>
+                    {!linkedInEditing ? (
+                      <button className="profile-inline-action" type="button" onClick={() => {
+                        setLinkedInDraft(profile.linkedInUrl ?? "");
+                        setLinkedInError(null);
+                        setLinkedInEditing(true);
+                      }}>
+                        {profile.linkedInUrl ? "Edit link" : "Add link"}
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {!linkedInEditing ? (
+                    profile.linkedInUrl ? (
+                      <a className="profile-link-row" href={profile.linkedInUrl} target="_blank" rel="noreferrer">
+                        <LinkedInIcon />
+                        <span>{profile.linkedInUrl}</span>
+                      </a>
+                    ) : (
+                      <p className="empty-copy">No LinkedIn added yet</p>
+                    )
+                  ) : (
+                    <div className="profile-inline-form">
+                      <input
+                        type="text"
+                        inputMode="url"
+                        value={linkedInDraft}
+                        onChange={(event) => setLinkedInDraft(event.target.value)}
+                        placeholder="linkedin.com/in/you"
+                      />
+                      <div className="profile-inline-form-actions">
+                        <button className="btn-secondary" type="button" disabled={linkedInSaving} onClick={() => {
+                          setLinkedInDraft(profile.linkedInUrl ?? "");
+                          setLinkedInError(null);
+                          setLinkedInEditing(false);
+                        }}>
+                          Cancel
+                        </button>
+                        <button className="btn-primary" type="button" disabled={linkedInSaving} onClick={saveLinkedIn}>
+                          {linkedInSaving ? "Saving..." : "Save link"}
+                        </button>
+                      </div>
+                      {linkedInError ? <p className="hint err">{linkedInError}</p> : null}
                     </div>
                   )}
                 </div>
@@ -328,6 +442,19 @@ function normalizeWebsiteUrl(value: string) {
   }
 }
 
+function normalizeLinkedInUrl(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const url = new URL(withProtocol);
+    if (url.protocol !== "https:" || !url.hostname.includes("linkedin.")) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 function ProfileSection({ title, children }: { title: string; children: React.ReactNode }) {
   return <section className="profile-section"><h2>{title}</h2>{children}</section>;
 }
@@ -340,4 +467,8 @@ function TagList({ values, empty }: { values: string[]; empty: string }) {
 
 function WebsiteIcon() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M4 12h16M12 4a13 13 0 0 1 0 16M12 4a13 13 0 0 0 0 16" /></svg>;
+}
+
+function LinkedInIcon() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M5 9v10M5 5.5v.1M10 19v-9M10 13.5c.7-2.2 2-3.5 4-3.5 2.6 0 4 1.7 4 5v4" /></svg>;
 }

@@ -26,21 +26,24 @@ function mapsUrl(event: CachedVenueConfig): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.venueAddress ?? "")}`;
 }
 
-// "09:30" -> "9:30 AM"
-function formatClock(hhmm: string): string {
+function clockParts(hhmm: string): { label: string; period: string } | null {
   const [h, m] = hhmm.split(":").map(Number);
-  if (Number.isNaN(h) || Number.isNaN(m)) return hhmm;
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
   const period = h < 12 ? "AM" : "PM";
   const hour12 = h % 12 === 0 ? 12 : h % 12;
-  return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
+  return { label: `${hour12}:${String(m).padStart(2, "0")}`, period };
 }
 
 function formatAgendaTime(item: { startTime?: string; endTime?: string | null; time?: string }): string {
-  if (item.startTime) {
-    const start = formatClock(item.startTime);
-    return item.endTime ? `${start} – ${formatClock(item.endTime)}` : start;
-  }
-  return item.time ?? "";
+  if (!item.startTime) return item.time ?? "";
+  const start = clockParts(item.startTime);
+  if (!start) return item.startTime;
+  if (!item.endTime) return `${start.label} ${start.period}`;
+  const end = clockParts(item.endTime);
+  if (!end) return `${start.label} ${start.period}`;
+  // Drop the start period when both ends share it: "9:30 – 11:00 AM".
+  const startText = start.period === end.period ? start.label : `${start.label} ${start.period}`;
+  return `${startText} – ${end.label} ${end.period}`;
 }
 
 export default function EventDetailsPage() {
@@ -98,7 +101,7 @@ export default function EventDetailsPage() {
 
             {event.chairName && (
               <section className="event-details-section">
-                <h2>Chair</h2>
+                <h2>Chairman</h2>
                 <div className="event-chair-card">
                   {event.chairPhotoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element

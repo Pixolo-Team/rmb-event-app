@@ -3933,8 +3933,13 @@ a.contact-row:active { background: var(--brand-100); }
 .event-details-hero .eyebrow { color: #a9cff7; }
 .event-details-hero h1 { margin: 4px 0 6px; font: 700 clamp(1.5rem,5vw,2.1rem) var(--font-display); }
 .event-details-date { margin: 0; color: #d4e5f7; }
-.event-details-section { margin-top: 18px; padding: 20px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); }
-.event-details-section h2 { margin: 3px 0 14px; font: 700 1.15rem var(--font-display); }
+.event-details-section { margin-top: 20px; padding-top: 20px; border: none; border-top: 1px solid var(--border); border-radius: 0; background: none; }
+.event-details-section h2 { margin: 0 0 12px; font: 700 1.05rem var(--font-display); }
+/* Flat, box-less rows on the Event Details page (the shared .contact-row keeps
+   its card look elsewhere, e.g. the profile page). */
+.event-details-page .contact-row { padding: 0; border: none; border-radius: 0; background: none; }
+.event-details-page a.contact-row:hover,
+.event-details-page a.contact-row:active { background: none; border: none; }
 .event-details-subtitle { display: inline-block; margin-top: 8px; padding: 5px 12px; border-radius: 999px; background: rgba(255,255,255,0.16); color: #fff; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.02em; }
 
 .event-chair-card { display: flex; align-items: center; gap: 14px; }
@@ -3943,13 +3948,13 @@ a.contact-row:active { background: var(--brand-100); }
 .event-chair-name { margin: 0; font: 700 1rem var(--font-display); color: var(--ink); }
 .event-chair-title { margin: 2px 0 0; color: var(--ink-muted); font-size: 0.85rem; font-weight: 600; }
 
-.event-agenda-list { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; }
-.event-agenda-row { display: flex; gap: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
-.event-agenda-row:last-child { padding-bottom: 0; border-bottom: none; }
-.event-agenda-time { flex: none; width: 92px; color: var(--brand-700); font-weight: 700; font-size: 0.82rem; }
-.event-agenda-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.event-agenda-title { color: var(--ink); font-weight: 650; }
-.event-agenda-note { color: var(--ink-muted); font-size: 0.82rem; }
+.event-agenda-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.event-agenda-row { display: block; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.event-agenda-row:last-child { border-bottom: none; }
+.event-agenda-time { display: block; margin-bottom: 3px; color: var(--brand-700); font-weight: 700; font-size: 0.74rem; letter-spacing: 0.01em; }
+.event-agenda-body { min-width: 0; }
+.event-agenda-title { display: block; color: var(--ink); font-weight: 600; font-size: 0.92rem; line-height: 1.3; }
+.event-agenda-note { display: block; margin-top: 2px; color: var(--ink-muted); font-size: 0.78rem; line-height: 1.35; }
 
 .event-registration-card { display: flex; align-items: center; gap: 16px; }
 .event-registration-qr { flex: none; display: block; width: 96px; height: 96px; padding: 6px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }

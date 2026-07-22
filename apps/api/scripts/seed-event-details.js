@@ -26,7 +26,7 @@ async function main() {
     data: {
       subtitle: "Cross Chapter Meeting",
       chairName: "Rtn. Arvind Batra",
-      chairTitle: "Chair RMBF",
+      chairTitle: "Chairman RMBF",
       registrationPricing: "Early Bird ₹3000/- (till 30th Jun 2026)",
       agenda,
     },
