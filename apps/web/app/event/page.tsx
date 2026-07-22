@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import QRCode from "qrcode";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { cacheVenueConfig, getCachedVenueConfig, type CachedVenueConfig } from "../lib/offlineQueue";
 
@@ -49,7 +48,6 @@ function formatAgendaTime(item: { startTime?: string; endTime?: string | null; t
 export default function EventDetailsPage() {
   const [event, setEvent] = useState<CachedVenueConfig | null>(null);
   const [loading, setLoading] = useState(true);
-  const [registrationQr, setRegistrationQr] = useState<string | null>(null);
 
   useEffect(() => {
     getCachedVenueConfig().then((cached) => {
@@ -69,16 +67,6 @@ export default function EventDetailsPage() {
       })
       .finally(() => setLoading(false));
   }, []);
-
-  useEffect(() => {
-    if (!event?.registrationUrl) {
-      setRegistrationQr(null);
-      return;
-    }
-    QRCode.toDataURL(event.registrationUrl, { margin: 1, width: 220 })
-      .then(setRegistrationQr)
-      .catch(() => setRegistrationQr(null));
-  }, [event?.registrationUrl]);
 
   return (
     <AttendeePageShell showFooter={false}>
@@ -101,7 +89,7 @@ export default function EventDetailsPage() {
 
             {event.chairName && (
               <section className="event-details-section">
-                <h2>Chairman</h2>
+                <h2>Chairperson</h2>
                 <div className="event-chair-card">
                   {event.chairPhotoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -148,34 +136,6 @@ export default function EventDetailsPage() {
                     <span className="contact-row-value">{event.venueAddress}</span>
                   </span>
                 </a>
-              </section>
-            )}
-
-            {(event.registrationUrl || event.registrationPricing) && (
-              <section className="event-details-section">
-                <h2>Registration</h2>
-                <div className="event-registration-card">
-                  {registrationQr && (
-                    <a
-                      className="event-registration-qr"
-                      href={event.registrationUrl ?? undefined}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label="Scan to register"
-                    >
-                      <img src={registrationQr} alt="Scan to register" />
-                    </a>
-                  )}
-                  <div>
-                    {registrationQr && <p className="event-registration-hint">Scan to register</p>}
-                    {event.registrationPricing && <p className="event-registration-pricing">{event.registrationPricing}</p>}
-                    {event.registrationUrl && (
-                      <a className="link-muted" href={event.registrationUrl} target="_blank" rel="noopener noreferrer">
-                        Open registration link
-                      </a>
-                    )}
-                  </div>
-                </div>
               </section>
             )}
 

@@ -1727,6 +1727,16 @@ p.copy {
 .attendee-shell-content > *:first-child {
   flex: 1;
 }
+/* The Edit-profile form renders its own <main class="app-content">, which has no
+   padding of its own (it inherits spacing from a parent in the tutorial). When
+   shown inside the attendee shell (the real /profile edit flow), give it the same
+   padded, centered column as .attendee-page so it isn't full-bleed/cramped. */
+.attendee-shell-content > .app-content {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 28px 16px calc(112px + env(safe-area-inset-bottom));
+}
 .attendee-page {
   width: 100%;
   max-width: 1040px;
@@ -3875,7 +3885,7 @@ a.contact-row:active { background: var(--brand-100); }
 .matches-summary { display: flex; flex-wrap: wrap; gap: 5px; margin: 0 0 16px; color: var(--ink-faint); font-size: .76rem; }
 .matches-summary span + span::before { content: "·"; margin-right: 5px; }
 .matches-summary b { color: var(--ink); }
-.matches-list { display: grid; gap: 20px; }
+.matches-list { display: grid; gap: 28px; margin-bottom: 8px; }
 .match-card { position: relative; padding: 18px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); box-shadow: 0 3px 14px rgba(22,50,84,.07); transition: border-color 0.15s ease, box-shadow 0.15s ease; animation: app-content-in 0.3s ease both; }
 .match-card:nth-child(2) { animation-delay: 0.04s; }
 .match-card:nth-child(3) { animation-delay: 0.08s; }

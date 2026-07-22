@@ -2,8 +2,8 @@
 import { withCsrfHeaders } from "../../lib/csrf";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { AttendeeMe } from "./TutorialPage";
-import { TEMP_BYPASS_LOGIN } from "./TutorialPage";
 import { PoweredByFooter } from "./PoweredByFooter";
+import { MultiSelectDropdown } from "../../components/MultiSelectDropdown";
 import { SingleSelectDropdown } from "../../components/SingleSelectDropdown";
 
 type CityOption = {
@@ -101,7 +101,6 @@ export function EditProfileForm({
   }, []);
 
   useEffect(() => {
-    if (TEMP_BYPASS_LOGIN) return;
     fetch("/api/attendees/profile-options", { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -200,20 +199,6 @@ export function EditProfileForm({
       return;
     }
 
-    if (TEMP_BYPASS_LOGIN) {
-      onSaved({
-        businessCategory,
-        city: city.trim(),
-        lookingFor,
-        offering,
-        goals,
-        bio: bio.trim() || null,
-        linkedInUrl: linkedInUrl.trim() || null,
-        photoUrl: photoPreview,
-      });
-      onClose();
-      return;
-    }
 
     setSaving(true);
     try {
@@ -385,9 +370,9 @@ export function EditProfileForm({
             </datalist>
           </div>
 
-          <ChipField label="Looking for" options={options.lookingFor} selected={lookingFor} onToggle={(v) => setLookingFor((s) => toggle(s, v))} />
-          <ChipField label="Offering" options={options.offering} selected={offering} onToggle={(v) => setOffering((s) => toggle(s, v))} />
-          <ChipField label="Goals" options={options.goals} selected={goals} onToggle={(v) => setGoals((s) => toggle(s, v))} />
+          <MultiSelectDropdown label="Looking for" options={options.lookingFor} selected={lookingFor} onToggle={(v) => setLookingFor((s) => toggle(s, v))} />
+          <MultiSelectDropdown label="Offering" options={options.offering} selected={offering} onToggle={(v) => setOffering((s) => toggle(s, v))} />
+          <MultiSelectDropdown label="Goals" options={options.goals} selected={goals} onToggle={(v) => setGoals((s) => toggle(s, v))} />
 
           <div className="field">
             <label htmlFor="edit-linkedin">LinkedIn URL</label>
@@ -441,27 +426,3 @@ function ReadOnlyField({ label, value, onTap }: { label: string; value: string; 
   );
 }
 
-function ChipField({
-  label,
-  options,
-  selected,
-  onToggle,
-}: {
-  label: string;
-  options: string[];
-  selected: string[];
-  onToggle: (value: string) => void;
-}) {
-  return (
-    <div className="field">
-      <label>{label}</label>
-      <div className="chip-row">
-        {options.map((opt) => (
-          <button key={opt} type="button" className={`chip${selected.includes(opt) ? " on" : ""}`} onClick={() => onToggle(opt)}>
-            {opt}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}

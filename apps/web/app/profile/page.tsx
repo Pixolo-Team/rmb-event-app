@@ -9,8 +9,6 @@ import { PhotoUploadModal } from "../components/PhotoUploadModal";
 import { PoweredByFooter } from "../components/PoweredByFooter";
 import { withCsrfHeaders } from "../lib/csrf";
 import { profileCache, type MyProfile } from "../lib/profileCache";
-import { EditProfileForm } from "../(app)/tutorial/EditProfileForm";
-import type { AttendeeMe } from "../(app)/tutorial/TutorialPage";
 import { ProfileSkeleton } from "./ProfileSkeleton";
 
 export default function ProfilePage() {
@@ -20,7 +18,6 @@ export default function ProfilePage() {
   const [offline, setOffline] = useState(false);
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
-  const [editing, setEditing] = useState(false);
   const [websiteDraft, setWebsiteDraft] = useState("");
   const [websiteEditing, setWebsiteEditing] = useState(false);
   const [websiteSaving, setWebsiteSaving] = useState(false);
@@ -201,23 +198,6 @@ export default function ProfilePage() {
     }
   }
 
-  if (editing && profile) {
-    return (
-      <EditProfileForm
-        attendee={profile as AttendeeMe}
-        onSaved={(patch) => {
-          setProfile((current) => {
-            if (!current) return current;
-            const next = { ...current, ...patch } as MyProfile;
-            profileCache.set(next);
-            return next;
-          });
-        }}
-        onClose={() => setEditing(false)}
-      />
-    );
-  }
-
   return (
     <AttendeePageShell showFooter={false}>
       <main className="attendee-page profile-page">
@@ -270,10 +250,6 @@ export default function ProfilePage() {
             </section>
 
             <PersonalStats />
-
-            <button type="button" className="btn-secondary profile-edit-button" onClick={() => setEditing(true)}>
-              Edit profile
-            </button>
 
             <div className="profile-details-grid">
               <ProfileSection title="Contact">
