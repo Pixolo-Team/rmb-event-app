@@ -12,7 +12,7 @@ const TITLES: Record<string, string> = {
   "/admin/event": "Event settings",
   "/admin/checkin": "Live check-in",
   "/admin/badges": "Print badges",
-  "/admin/feed": "Photo moderation",
+  "/admin/feed": "Gallery photos",
   "/admin/feedback": "Feedback",
 };
 

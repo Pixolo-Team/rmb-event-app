@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { withCsrfHeaders } from "../../../lib/csrf";
 
 type Tab = "all" | "deleted";
@@ -10,6 +10,7 @@ interface AdminPhoto {
   url: string;
   caption: string | null;
   createdAt: string;
+  uploadedByAdmin: boolean;
   attendeeName: string;
   likeCount: number;
 }
@@ -32,6 +33,25 @@ export default function AdminFeedPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [caption, setCaption] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
+
+  const previews = useMemo(
+    () => selectedFiles.map((file) => ({ name: file.name, url: URL.createObjectURL(file) })),
+    [selectedFiles],
+  );
+
+  useEffect(() => {
+    return () => previews.forEach((preview) => URL.revokeObjectURL(preview.url));
+  }, [previews]);
+
+  const refreshPhotos = useCallback(async () => {
+    const res = await fetch("/api/admin/photos");
+    if (!res.ok) throw new Error();
+    setPhotos((await res.json()) as AdminPhoto[]);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,6 +83,39 @@ export default function AdminFeedPage() {
     };
   }, [tab]);
 
+  async function handleUpload(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (selectedFiles.length === 0) {
+      setError("Choose at least one photo to upload.");
+      return;
+    }
+    setUploading(true);
+    setError(null);
+    setUploadMessage(null);
+
+    const body = new FormData();
+    selectedFiles.forEach((file) => body.append("photos", file));
+    if (caption.trim()) body.append("caption", caption.trim());
+
+    try {
+      const res = await fetch("/api/admin/photos", withCsrfHeaders({ method: "POST", body, credentials: "include" }));
+      if (!res.ok) {
+        setError("Couldn't upload photos. Use JPEG, PNG, WEBP, or HEIC files under 5MB each.");
+        return;
+      }
+      const uploadedCount = selectedFiles.length;
+      setSelectedFiles([]);
+      setCaption("");
+      setTab("all");
+      setUploadMessage(`${uploadedCount} photo${uploadedCount === 1 ? "" : "s"} uploaded to the gallery.`);
+      await refreshPhotos();
+    } catch {
+      setError("Couldn't reach the server. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function handleDelete(photoId: string) {
     if (!window.confirm("Delete this photo? This cannot be undone.")) return;
     setDeletingId(photoId);
@@ -87,8 +140,86 @@ export default function AdminFeedPage() {
         <span className="dot" />
         Evento Admin
       </div>
-      <h1 className="title">Feed moderation</h1>
-      <p className="copy">View every photo posted to the event feed, remove anything inappropriate, and review a history of what's been removed.</p>
+      <h1 className="title">Gallery photos</h1>
+      <p className="copy">Upload photos for the public gallery, remove anything inappropriate, and review a history of what's been removed.</p>
+
+      <form
+        onSubmit={handleUpload}
+        style={{
+          marginTop: 24,
+          padding: 18,
+          border: "1px solid var(--border)",
+          borderRadius: "var(--radius-lg)",
+          background: "var(--surface)",
+          display: "grid",
+          gap: 14,
+        }}
+      >
+        <div>
+          <h2 style={{ margin: 0, fontSize: "1rem" }}>Upload gallery photos</h2>
+          <p className="copy" style={{ margin: "4px 0 0", fontSize: ".86rem" }}>Add up to 6 photos at a time. They will appear as posts from RMB Event Team.</p>
+        </div>
+
+        <label
+          style={{
+            border: "1.5px dashed var(--border-strong)",
+            borderRadius: "var(--radius-md)",
+            padding: 16,
+            display: "grid",
+            gap: 8,
+            cursor: "pointer",
+            background: "var(--surface-2)",
+          }}
+        >
+          <span style={{ fontWeight: 800, color: "var(--ink)" }}>Choose photos</span>
+          <span className="copy" style={{ margin: 0, fontSize: ".82rem" }}>JPEG, PNG, WEBP, or HEIC. Max 5MB each.</span>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(event) => setSelectedFiles(Array.from(event.target.files ?? []).slice(0, 6))}
+            style={{ fontSize: ".86rem" }}
+          />
+        </label>
+
+        {previews.length > 0 ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(84px, 1fr))", gap: 10 }}>
+            {previews.map((preview) => (
+              <div key={preview.url} style={{ display: "grid", gap: 6, minWidth: 0 }}>
+                <Thumb src={preview.url} />
+                <span style={{ fontSize: ".7rem", color: "var(--ink-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{preview.name}</span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        <label style={{ display: "grid", gap: 6 }}>
+          <span style={{ fontSize: ".78rem", fontWeight: 800, color: "var(--ink-muted)", textTransform: "uppercase", letterSpacing: ".04em" }}>Caption</span>
+          <textarea
+            value={caption}
+            maxLength={200}
+            onChange={(event) => setCaption(event.target.value)}
+            rows={3}
+            placeholder="Optional caption"
+            style={{ resize: "vertical", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: 12, font: "inherit" }}
+          />
+        </label>
+
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <button className="btn-primary" type="submit" disabled={uploading || selectedFiles.length === 0}>
+            {uploading ? "Uploading..." : "Upload photos"}
+          </button>
+          {selectedFiles.length > 0 ? (
+            <button className="btn-secondary" type="button" disabled={uploading} onClick={() => {
+              setSelectedFiles([]);
+              setCaption("");
+            }}>
+              Clear
+            </button>
+          ) : null}
+          {uploadMessage ? <span style={{ color: "var(--success)", fontWeight: 700, fontSize: ".86rem" }}>{uploadMessage}</span> : null}
+        </div>
+      </form>
 
       <div style={{ display: "flex", gap: 8, marginTop: 20, marginBottom: 20 }}>
         <TabButton active={tab === "all"} onClick={() => setTab("all")}>
@@ -102,7 +233,7 @@ export default function AdminFeedPage() {
       {error && (
         <div className="banner warn" style={{ marginBottom: 20 }}>
           <div>
-            <b>Feed moderation issue</b>
+            <b>Gallery photo issue</b>
             {error}
           </div>
         </div>
@@ -119,7 +250,7 @@ export default function AdminFeedPage() {
               <thead>
                 <tr style={{ background: "var(--surface-2)" }}>
                   <Th>Photo</Th>
-                  <Th>Attendee</Th>
+                  <Th>Source</Th>
                   <Th>Caption</Th>
                   <Th>Posted</Th>
                   <Th>Likes</Th>
@@ -132,7 +263,7 @@ export default function AdminFeedPage() {
                     <Td>
                       <Thumb src={photo.url} />
                     </Td>
-                    <Td>{photo.attendeeName}</Td>
+                    <Td>{photo.attendeeName}{photo.uploadedByAdmin ? " · Admin" : ""}</Td>
                     <Td>{photo.caption ?? "-"}</Td>
                     <Td>{new Date(photo.createdAt).toLocaleString()}</Td>
                     <Td mono>{photo.likeCount}</Td>
