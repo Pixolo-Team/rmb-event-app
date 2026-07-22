@@ -29,7 +29,11 @@ async function bootstrap() {
   app.use(cookieParser());
   app.use(csrfCookieMiddleware);
   app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, transform: true }),
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
   );
   const webOrigin = process.env.WEB_ORIGIN;
   if (!webOrigin && process.env.NODE_ENV === "production") {
