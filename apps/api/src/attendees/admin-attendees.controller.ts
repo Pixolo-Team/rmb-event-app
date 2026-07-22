@@ -18,6 +18,11 @@ export class AdminAttendeesController {
     return this.attendees.listForAdminManagement();
   }
 
+  @Get("manage/:id")
+  async manageProfile(@Param("id") id: string) {
+    return this.attendees.getAdminProfile(id);
+  }
+
   @Post()
   async create(@Body() dto: CreateAdminAttendeeDto) {
     return this.attendees.createForAdmin(dto);

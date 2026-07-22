@@ -4199,6 +4199,11 @@ a.contact-row:active { background: var(--brand-100); }
 .admin-attendee-menu-dropdown .admin-absent-button{color:var(--warning-700)}
 .admin-attendee-menu-dropdown .admin-absent-button:hover:not(:disabled){background:var(--warning-100)}
 .admin-attendee-menu-dropdown button:disabled{opacity:.55;cursor:not-allowed}
+.admin-attendee-row.is-clickable{cursor:pointer;transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+.admin-attendee-row.is-clickable:hover,.admin-attendee-row.is-clickable:focus-visible{border-color:var(--brand-500);box-shadow:0 12px 28px rgba(22,50,84,.1);transform:translateY(-1px);outline:0}
+.admin-attendee-row.is-clickable:focus-visible{box-shadow:0 0 0 3px rgba(47,111,235,.18),0 12px 28px rgba(22,50,84,.1)}
+.admin-attendee-profile-page{display:grid;gap:14px}
+.admin-attendee-profile-status{margin:10px 0 0;color:var(--ink-muted);font-size:.84rem;font-weight:700;line-height:1.5}
 @media(max-width:720px){.admin-add-attendee-form,.admin-attendee-row{grid-template-columns:1fr}.admin-add-attendee-form .btn-primary{width:100%}.admin-attendee-meta{text-align:left}.admin-attendee-actions{align-items:center;justify-content:stretch;flex-direction:row;flex-wrap:nowrap}.admin-attendee-actions .admin-present-button{flex:1 1 auto;min-width:0;width:auto}.admin-attendee-menu{flex:0 0 48px}.admin-attendee-menu-button{width:48px}.admin-attendee-menu-dropdown{position:absolute;width:180px;margin-top:0}.admin-attendee-confirm{width:100%}.admin-attendee-row .btn-secondary,.admin-attendee-confirm .btn-secondary,.admin-attendee-confirm .btn-danger-soft{width:100%}.admin-attendee-confirm>span{text-align:left}.admin-attendee-confirm>div{flex-direction:column}.admin-pagination{align-items:stretch;flex-direction:column}.admin-pagination-button{width:100%}.admin-pagination-pages{order:-1}}
 @media(max-width:980px){.admin-analytics-grid{grid-template-columns:repeat(2,1fr)}.admin-overview-panels{grid-template-columns:1fr}.admin-method-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:640px){

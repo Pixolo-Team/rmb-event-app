@@ -1,6 +1,7 @@
 "use client";
 
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, type KeyboardEvent, type MouseEvent, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { withCsrfHeaders } from "../../lib/csrf";
 
 type AdminAttendee = {
@@ -24,6 +25,7 @@ type LoadState = "loading" | "ready" | "error";
 const ATTENDEES_PER_PAGE = 10;
 
 export default function AdminAttendeesPage() {
+  const router = useRouter();
   const [attendees, setAttendees] = useState<AdminAttendee[]>([]);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -197,6 +199,22 @@ export default function AdminAttendeesPage() {
     }
   }
 
+  function openAttendeeProfile(attendee: AdminAttendee) {
+    router.push(`/admin/attendees/${attendee.id}`);
+  }
+
+  function handleAttendeeRowClick(event: MouseEvent<HTMLElement>, attendee: AdminAttendee) {
+    if (isInteractiveTarget(event.target)) return;
+    openAttendeeProfile(attendee);
+  }
+
+  function handleAttendeeRowKeyDown(event: KeyboardEvent<HTMLElement>, attendee: AdminAttendee) {
+    if (isInteractiveTarget(event.target)) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    openAttendeeProfile(attendee);
+  }
+
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
     if (!term) return attendees;
@@ -345,7 +363,15 @@ export default function AdminAttendeesPage() {
             ]);
 
             return (
-              <article key={attendee.id} className={`admin-attendee-row${attendee.deletedAt ? " is-deleted" : ""}`}>
+              <article
+                key={attendee.id}
+                className={`admin-attendee-row is-clickable${attendee.deletedAt ? " is-deleted" : ""}`}
+                role="link"
+                tabIndex={0}
+                aria-label={`View ${attendee.name}'s profile`}
+                onClick={(event) => handleAttendeeRowClick(event, attendee)}
+                onKeyDown={(event) => handleAttendeeRowKeyDown(event, attendee)}
+              >
                 <div>
                   <div className="admin-attendee-title">
                     <b>{attendee.name}</b>
@@ -480,4 +506,8 @@ function compactDetails(values: Array<string | null>) {
     .map((value) => value?.trim())
     .filter((value): value is string => Boolean(value))
     .join(" · ");
+}
+
+function isInteractiveTarget(target: EventTarget) {
+  return target instanceof Element && Boolean(target.closest("a,button,input,select,textarea,label,.admin-attendee-actions"));
 }
