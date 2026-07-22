@@ -3634,6 +3634,8 @@ a.contact-row:active { background: var(--brand-100); }
 @media (min-width: 980px) {
   .admin-shell {
     flex-direction: row;
+    height: 100vh;
+    overflow: hidden;
   }
 }
 .admin-mobile-topbar {
@@ -3732,6 +3734,9 @@ a.contact-row:active { background: var(--brand-100); }
   }
   .admin-shell-content {
     margin-left: 248px;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
   .admin-sidebar {
     position: fixed;

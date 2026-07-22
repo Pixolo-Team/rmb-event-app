@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { RotaryLoader } from "../../../components/RotaryLoader";
 import { withCsrfHeaders } from "../../../lib/csrf";
 import { profileCache } from "../../../lib/profileCache";
 
@@ -67,7 +68,7 @@ export function VerifyStatus() {
         Evento
       </div>
       <div className="center-state">
-        <span className="spinner" style={{ borderTopColor: "var(--brand-500)", borderColor: "var(--border)" }} />
+        <RotaryLoader />
         <p>Signing you in&hellip;</p>
       </div>
     </div>

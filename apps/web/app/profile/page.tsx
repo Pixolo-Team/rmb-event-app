@@ -399,10 +399,11 @@ export default function ProfilePage() {
                   </ProfileSection>
                   <ProfileSection title="Business">
                     <dl className="profile-contact">
+                      {profile.businessName && <div><dt>Company</dt><dd>{profile.businessName}</dd></div>}
                       {profile.businessCategory && <div><dt>Category</dt><dd>{profile.businessCategory}</dd></div>}
                       {profile.city && <div><dt>City</dt><dd>{profile.city}</dd></div>}
                       {profile.chapterName && <div><dt>Chapter</dt><dd>{profile.chapterName}</dd></div>}
-                      {!profile.businessCategory && !profile.city && !profile.chapterName && (
+                      {!profile.businessName && !profile.businessCategory && !profile.city && !profile.chapterName && (
                         <p className="empty-copy">No business details on file</p>
                       )}
                     </dl>

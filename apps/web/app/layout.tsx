@@ -5,10 +5,14 @@ import { GoogleAnalytics } from "./components/GoogleAnalytics";
 import { PwaInstallProvider } from "./components/PwaInstallProvider";
 
 export const metadata: Metadata = {
-  title: "Evento",
+  title: "RMBF Evento",
   description: "Networking, planned.",
   manifest: "/manifest.json",
-  icons: { icon: "/images/rotary-favicon.png" },
+  icons: {
+    icon: "/images/rmb-fellowship-logo.png",
+    shortcut: "/images/rmb-fellowship-logo.png",
+    apple: "/images/rmb-fellowship-logo.png",
+  },
 };
 
 export const viewport: Viewport = {
