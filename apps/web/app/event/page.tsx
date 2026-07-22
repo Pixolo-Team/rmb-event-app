@@ -25,6 +25,26 @@ function mapsUrl(event: CachedVenueConfig): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.venueAddress ?? "")}`;
 }
 
+function clockParts(hhmm: string): { label: string; period: string } | null {
+  const [h, m] = hhmm.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  const period = h < 12 ? "AM" : "PM";
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return { label: `${hour12}:${String(m).padStart(2, "0")}`, period };
+}
+
+function formatAgendaTime(item: { startTime?: string; endTime?: string | null; time?: string }): string {
+  if (!item.startTime) return item.time ?? "";
+  const start = clockParts(item.startTime);
+  if (!start) return item.startTime;
+  if (!item.endTime) return `${start.label} ${start.period}`;
+  const end = clockParts(item.endTime);
+  if (!end) return `${start.label} ${start.period}`;
+  // Drop the start period when both ends share it: "9:30 – 11:00 AM".
+  const startText = start.period === end.period ? start.label : `${start.label} ${start.period}`;
+  return `${startText} – ${end.label} ${end.period}`;
+}
+
 export default function EventDetailsPage() {
   const [event, setEvent] = useState<CachedVenueConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,8 +83,46 @@ export default function EventDetailsPage() {
             <section className="event-details-hero">
               <p className="eyebrow">Event details</p>
               <h1>{event.name || "The event"}</h1>
+              {event.subtitle && <span className="event-details-subtitle">{event.subtitle}</span>}
               {event.startAt && <p className="event-details-date">{formatEventDate(event.startAt)}</p>}
             </section>
+
+            {event.chairName && (
+              <section className="event-details-section">
+                <h2>Chairperson</h2>
+                <div className="event-chair-card">
+                  {event.chairPhotoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img className="event-chair-photo" src={event.chairPhotoUrl} alt={event.chairName} />
+                  ) : (
+                    <div className="event-chair-photo event-chair-photo-placeholder" aria-hidden="true">
+                      {event.chairName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("")}
+                    </div>
+                  )}
+                  <div>
+                    <p className="event-chair-name">{event.chairName}</p>
+                    {event.chairTitle && <p className="event-chair-title">{event.chairTitle}</p>}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {event.agenda && event.agenda.length > 0 && (
+              <section className="event-details-section">
+                <h2>Agenda</h2>
+                <ol className="event-agenda-list">
+                  {event.agenda.map((item, index) => (
+                    <li key={index} className="event-agenda-row">
+                      <span className="event-agenda-time">{formatAgendaTime(item)}</span>
+                      <span className="event-agenda-body">
+                        <span className="event-agenda-title">{item.title}</span>
+                        {item.note && <span className="event-agenda-note">{item.note}</span>}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )}
 
             {event.venueAddress && (
               <section className="event-details-section">

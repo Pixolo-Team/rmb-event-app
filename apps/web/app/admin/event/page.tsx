@@ -7,6 +7,13 @@ import { withCsrfHeaders } from "../../lib/csrf";
 
 const RADIUS_OPTIONS = [100, 250, 500, 1000, 5000];
 
+interface AgendaItem {
+  startTime: string;
+  endTime: string;
+  title: string;
+  note?: string | null;
+}
+
 interface EventSettings {
   id: string;
   name: string;
@@ -18,9 +25,20 @@ interface EventSettings {
   checkinRadiusM: number;
   contactName: string | null;
   contactPhone: string | null;
+  subtitle: string | null;
+  chairName: string | null;
+  chairTitle: string | null;
+  chairPhotoUrl: string | null;
+  registrationUrl: string | null;
+  registrationPricing: string | null;
+  agenda: AgendaItem[] | null;
 }
 
 type SaveState = "idle" | "saving" | "saved" | "error";
+
+function emptyAgendaItem(): AgendaItem {
+  return { startTime: "", endTime: "", title: "", note: "" };
+}
 
 export default function AdminEventSettingsPage() {
   const [event, setEvent] = useState<EventSettings | null>(null);
@@ -33,25 +51,48 @@ export default function AdminEventSettingsPage() {
   const [checkinRadiusM, setCheckinRadiusM] = useState(500);
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
+  const [subtitle, setSubtitle] = useState("");
+  const [chairName, setChairName] = useState("");
+  const [chairTitle, setChairTitle] = useState("");
+  const [chairPhotoUrl, setChairPhotoUrl] = useState("");
+  const [registrationUrl, setRegistrationUrl] = useState("");
+  const [registrationPricing, setRegistrationPricing] = useState("");
+  const [agenda, setAgenda] = useState<AgendaItem[]>([]);
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [testResult, setTestResult] = useState<string | null>(null);
 
+  function hydrate(data: EventSettings) {
+    setEvent(data);
+    setEventName(data.name);
+    setStartAt(toDatetimeLocalValue(data.startAt));
+    setEndAt(toDatetimeLocalValue(data.endAt));
+    setVenueLat(data.venueLat?.toString() ?? "");
+    setVenueLng(data.venueLng?.toString() ?? "");
+    setVenueAddress(data.venueAddress ?? "");
+    setCheckinRadiusM(data.checkinRadiusM);
+    setContactName(data.contactName ?? "");
+    setContactPhone(data.contactPhone ?? "");
+    setSubtitle(data.subtitle ?? "");
+    setChairName(data.chairName ?? "");
+    setChairTitle(data.chairTitle ?? "");
+    setChairPhotoUrl(data.chairPhotoUrl ?? "");
+    setRegistrationUrl(data.registrationUrl ?? "");
+    setRegistrationPricing(data.registrationPricing ?? "");
+    setAgenda(
+      (data.agenda ?? []).map((item) => ({
+        startTime: item.startTime ?? "",
+        endTime: item.endTime ?? "",
+        title: item.title,
+        note: item.note ?? "",
+      })),
+    );
+  }
+
   useEffect(() => {
     fetch("/api/admin/event")
       .then((res) => res.json())
-      .then((data: EventSettings) => {
-        setEvent(data);
-        setEventName(data.name);
-        setStartAt(toDatetimeLocalValue(data.startAt));
-        setEndAt(toDatetimeLocalValue(data.endAt));
-        setVenueLat(data.venueLat?.toString() ?? "");
-        setVenueLng(data.venueLng?.toString() ?? "");
-        setVenueAddress(data.venueAddress ?? "");
-        setCheckinRadiusM(data.checkinRadiusM);
-        setContactName(data.contactName ?? "");
-        setContactPhone(data.contactPhone ?? "");
-      });
+      .then(hydrate);
   }, []);
 
   const venueConfigured = event?.venueLat != null && event?.venueLng != null;
@@ -70,21 +111,34 @@ export default function AdminEventSettingsPage() {
         return;
       }
       const data: EventSettings = await res.json();
-      setEvent(data);
-      setEventName(data.name);
-      setStartAt(toDatetimeLocalValue(data.startAt));
-      setEndAt(toDatetimeLocalValue(data.endAt));
-      setVenueLat(data.venueLat?.toString() ?? "");
-      setVenueLng(data.venueLng?.toString() ?? "");
-      setVenueAddress(data.venueAddress ?? "");
-      setCheckinRadiusM(data.checkinRadiusM);
-      setContactName(data.contactName ?? "");
-      setContactPhone(data.contactPhone ?? "");
+      hydrate(data);
       setSaveState("saved");
       setTimeout(() => setSaveState("idle"), 2500);
     } catch {
       setSaveState("error");
     }
+  }
+
+  function addAgendaRow() {
+    setAgenda((current) => [...current, emptyAgendaItem()]);
+  }
+
+  function removeAgendaRow(index: number) {
+    setAgenda((current) => current.filter((_, i) => i !== index));
+  }
+
+  function moveAgendaRow(index: number, direction: -1 | 1) {
+    setAgenda((current) => {
+      const target = index + direction;
+      if (target < 0 || target >= current.length) return current;
+      const next = [...current];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  }
+
+  function updateAgendaRow(index: number, patch: Partial<AgendaItem>) {
+    setAgenda((current) => current.map((item, i) => (i === index ? { ...item, ...patch } : item)));
   }
 
   function handleSave() {
@@ -107,6 +161,18 @@ export default function AdminEventSettingsPage() {
       setFieldError("Invalid coordinates — longitude must be between -180 and 180.");
       return;
     }
+    const cleanAgenda = agenda
+      .map((item) => ({
+        startTime: item.startTime,
+        endTime: item.endTime || undefined,
+        title: item.title.trim(),
+        note: item.note?.trim() || undefined,
+      }))
+      .filter((item) => item.startTime && item.title);
+    if (agenda.some((item) => (item.startTime || item.title.trim()) && (!item.startTime || !item.title.trim()))) {
+      setFieldError("Each agenda row needs a start time and a title (or remove the row).");
+      return;
+    }
     save({
       name: trimmedName,
       startAt: toIsoValue(startAt),
@@ -117,6 +183,13 @@ export default function AdminEventSettingsPage() {
       checkinRadiusM,
       contactName: contactName.trim() || null,
       contactPhone: contactPhone.trim() || null,
+      subtitle: subtitle.trim() || null,
+      chairName: chairName.trim() || null,
+      chairTitle: chairTitle.trim() || null,
+      chairPhotoUrl: chairPhotoUrl.trim() || null,
+      registrationUrl: registrationUrl.trim() || null,
+      registrationPricing: registrationPricing.trim() || null,
+      agenda: cleanAgenda,
     });
   }
 
@@ -173,6 +246,17 @@ export default function AdminEventSettingsPage() {
           value={eventName}
           onChange={(e) => setEventName(e.target.value)}
         />
+      </div>
+
+      <div className="field">
+        <label htmlFor="subtitle">Subtitle</label>
+        <input
+          id="subtitle"
+          placeholder="e.g. Cross Chapter Meeting"
+          value={subtitle}
+          onChange={(e) => setSubtitle(e.target.value)}
+        />
+        <div className="hint">Shown as a badge under the event name.</div>
       </div>
 
       <div className="field">
@@ -249,6 +333,127 @@ export default function AdminEventSettingsPage() {
           onChange={(e) => setContactPhone(e.target.value)}
         />
         <div className="hint">Attendees can tap to call this number from the Event Details page.</div>
+      </div>
+
+      <h2 className="title" style={{ fontSize: "1.1rem", marginTop: 28 }}>Chair</h2>
+      <p className="copy">Featured host shown with the agenda on the Event Details page.</p>
+
+      <div className="field">
+        <label htmlFor="chairName">Chair name</label>
+        <input
+          id="chairName"
+          placeholder="e.g. Rtn. Arvind Batra"
+          value={chairName}
+          onChange={(e) => setChairName(e.target.value)}
+        />
+      </div>
+
+      <div className="field">
+        <label htmlFor="chairTitle">Chair title</label>
+        <input
+          id="chairTitle"
+          placeholder="e.g. Chair RMBF"
+          value={chairTitle}
+          onChange={(e) => setChairTitle(e.target.value)}
+        />
+      </div>
+
+      <div className="field">
+        <label htmlFor="chairPhotoUrl">Chair photo URL</label>
+        <input
+          id="chairPhotoUrl"
+          placeholder="https://..."
+          value={chairPhotoUrl}
+          onChange={(e) => setChairPhotoUrl(e.target.value)}
+        />
+        <div className="hint">Falls back to initials if left blank.</div>
+      </div>
+
+      <h2 className="title" style={{ fontSize: "1.1rem", marginTop: 28 }}>Agenda</h2>
+      <p className="copy">Shown as a schedule on the Event Details page, in this order.</p>
+
+      <div className="agenda-editor">
+        {agenda.length === 0 && (
+          <p className="agenda-editor-empty">No agenda items yet. Add the first one below.</p>
+        )}
+        {agenda.map((item, index) => (
+          <div key={index} className="agenda-editor-row">
+            <div className="agenda-editor-row-head">
+              <span className="agenda-editor-index">Item {index + 1}</span>
+              <div className="agenda-editor-actions">
+                <button type="button" className="agenda-editor-btn" aria-label="Move up" disabled={index === 0} onClick={() => moveAgendaRow(index, -1)}>↑</button>
+                <button type="button" className="agenda-editor-btn" aria-label="Move down" disabled={index === agenda.length - 1} onClick={() => moveAgendaRow(index, 1)}>↓</button>
+                <button type="button" className="agenda-editor-btn danger" aria-label="Remove item" onClick={() => removeAgendaRow(index)}>✕</button>
+              </div>
+            </div>
+            <div className="agenda-editor-fields">
+              <div className="agenda-editor-time-row">
+                <div className="field">
+                  <label htmlFor={`agenda-start-${index}`}>Start time</label>
+                  <input
+                    id={`agenda-start-${index}`}
+                    type="time"
+                    value={item.startTime}
+                    onChange={(e) => updateAgendaRow(index, { startTime: e.target.value })}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor={`agenda-end-${index}`}>End time</label>
+                  <input
+                    id={`agenda-end-${index}`}
+                    type="time"
+                    value={item.endTime}
+                    onChange={(e) => updateAgendaRow(index, { endTime: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="field">
+                <label htmlFor={`agenda-title-${index}`}>Title</label>
+                <input
+                  id={`agenda-title-${index}`}
+                  placeholder="e.g. Chapter Leaders Training"
+                  value={item.title}
+                  onChange={(e) => updateAgendaRow(index, { title: e.target.value })}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor={`agenda-note-${index}`}>Note (optional)</label>
+                <input
+                  id={`agenda-note-${index}`}
+                  placeholder="e.g. Mandatory for President, Secretary and Treasurer"
+                  value={item.note ?? ""}
+                  onChange={(e) => updateAgendaRow(index, { note: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <button type="button" className="btn-secondary agenda-editor-add" onClick={addAgendaRow}>
+        + Add agenda item
+      </button>
+
+      <h2 className="title" style={{ fontSize: "1.1rem", marginTop: 4 }}>Registration</h2>
+      <p className="copy">Attendees see a "Scan to register" QR generated from this link.</p>
+
+      <div className="field">
+        <label htmlFor="registrationUrl">Registration link</label>
+        <input
+          id="registrationUrl"
+          placeholder="https://..."
+          value={registrationUrl}
+          onChange={(e) => setRegistrationUrl(e.target.value)}
+        />
+      </div>
+
+      <div className="field">
+        <label htmlFor="registrationPricing">Registration pricing</label>
+        <input
+          id="registrationPricing"
+          placeholder="e.g. Early bird ₹3000/- till 30th Jun 2026"
+          value={registrationPricing}
+          onChange={(e) => setRegistrationPricing(e.target.value)}
+        />
       </div>
 
       <div className="field">

@@ -15,6 +15,7 @@ export interface MyProfile {
   city: string | null;
   businessCategory: string | null;
   websiteUrl?: string | null;
+  linkedInUrl?: string | null;
   tableNumber: string | null;
   lookingFor: string[];
   offering: string[];

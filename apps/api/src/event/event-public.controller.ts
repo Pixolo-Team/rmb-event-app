@@ -25,6 +25,13 @@ export class EventPublicController {
       endAt: event.endAt?.toISOString() ?? null,
       contactName: event.contactName,
       contactPhone: event.contactPhone,
+      subtitle: event.subtitle,
+      chairName: event.chairName,
+      chairTitle: event.chairTitle,
+      chairPhotoUrl: event.chairPhotoUrl,
+      registrationUrl: event.registrationUrl,
+      registrationPricing: event.registrationPricing,
+      agenda: event.agenda,
     };
   }
 }
