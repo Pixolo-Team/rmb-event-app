@@ -43,7 +43,7 @@ type AdminOverview = {
   chapterSummaries: ChapterSummaryRow[];
   topConnectors: {
     id: string;
-    rank: number;
+    rank: number | null;
     name: string;
     businessName: string | null;
     metCount: number;
@@ -78,7 +78,7 @@ export class StatsService {
 
     return {
       peopleMet,
-      rank: board.me?.rank ?? board.totalAttendees + 1,
+      rank: checkIn ? board.me?.rank ?? null : null,
       totalRanked: board.totalAttendees,
       bookmarks,
       photos,
@@ -295,7 +295,7 @@ function buildAnalyticsCsv(overview: AdminOverview) {
     [],
     ["Check-in methods", "Method", "Count"],
     ["Check-in methods", "Geolocation", String(overview.breakdown.GEOLOCATION)],
-    ["Check-in methods", "Manual", String(overview.breakdown.MANUAL)],
+    ["Check-in methods", "Desk check-in", String(overview.breakdown.MANUAL)],
     ["Check-in methods", "Staff QR", String(overview.breakdown.STAFF_QR)],
     ["Check-in methods", "Venue QR", String(overview.breakdown.VENUE_QR)],
     [],
@@ -352,7 +352,7 @@ async function buildAnalyticsPdf(overview: AdminOverview) {
     "",
     "Check-in Methods",
     `Geolocation: ${overview.breakdown.GEOLOCATION}`,
-    `Manual: ${overview.breakdown.MANUAL}`,
+    `Desk check-in: ${overview.breakdown.MANUAL}`,
     `Staff QR: ${overview.breakdown.STAFF_QR}`,
     `Venue QR: ${overview.breakdown.VENUE_QR}`,
     "",

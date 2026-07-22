@@ -22,7 +22,7 @@ export class SummaryService {
     const ranked = checkedIn.map((person) => ({ ...person, count: counts.get(person.id) ?? 0 })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
     const ownCount = counts.get(attendeeId) ?? 0;
     const rankIndex = ranked.findIndex((person) => person.id === attendeeId);
-    const rank = rankIndex < 0 ? ranked.length + 1 : 1 + ranked.slice(0, rankIndex).filter((person) => person.count > ownCount).length;
+    const rank = rankIndex < 0 ? null : 1 + ranked.slice(0, rankIndex).filter((person) => person.count > ownCount).length;
     const connections = this.mapConnections(attendeeId, meetings);
 
     return {

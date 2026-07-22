@@ -117,12 +117,13 @@ export default function ProfilePage() {
   }, []);
 
   useEffect(() => {
-    if (!profile?.qrToken) return;
+    const qrToken = profile?.qrToken;
+    if (!qrToken) return;
     // Dynamically imported: qrcode is a meaningfully-sized library only this
     // effect needs, so it shouldn't sit in Profile's initial JS bundle.
     let cancelled = false;
     import("qrcode").then(({ default: QRCode }) =>
-      QRCode.toDataURL(profile.qrToken, { margin: 1, width: 512, errorCorrectionLevel: "M" }),
+      QRCode.toDataURL(qrToken, { margin: 1, width: 512, errorCorrectionLevel: "M" }),
     )
       .then((url) => { if (!cancelled) setQrDataUrl(url); })
       .catch(() => { if (!cancelled) setQrDataUrl(null); });
@@ -231,6 +232,10 @@ export default function ProfilePage() {
     };
   }
 
+  const hasNetworkingInfo = Boolean(
+    profile && (profile.lookingFor.length > 0 || profile.offering.length > 0 || profile.goals.length > 0),
+  );
+
   return (
     <AttendeePageShell showFooter={false} showTabs={!editingProfile}>
       {editingProfile && profile ? (
@@ -298,7 +303,7 @@ export default function ProfilePage() {
 
                 <div className="profile-details-grid">
                   <ProfileSection title="Contact">
-                    <ContactRows phone={profile.phone} email={profile.email} tableNumber={profile.tableNumber} />
+                    <ContactRows phone={profile.phone} email={profile.email} tableNumber={profile.tableNumber} interactive={false} />
                     <div className="profile-website-panel">
                       <div className="profile-website-header">
                         <span className="contact-row-label">Website</span>
@@ -399,10 +404,11 @@ export default function ProfilePage() {
                   </ProfileSection>
                   <ProfileSection title="Business">
                     <dl className="profile-contact">
+                      {profile.businessName && <div><dt>Company</dt><dd>{profile.businessName}</dd></div>}
                       {profile.businessCategory && <div><dt>Category</dt><dd>{profile.businessCategory}</dd></div>}
                       {profile.city && <div><dt>City</dt><dd>{profile.city}</dd></div>}
                       {profile.chapterName && <div><dt>Chapter</dt><dd>{profile.chapterName}</dd></div>}
-                      {!profile.businessCategory && !profile.city && !profile.chapterName && (
+                      {!profile.businessName && !profile.businessCategory && !profile.city && !profile.chapterName && (
                         <p className="empty-copy">No business details on file</p>
                       )}
                     </dl>
@@ -412,9 +418,13 @@ export default function ProfilePage() {
                 {profile.bio && (
                   <ProfileSection title="About"><p className="profile-bio">{profile.bio}</p></ProfileSection>
                 )}
-                <ProfileSection title="Looking for"><TagList values={profile.lookingFor} empty="Not specified" /></ProfileSection>
-                <ProfileSection title="Offering"><TagList values={profile.offering} empty="Not specified" /></ProfileSection>
-                <ProfileSection title="Networking goals"><TagList values={profile.goals} empty="No goals added yet" /></ProfileSection>
+                {hasNetworkingInfo ? (
+                  <ProfileSection title="Networking profile">
+                    {profile.lookingFor.length > 0 ? <TagGroup title="Looking for" values={profile.lookingFor} /> : null}
+                    {profile.offering.length > 0 ? <TagGroup title="Offering" values={profile.offering} /> : null}
+                    {profile.goals.length > 0 ? <TagGroup title="Networking goals" values={profile.goals} /> : null}
+                  </ProfileSection>
+                ) : null}
 
                 <p className="profile-readonly-note">
                   Registered details are read-only. Contact the event organizer to change your name, phone, or email.
@@ -503,6 +513,15 @@ function TagList({ values, empty }: { values: string[]; empty: string }) {
   return values.length
     ? <div className="profile-tags">{values.map((v) => <span key={v}>{v}</span>)}</div>
     : <p className="empty-copy">{empty}</p>;
+}
+
+function TagGroup({ title, values }: { title: string; values: string[] }) {
+  return (
+    <div className="profile-tag-group">
+      <h3>{title}</h3>
+      <div className="profile-tags">{values.map((value) => <span key={`${title}-${value}`}>{value}</span>)}</div>
+    </div>
+  );
 }
 
 function WebsiteIcon() {

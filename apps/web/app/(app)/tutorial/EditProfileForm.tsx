@@ -96,6 +96,7 @@ export function EditProfileForm({
   const [isOffline, setIsOffline] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(attendee.photoUrl ?? null);
+  const [businessName, setBusinessName] = useState(attendee.businessName ?? "");
   const [businessCategory, setBusinessCategory] = useState(attendee.businessCategory ?? "");
   const [city, setCity] = useState(attendee.city ?? "");
   const [lookingFor, setLookingFor] = useState<string[]>(attendee.lookingFor ?? []);
@@ -150,6 +151,7 @@ export function EditProfileForm({
 
   useEffect(() => {
     setBusinessCategory(attendee.businessCategory ?? "");
+    setBusinessName(attendee.businessName ?? "");
     setCity(attendee.city ?? "");
     setLookingFor(attendee.lookingFor ?? []);
     setOffering(attendee.offering ?? []);
@@ -216,6 +218,7 @@ export function EditProfileForm({
     () =>
       JSON.stringify({
         businessCategory: attendee.businessCategory ?? "",
+        businessName: attendee.businessName ?? "",
         city: attendee.city ?? "",
         lookingFor: attendee.lookingFor ?? [],
         offering: attendee.offering ?? [],
@@ -230,6 +233,7 @@ export function EditProfileForm({
 
   const currentSnapshot = JSON.stringify({
     businessCategory,
+    businessName,
     city,
     lookingFor,
     offering,
@@ -298,6 +302,7 @@ export function EditProfileForm({
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
+          businessName: businessName.trim() || null,
           businessCategory,
           city: city.trim(),
           lookingFor: sanitizedLookingFor,
@@ -326,6 +331,7 @@ export function EditProfileForm({
         if (!photoRes.ok) {
           setError("Your profile saved, but the photo upload failed. Try the photo again.");
           onSaved({
+            businessName: businessName.trim() || null,
             businessCategory,
             city: city.trim(),
             lookingFor: sanitizedLookingFor,
@@ -347,6 +353,7 @@ export function EditProfileForm({
         if (!removeRes.ok) {
           setError("Your profile saved, but the photo could not be removed. Try again.");
           onSaved({
+            businessName: businessName.trim() || null,
             businessCategory,
             city: city.trim(),
             lookingFor: sanitizedLookingFor,
@@ -362,6 +369,7 @@ export function EditProfileForm({
       }
 
       onSaved({
+        businessName: businessName.trim() || null,
         businessCategory,
         city: city.trim(),
         lookingFor: sanitizedLookingFor,
@@ -428,7 +436,6 @@ export function EditProfileForm({
           <p className="settings-copy">These are controlled by the event organizer.</p>
           <div className="profile-readonly-grid">
             <ReadOnlyField label="Name" value={readOnlyValue(attendee.name)} />
-            <ReadOnlyField label="Company" value={readOnlyValue(attendee.businessName)} />
             <ReadOnlyField label="Phone" value={readOnlyValue(attendee.phone)} />
             <ReadOnlyField label="Email" value={readOnlyValue(attendee.email)} />
             <ReadOnlyField label="Chapter" value={readOnlyValue(attendee.chapterName)} />
@@ -439,6 +446,18 @@ export function EditProfileForm({
 
         <section className="profile-edit-section">
           <h2 className="profile-edit-section-title">Card details</h2>
+
+          <div className="field">
+            <label htmlFor="edit-company-name">Company name</label>
+            <input
+              id="edit-company-name"
+              type="text"
+              maxLength={160}
+              value={businessName}
+              onChange={(event) => setBusinessName(event.target.value)}
+              placeholder="Enter your company name"
+            />
+          </div>
 
           <SingleSelectDropdown
             id="edit-category"

@@ -12,17 +12,18 @@ const TITLES: Record<string, string> = {
   "/admin/event": "Event settings",
   "/admin/checkin": "Live check-in",
   "/admin/badges": "Print badges",
-  "/admin/feed": "Photo moderation",
+  "/admin/feed": "Gallery photos",
   "/admin/feedback": "Feedback",
 };
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   if (pathname === LOGIN_PATH) return <>{children}</>;
+  const title = pathname.startsWith("/admin/attendees/") ? "Attendee profile" : TITLES[pathname];
 
   return (
     <div className="admin-shell">
-      <AdminMenu title={TITLES[pathname]} />
+      <AdminMenu title={title} />
       <div className="admin-shell-content">{children}</div>
     </div>
   );

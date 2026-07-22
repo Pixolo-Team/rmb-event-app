@@ -8,6 +8,7 @@ import { PoweredByFooter } from "../components/PoweredByFooter";
 import { enqueueWrite, useOfflineSync } from "../lib/offlineQueue";
 import { withCsrfHeaders } from "../lib/csrf";
 import { trackEvent } from "../lib/gtag";
+import { pauseScanner, resumeScanner, stopAndClearScanner } from "../lib/html5QrCode";
 import { refreshPersonalStats } from "../lib/statsCache";
 
 type ScanApiResult =
@@ -88,7 +89,7 @@ export default function ScanPage() {
 
     function showResult(result: Outcome) {
       pausedRef.current = true;
-      scannerRef.current?.pause(true);
+      pauseScanner(scannerRef.current);
       setOutcome(result);
     }
 
@@ -125,16 +126,15 @@ export default function ScanPage() {
     return () => {
       cancelled = true;
       const scanner = scannerRef.current;
-      if (scanner) {
-        scanner.stop().then(() => scanner.clear()).catch(() => {});
-      }
+      scannerRef.current = null;
+      void stopAndClearScanner(scanner);
     };
   }, []);
 
   function scanNext() {
     setOutcome(null);
     pausedRef.current = false;
-    scannerRef.current?.resume();
+    resumeScanner(scannerRef.current);
   }
 
   return (
@@ -151,7 +151,7 @@ export default function ScanPage() {
             <div className="banner warn scan-banner">
               <div>
                 <b>Camera unavailable</b>
-                Allow camera access in your browser settings, then reload. You can also ask staff to scan your badge.
+                Allow camera access in your browser settings, then reload. You can still check in using the venue QR at the entrance.
               </div>
             </div>
           )}

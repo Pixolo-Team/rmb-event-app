@@ -3,7 +3,7 @@ import { PrismaService } from "../prisma/prisma.service";
 
 export type LeaderboardEntry = {
   id: string;
-  rank: number;
+  rank: number | null;
   name: string;
   businessName: string | null;
   photoUrl: string | null;
@@ -72,7 +72,7 @@ export class LeaderboardService {
       businessName: attendee.businessName,
       photoUrl: attendee.photoUrl,
       metCount: 0,
-      rank: ranked.length + 1,
+      rank: null,
     };
   }
 }

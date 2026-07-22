@@ -27,6 +27,7 @@ import { matchesCache, type MatchSuggestion } from "../lib/matchesCache";
 import { homeCache } from "../lib/homeCache";
 import { profileCache, type MyProfile } from "../lib/profileCache";
 import { withCsrfHeaders } from "../lib/csrf";
+import { stopAndClearScanner } from "../lib/html5QrCode";
 
 // F3.6/F3.7 — Home is one constant dashboard. The event's start/end times decide
 // the top block (pre-event countdown · check-in · checked-in · ended); the rest —
@@ -47,7 +48,7 @@ interface CheckinStatus {
 
 const METHOD_LABEL: Record<CheckinMethod, string> = {
   GEOLOCATION: "via location",
-  MANUAL: "manual",
+  MANUAL: "checked in at the desk",
   STAFF_QR: "staff scan",
   VENUE_QR: "by QR scan",
 };
@@ -55,6 +56,7 @@ const METHOD_LABEL: Record<CheckinMethod, string> = {
 // Within 3 days of the start we show a live ticking countdown; further out, a
 // calmer "Coming soon" with the date. (PRD US3.5.)
 const COUNTDOWN_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
+const MAX_LIFECYCLE_TIMER_MS = 60 * 60 * 1000;
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
@@ -84,6 +86,7 @@ export default function HomePage() {
   const [ready, setReady] = useState(false);
   const [checkinPhase, setCheckinPhase] = useState<CheckinPhase>("idle");
   const [checkinError, setCheckinError] = useState<string | null>(null);
+  const [lifecycleNow, setLifecycleNow] = useState(() => Date.now());
   const coords = useRef<{ lat: number; lng: number } | null>(null);
   const venueConfig = useRef<CachedVenueConfig | null>(null);
 
@@ -204,14 +207,31 @@ export default function HomePage() {
       .catch(() => {
         if (!renderedFromCache) setLoadFailed(true);
       });
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Resolved once (Date.now() captured on first compute) — no 30s re-evaluation.
+  // Recompute only at real lifecycle boundaries. A checked-in attendee who keeps
+  // Home open past endAt must still see the ended state without refreshing.
+  useEffect(() => {
+    const now = Date.now();
+    const boundaries = [event?.startAt, event?.endAt]
+      .map((value) => (value ? new Date(value).getTime() : NaN))
+      .filter((ms) => Number.isFinite(ms) && ms > now)
+      .sort((a, b) => a - b);
+    const nextBoundary = boundaries[0];
+    if (!nextBoundary) return;
+
+    const delay = Math.min(Math.max(0, nextBoundary - now + 250), MAX_LIFECYCLE_TIMER_MS);
+    const id = window.setTimeout(() => setLifecycleNow(Date.now()), delay);
+    return () => window.clearTimeout(id);
+  }, [event, lifecycleNow]);
+
   const mode: HomeMode | null = useMemo(
-    () => (checkin === null ? null : resolveHomeMode(event, checkin.checkedIn, Date.now())),
-    [event, checkin],
+    () => (checkin === null ? null : resolveHomeMode(event, checkin.checkedIn, lifecycleNow)),
+    [event, checkin, lifecycleNow],
   );
 
   // ---- check-in flow (inline in the top card) ----
@@ -280,6 +300,7 @@ export default function HomePage() {
     const config = venueConfig.current;
     // No usable location → go straight to scanning the venue QR.
     if (!navigator.geolocation || !config || config.venueLat == null || config.venueLng == null) {
+      setCheckinError("Location check-in isn't available for this event right now. Use the venue QR instead.");
       setCheckinPhase("scanning");
       return;
     }
@@ -293,12 +314,21 @@ export default function HomePage() {
         if (distanceM <= config.checkinRadiusM) {
           submitCheckin("GEOLOCATION", "/api/checkin/geolocation", { lat, lng }, "checkin-geolocation");
         } else {
+          setCheckinError("You're outside the venue radius. Move closer or scan the venue QR.");
           setCheckinPhase("scanning");
         }
       },
-      () => setCheckinPhase("scanning"),
+      () => {
+        setCheckinError("We couldn't get your location. Try again, or scan the venue QR.");
+        setCheckinPhase("scanning");
+      },
       { timeout: 5000 },
     );
+  }
+
+  function startVenueScan() {
+    setCheckinError(null);
+    setCheckinPhase("scanning");
   }
 
   // Latest-value ref so the html5-qrcode decode callback (bound once) never runs a
@@ -346,10 +376,7 @@ export default function HomePage() {
 
     return () => {
       cancelled = true;
-      scanner
-        ?.stop()
-        .then(() => scanner?.clear())
-        .catch(() => {});
+      void stopAndClearScanner(scanner);
     };
   }, [checkinPhase]);
 
@@ -365,8 +392,8 @@ export default function HomePage() {
             <h1>Can&rsquo;t load Home</h1>
           </div>
           <p className="copy">
-            We couldn&rsquo;t reach the server. Check your connection and try again — you can still be checked
-            in by staff at the desk.
+            We couldn&rsquo;t reach the server. Check your connection and try again. If you&rsquo;re at the venue,
+            use the entrance QR once the app is back online.
           </p>
           <button className="btn-primary" type="button" onClick={() => window.location.reload()}>
             Try again
@@ -383,6 +410,7 @@ export default function HomePage() {
 
   const firstName = attendee ? attendee.name.split(" ")[0] : "";
   const checkedIn = Boolean(checkin?.checkedIn);
+  const liveCheckedIn = checkedIn && mode !== "ended";
   const startMs = event?.startAt ? new Date(event.startAt).getTime() : null;
 
   return (
@@ -415,7 +443,7 @@ export default function HomePage() {
         )}
 
         {mode !== "pre_event" && mode !== "ended" && (
-          checkedIn ? (
+          liveCheckedIn ? (
             <CheckedInStrip checkin={checkin} pendingSync={pendingSync} confirmOffline={confirmOffline} />
           ) : (
             <CheckInCard
@@ -423,6 +451,7 @@ export default function HomePage() {
               error={checkinError}
               online={online}
               onStart={startCheckin}
+              onScan={startVenueScan}
               onCancel={() => {
                 setCheckinPhase("idle");
                 setCheckinError(null);
@@ -431,7 +460,7 @@ export default function HomePage() {
           )
         )}
 
-        {checkedIn && attendee?.tableNumber && (
+        {liveCheckedIn && attendee?.tableNumber && (
           <div className="table-callout">
             <span>Your table</span>
             <strong>{attendee.tableNumber}</strong>
@@ -439,14 +468,14 @@ export default function HomePage() {
         )}
 
         {/* ---- scan-to-connect: only during the live event, once checked in ---- */}
-        {mode === "dashboard" && checkedIn && (
+        {mode === "dashboard" && liveCheckedIn && (
           <button className="btn-primary home-scan-cta" type="button" onClick={() => router.push("/scan")}>
             Scan to connect
           </button>
         )}
 
         {/* ---- your progress: once you have an attendance record ---- */}
-        {(checkedIn || mode === "ended") && <ProgressSection stats={stats} />}
+        {(liveCheckedIn || mode === "ended") && <ProgressSection stats={stats} />}
 
         {/* ---- people to meet: always, with a skeleton + empty state ---- */}
         <PeopleToMeet matches={matches} loading={matchesLoading} />
@@ -476,12 +505,14 @@ function CheckInCard({
   error,
   online,
   onStart,
+  onScan,
   onCancel,
 }: {
   phase: CheckinPhase;
   error: string | null;
   online: boolean;
   onStart: () => void;
+  onScan: () => void;
   onCancel: () => void;
 }) {
   const busy = phase === "locating" || phase === "submitting";
@@ -502,24 +533,36 @@ function CheckInCard({
         <>
           <p className="home-checkin-hint">Point your camera at the venue QR code to check in.</p>
           <div id="home-qr-reader" className="home-qr-reader" />
-          <button className="btn-secondary" type="button" onClick={onCancel}>
-            Cancel
-          </button>
+          <div className="home-checkin-actions">
+            <button className="btn-secondary" type="button" onClick={onStart}>
+              Try location again
+            </button>
+            <button className="btn-secondary" type="button" onClick={onCancel}>
+              Cancel
+            </button>
+          </div>
         </>
       ) : (
-        <button className="btn-primary" type="button" disabled={busy} onClick={onStart}>
-          {phase === "locating" ? (
-            <>
-              <span className="spinner" /> Finding the venue&hellip;
-            </>
-          ) : phase === "submitting" ? (
-            <>
-              <span className="spinner" /> Checking you in&hellip;
-            </>
-          ) : (
-            "Check in"
+        <div className="home-checkin-actions">
+          <button className="btn-primary" type="button" disabled={busy} onClick={onStart}>
+            {phase === "locating" ? (
+              <>
+                <span className="spinner" /> Finding the venue&hellip;
+              </>
+            ) : phase === "submitting" ? (
+              <>
+                <span className="spinner" /> Checking you in&hellip;
+              </>
+            ) : (
+              "Check in with location"
+            )}
+          </button>
+          {phase === "idle" && (
+            <button className="btn-secondary" type="button" onClick={onScan}>
+              Scan venue QR
+            </button>
           )}
-        </button>
+        </div>
       )}
 
       {!online && phase === "idle" && (
@@ -608,20 +651,26 @@ function Countdown({ ms }: { ms: number }) {
 // ---------------------------------------------------------------- sections
 
 function ProgressSection({ stats }: { stats: PersonalStats | null }) {
+  const totalRanked = stats ? Math.max(stats.totalRanked, stats.rank ?? 0) : 0;
+
   return (
     <section className="profile-section" aria-label="Your progress">
       <h2>Your progress</h2>
       <div className="stats-grid home-stats-grid">
         <StatTile value={stats?.peopleMet ?? "—"} label="People met" />
-        <StatTile value={stats ? `#${stats.rank}` : "—"} sub={stats ? `of ${stats.totalRanked}` : undefined} label="Rank" />
+        <StatTile value={stats ? formatRank(stats.rank) : "—"} sub={stats?.rank && totalRanked > 0 ? `of ${totalRanked}` : undefined} label="Rank" />
         <Link className="stat-tile home-stat-link" href="/matches" aria-label={`${stats?.bookmarks ?? 0} bookmarks. Open Want to Meet`}>
-          <strong>{stats?.bookmarks ?? "—"}</strong>
+          <strong>{stats?.bookmarks ?? "-"}</strong>
           <span>Bookmarks</span>
         </Link>
       </div>
       {stats?.peopleMet === 0 && <p className="empty-copy home-nudge">No meetings yet. Start scanning!</p>}
     </section>
   );
+}
+
+function formatRank(rank: number | null) {
+  return rank ? `#${rank}` : "Not ranked";
 }
 
 function PeopleToMeet({ matches, loading }: { matches: MatchSuggestion[]; loading: boolean }) {
@@ -665,7 +714,7 @@ function PeopleToMeet({ matches, loading }: { matches: MatchSuggestion[]; loadin
                   <b>{match.name}</b>
                   <em>{match.headline || match.businessName || ""}</em>
                 </span>
-                {match.checkedIn && <span className="badge badge-success">Here</span>}
+                {match.checkedIn && <span className="badge badge-success">Present</span>}
               </Link>
             </li>
           ))}

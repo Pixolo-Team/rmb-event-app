@@ -133,7 +133,7 @@ export default function MatchesPage() {
             {bookmarks.length > 0 ? (
               <ul className="wtm-list">{bookmarks.map((person) => <SavedRow key={person.id} person={person} onBookmark={(value) => updateBookmark(person.id, value)} />)}</ul>
             ) : (
-              <p className="empty-copy matches-section-empty">Nothing saved yet — add people from the suggestions below or from People.</p>
+              <p className="empty-copy matches-section-empty">Nothing saved yet - add people from the suggestions below or from People.</p>
             )}
           </section>
         )}
@@ -172,7 +172,7 @@ function PersonRow({
             <span className="wtm-row-name">
               {name}
               {met && <span className="met-badge">Met</span>}
-              {checkedIn && <span className="wtm-here">Here</span>}
+              {checkedIn && <span className="wtm-here">Present</span>}
             </span>
             {sub && <span className="wtm-row-sub">{sub}</span>}
           </span>
