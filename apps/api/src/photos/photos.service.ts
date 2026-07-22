@@ -18,7 +18,7 @@ export type FeedPhotoData = {
   urls: string[];
   caption: string | null;
   createdAt: Date;
-  attendeeId: string;
+  attendeeId: string | null;
   attendeeName: string;
   attendeeBusinessName: string | null;
   likeCount: number;
@@ -37,6 +37,7 @@ export type AdminPhotoData = {
   url: string;
   caption: string | null;
   createdAt: Date;
+  uploadedByAdmin: boolean;
   attendeeName: string;
   likeCount: number;
 };
@@ -56,6 +57,8 @@ export type DeletedPhotoLogData = {
 export class PhotosService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private readonly adminPhotoLabel = "RMB Event Team";
+
   async create(attendeeId: string, files: Express.Multer.File[], caption?: string): Promise<FeedPhotoData> {
     const urls = files.map((file) => `/uploads/photos/${file.filename}`);
     const url = urls[0];
@@ -71,13 +74,45 @@ export class PhotosService {
       caption: photo.caption,
       createdAt: photo.createdAt,
       attendeeId,
-      attendeeName: photo.attendee.name,
-      attendeeBusinessName: photo.attendee.businessName,
+      attendeeName: photo.attendee?.name ?? this.adminPhotoLabel,
+      attendeeBusinessName: photo.attendee?.businessName ?? null,
       likeCount: 0,
       commentCount: 0,
       likedByMe: false,
       comments: [],
     };
+  }
+
+  async adminCreate(files: Express.Multer.File[], caption?: string): Promise<FeedPhotoData[]> {
+    const photos = await this.prisma.$transaction(
+      files.map((file) => {
+        const url = `/uploads/photos/${file.filename}`;
+        return this.prisma.photo.create({
+          data: {
+            url,
+            urls: [url],
+            caption,
+            uploadedByAdmin: true,
+            adminLabel: this.adminPhotoLabel,
+          },
+        });
+      }),
+    );
+
+    return photos.map((photo) => ({
+      id: photo.id,
+      url: photo.url,
+      urls: photo.urls.length ? photo.urls : [photo.url],
+      caption: photo.caption,
+      createdAt: photo.createdAt,
+      attendeeId: null,
+      attendeeName: photo.adminLabel ?? this.adminPhotoLabel,
+      attendeeBusinessName: null,
+      likeCount: 0,
+      commentCount: 0,
+      likedByMe: false,
+      comments: [],
+    }));
   }
 
   async listFeed(currentAttendeeId: string, cursor?: string, limit = 20): Promise<FeedPageData> {
@@ -115,8 +150,8 @@ export class PhotosService {
       caption: photo.caption,
       createdAt: photo.createdAt,
       attendeeId: photo.attendeeId,
-      attendeeName: photo.attendee.name,
-      attendeeBusinessName: photo.attendee.businessName,
+      attendeeName: photo.attendee?.name ?? photo.adminLabel ?? this.adminPhotoLabel,
+      attendeeBusinessName: photo.attendee?.businessName ?? null,
       likeCount: photo._count.likes,
       commentCount: photo._count.comments,
       likedByMe: photo.likes.length > 0,
@@ -194,7 +229,8 @@ export class PhotosService {
       url: photo.url,
       caption: photo.caption,
       createdAt: photo.createdAt,
-      attendeeName: photo.attendee.name,
+      uploadedByAdmin: photo.uploadedByAdmin,
+      attendeeName: photo.attendee?.name ?? photo.adminLabel ?? this.adminPhotoLabel,
       likeCount: photo._count.likes,
     }));
   }
@@ -210,8 +246,8 @@ export class PhotosService {
       this.prisma.deletedPhotoLog.create({
         data: {
           photoId: photo.id,
-          attendeeId: photo.attendeeId,
-          attendeeName: photo.attendee.name,
+          attendeeId: photo.attendeeId ?? "admin",
+          attendeeName: photo.attendee?.name ?? photo.adminLabel ?? this.adminPhotoLabel,
           caption: photo.caption,
           photoUrl: photo.url,
           postedAt: photo.createdAt,

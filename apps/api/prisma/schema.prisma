@@ -288,8 +288,10 @@ model ImportRow {
 
 model Photo {
   id         String   @id @default(uuid())
-  attendee   Attendee @relation(fields: [attendeeId], references: [id])
-  attendeeId String
+  attendee   Attendee? @relation(fields: [attendeeId], references: [id])
+  attendeeId String?
+  uploadedByAdmin Boolean @default(false)
+  adminLabel String?
   // Relative path served by the API's static route, e.g. "/uploads/photos/<uuid>.jpg" —
   // stored relative so the frontend resolves it through the same-origin Next.js
   // rewrite regardless of environment.

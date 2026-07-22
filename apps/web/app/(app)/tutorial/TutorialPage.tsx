@@ -68,7 +68,7 @@ export type FeedPhotoData = {
   urls?: string[];
   caption: string | null;
   createdAt: string;
-  attendeeId: string;
+  attendeeId: string | null;
   attendeeName: string;
   attendeeBusinessName: string | null;
   likeCount: number;
