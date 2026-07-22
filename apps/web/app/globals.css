@@ -2729,6 +2729,7 @@ p.copy {
   margin-top: 0;
   display: inline-flex;
   align-items: center;
+  width: fit-content;
   color: var(--brand-600);
   font-weight: 600;
   text-decoration: none;
@@ -2739,6 +2740,7 @@ p.copy {
   align-items: center;
   justify-content: center;
   color: var(--brand-600);
+  pointer-events: none;
 }
 
 .back-link svg {
@@ -2831,6 +2833,8 @@ a.contact-row:active { background: var(--brand-100); }
 .contact-row-body { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
 .contact-row-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-faint); }
 .contact-row-value { font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+.contact-row-chevron { margin-left: auto; display: inline-flex; align-items: center; justify-content: center; color: var(--ink-faint); }
+.contact-row-chevron svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 .profile-tags { display: flex; flex-wrap: wrap; gap: 7px; }
 .profile-tags span { padding: 6px 10px; border-radius: var(--radius-pill); background: var(--brand-100); color: var(--brand-700); font-size: 0.78rem; font-weight: 600; }
@@ -2841,7 +2845,16 @@ a.contact-row:active { background: var(--brand-100); }
 .attendee-profile-page .profile-actions {
   align-items: center;
 }
+.attendee-profile-page .profile-hero {
+  justify-content: center;
+}
+.attendee-profile-page .profile-hero > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
 .attendee-profile-page .contact-row {
+  align-items: center;
   padding: 0;
   border: none;
   border-radius: 0;
@@ -2851,6 +2864,16 @@ a.contact-row:active { background: var(--brand-100); }
 .attendee-profile-page a.contact-row:active {
   background: none;
   border: none;
+}
+.attendee-profile-page .contact-row-icon {
+  width: 40px;
+  height: 40px;
+}
+.attendee-profile-page .contact-row-value {
+  font-weight: 650;
+}
+.attendee-profile-page .contact-row-chevron {
+  color: var(--brand-600);
 }
 .match-reason { margin: 0 0 24px; padding: 16px 18px; border: 1px solid var(--brand-500); border-left-width: 4px; border-radius: var(--radius-md); background: var(--brand-100); }
 .match-reason-eyebrow { margin: 0 0 6px; color: var(--brand-700); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
@@ -3931,15 +3954,24 @@ a.contact-row:active { background: var(--brand-100); }
   height: 44px;
   min-height: 44px;
   flex: 0 0 auto;
-  gap: 6px;
-  padding: 0 10px;
+  gap: 8px;
+  padding: 0 12px;
   border-radius: var(--radius-md);
   border-color: var(--border-strong);
   color: var(--brand-600);
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1;
+  letter-spacing: 0.01em;
 }
 .directory-card-actions .icon-btn.icon-only { width: 44px; flex-basis: 44px; padding: 0; border-radius: 50%; }
+.directory-card-actions .bookmark-button span,
+.directory-card-actions .icon-btn span {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  white-space: nowrap;
+}
 .directory-card-actions svg {
   width: 19px;
   height: 19px;

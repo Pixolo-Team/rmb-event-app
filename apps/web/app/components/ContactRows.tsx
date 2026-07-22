@@ -14,11 +14,13 @@ export function ContactRows({
   email,
   tableNumber,
   interactive = true,
+  showChevron = false,
 }: {
   phone: string;
   email: string;
   tableNumber?: string | null;
   interactive?: boolean;
+  showChevron?: boolean;
 }) {
   return (
     <div className="contact-rows">
@@ -29,6 +31,7 @@ export function ContactRows({
             <span className="contact-row-label">Phone</span>
             <span className="contact-row-value">{formatPhone(phone)}</span>
           </span>
+          {showChevron ? <span className="contact-row-chevron" aria-hidden="true"><ChevronIcon /></span> : null}
         </a>
       ) : (
         <div className="contact-row contact-row-static">
@@ -46,6 +49,7 @@ export function ContactRows({
             <span className="contact-row-label">Email</span>
             <span className="contact-row-value">{email}</span>
           </span>
+          {showChevron ? <span className="contact-row-chevron" aria-hidden="true"><ChevronIcon /></span> : null}
         </a>
       ) : (
         <div className="contact-row contact-row-static">
@@ -77,4 +81,7 @@ function MailIcon() {
 }
 function TableIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 6v12h16V6M9 6v12M4 12h16" /></svg>;
+}
+function ChevronIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>;
 }

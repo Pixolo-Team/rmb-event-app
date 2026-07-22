@@ -249,7 +249,7 @@ function ProfileContent({ profile }: { profile: AttendeeProfile }) {
       )}
       <div className="profile-details-grid">
         <ProfileSection title="Contact">
-          <ContactRows phone={profile.phone} email={profile.email} tableNumber={profile.tableNumber} />
+          <ContactRows phone={profile.phone} email={profile.email} tableNumber={profile.tableNumber} showChevron />
           {profile.websiteUrl ? (
             <a className="profile-link-row" href={profile.websiteUrl} target="_blank" rel="noreferrer">
               <WebsiteIcon />
