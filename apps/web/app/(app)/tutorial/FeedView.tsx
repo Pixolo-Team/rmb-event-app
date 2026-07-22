@@ -219,7 +219,7 @@ export function PostComposerModal({
             disabled={composerStatus === "compressing" || composerStatus === "uploading"}
             aria-label="Close share photos modal"
           >
-            Close
+            <CloseIcon />
           </button>
         </div>
 
@@ -332,6 +332,7 @@ export function FeedView({
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [enlargedPhotoId, setEnlargedPhotoId] = useState<string | null>(null);
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+  const [pendingComments, setPendingComments] = useState<string[]>([]);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [enlargedClosing, setEnlargedClosing] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -447,7 +448,7 @@ export function FeedView({
 
   async function handleAddComment(photoId: string) {
     const message = (commentDrafts[photoId] ?? "").trim();
-    if (!message) return;
+    if (!message || pendingComments.includes(photoId)) return;
 
     if (localMode) {
       const newComment: FeedCommentData = {
@@ -469,6 +470,7 @@ export function FeedView({
     }
 
     setActionError(null);
+    setPendingComments((current) => [...current, photoId]);
     try {
       const response = await fetch(`/api/photos/${photoId}/comments`, withCsrfHeaders({
         method: "POST",
@@ -492,6 +494,8 @@ export function FeedView({
       if (enlargedPhotoId === photoId) closeEnlarged();
     } catch {
       setActionError("Couldn't post comment. Check your connection and try again.");
+    } finally {
+      setPendingComments((current) => current.filter((id) => id !== photoId));
     }
   }
 
@@ -590,6 +594,7 @@ export function FeedView({
                 busyLike={pendingLikes.includes(photo.id)}
                 menuOpen={openMenuId === photo.id}
                 commentDraft={commentDrafts[photo.id] ?? ""}
+                submittingComment={pendingComments.includes(photo.id)}
                 onToggleMenu={() => setOpenMenuId((current) => (current === photo.id ? null : photo.id))}
                 onToggleLike={() => handleToggleLike(photo)}
                 onCommentDraftChange={(value) => setCommentDrafts((current) => ({ ...current, [photo.id]: value }))}
@@ -664,8 +669,13 @@ export function FeedView({
                   if (event.key === "Enter") handleAddComment(enlargedPhoto.id);
                 }}
               />
-              <button className="btn-primary" type="button" onClick={() => handleAddComment(enlargedPhoto.id)}>
-                Send
+              <button
+                className="btn-primary"
+                type="button"
+                disabled={!(commentDrafts[enlargedPhoto.id] ?? "").trim() || pendingComments.includes(enlargedPhoto.id)}
+                onClick={() => handleAddComment(enlargedPhoto.id)}
+              >
+                {pendingComments.includes(enlargedPhoto.id) ? <span className="spinner" /> : "Send"}
               </button>
             </div>
           </div>
@@ -697,6 +707,7 @@ function PhotoCard({
   busyLike,
   menuOpen,
   commentDraft,
+  submittingComment,
   onToggleMenu,
   onToggleLike,
   onCommentDraftChange,
@@ -709,6 +720,7 @@ function PhotoCard({
   busyLike: boolean;
   menuOpen: boolean;
   commentDraft: string;
+  submittingComment: boolean;
   onToggleMenu: () => void;
   onToggleLike: () => void;
   onCommentDraftChange: (value: string) => void;
@@ -813,8 +825,8 @@ function PhotoCard({
             if (event.key === "Enter") onSubmitComment();
           }}
         />
-        <button className="comment-send" type="button" aria-label="Send comment" disabled={!commentDraft.trim()} onClick={onSubmitComment}>
-          <SendCommentIcon />
+        <button className="comment-send" type="button" aria-label="Send comment" disabled={!commentDraft.trim() || submittingComment} onClick={onSubmitComment}>
+          {submittingComment ? <span className="spinner" /> : <SendCommentIcon />}
         </button>
       </div>}
     </article>
@@ -845,3 +857,5 @@ function HeartIcon({ filled = false }: { filled?: boolean }) {
 }
 
 function SendCommentIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 4 17 8-17 8 3-8-3-8Zm3 8h14" /></svg>; }
+
+function CloseIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>; }

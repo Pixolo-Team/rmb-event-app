@@ -515,6 +515,9 @@ p.copy {
   stroke-linejoin: round;
 }
 .multiselect-search {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   width: 100%;
   height: 42px;
   margin-bottom: 8px;
@@ -902,7 +905,8 @@ p.copy {
   cursor: pointer;
 }
 .btn-primary:disabled {
-  background: var(--surface-2);
+  background: transparent;
+  border: 1.5px solid var(--border);
   color: var(--ink-faint);
   cursor: not-allowed;
 }
@@ -1124,10 +1128,10 @@ p.copy {
   gap: 10px;
   margin: 10px 16px 0;
   padding: 8px 10px 8px 12px;
-  background: color-mix(in srgb, var(--brand-50) 88%, #ffffff 12%);
-  border: 1px solid color-mix(in srgb, var(--brand-500) 48%, transparent);
+  background: color-mix(in srgb, var(--surface) 84%, #f3f7fd 16%);
+  border: 1px solid color-mix(in srgb, var(--brand-300) 42%, transparent);
   border-radius: 16px;
-  color: var(--brand-700);
+  color: var(--ink);
   box-shadow: 0 12px 28px rgba(8, 15, 32, 0.12);
 }
 .pwa-install-banner-main {
@@ -1141,11 +1145,14 @@ p.copy {
   background: none;
   color: inherit;
   font: inherit;
-  font-weight: 650;
+  font-weight: 700;
   font-size: 0.84rem;
   line-height: 1.35;
   text-align: left;
   cursor: pointer;
+}
+.pwa-install-banner-main span {
+  color: var(--ink);
 }
 .pwa-install-banner-main svg {
   flex-shrink: 0;
@@ -1163,8 +1170,8 @@ p.copy {
   height: 34px;
   border: none;
   border-radius: 999px;
-  background: rgba(43, 108, 212, 0.08);
-  color: inherit;
+  background: color-mix(in srgb, var(--brand-100) 72%, transparent);
+  color: var(--brand-700);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1172,7 +1179,7 @@ p.copy {
   transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
 }
 .pwa-install-banner-close:hover {
-  background: rgba(43, 108, 212, 0.14);
+  background: color-mix(in srgb, var(--brand-200) 82%, transparent);
 }
 .pwa-install-banner-close:active {
   transform: scale(0.97);
@@ -1208,7 +1215,7 @@ p.copy {
   font-weight: 600;
 }
 .app-topbar-brand {
-  height: 50px;
+  height: 40px;
   width: auto;
   flex-shrink: 0;
 }
@@ -1391,8 +1398,11 @@ p.copy {
   padding-bottom: calc(86px + env(safe-area-inset-bottom));
 }
 .full-page-header {
-  min-height: 68px;
-  padding: 12px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  min-height: 56px;
+  padding: 6px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1405,8 +1415,9 @@ p.copy {
 }
 .attendee-app-header { display: grid; grid-template-columns: 50px minmax(0, 1fr) 50px; justify-content: initial; }
 .app-header-title { margin: 0; overflow: hidden; color: var(--ink); font: 750 1.05rem var(--font-display); text-align: center; text-overflow: ellipsis; white-space: nowrap; }
-.app-header-spacer { width: 44px; height: 44px; justify-self: end; }
-.attendee-app-header > .menu-trigger { justify-self: end; }
+.app-header-spacer { width: 44px; height: 44px; justify-self: start; }
+.attendee-app-header > .menu-trigger { justify-self: start; }
+.attendee-app-header > a:last-child { justify-self: end; }
 .page-intro { margin: 0; color: var(--ink-muted); font-size: 0.86rem; line-height: 1.45; }
 .page-context-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
 .full-page-header .wordmark {
@@ -1444,7 +1455,7 @@ p.copy {
 .menu-layer {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: 200;
 }
 .menu-backdrop {
   position: absolute;
@@ -1512,8 +1523,8 @@ p.copy {
   }
 }
 .menu-topbar {
-  min-height: 68px;
-  padding: 12px 16px 12px 20px;
+  min-height: 56px;
+  padding: 6px 16px 6px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1667,16 +1678,15 @@ p.copy {
   right: 0;
   bottom: 0;
   left: 0;
-  padding: 8px max(12px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-right));
-  background: color-mix(in srgb, var(--surface) 96%, transparent);
+  padding: 4px max(12px, env(safe-area-inset-left)) max(4px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-right));
+  background: var(--surface);
   border-top: 1px solid var(--border);
   box-shadow: 0 -10px 28px rgba(20, 40, 80, 0.12);
-  backdrop-filter: blur(14px);
 }
 .attendee-tabs-track {
   position: relative;
   max-width: 680px;
-  min-height: 60px;
+  min-height: 48px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -1696,7 +1706,7 @@ p.copy {
 .attendee-tab {
   flex-direction: column;
   gap: 3px;
-  padding: 7px 4px 5px;
+  padding: 3px 4px 4px;
   border-radius: 14px;
   font-size: 0.68rem;
   font-weight: 800;
@@ -2142,6 +2152,32 @@ p.copy {
   padding-left: 0;
   padding-right: 0;
 }
+.gallery-filter-row {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px;
+}
+.gallery-filter-chip {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.gallery-filter-chip:hover {
+  border-color: var(--brand-500);
+}
+.gallery-filter-chip.active {
+  background: var(--brand-600);
+  border-color: var(--brand-600);
+  color: #fff;
+}
 .gallery-empty {
   padding: 0 16px;
 }
@@ -2184,6 +2220,93 @@ p.copy {
 .gallery-skeleton-tile {
   aspect-ratio: 1;
   border-radius: 0;
+}
+
+/* Full-screen swipeable image viewer — no visible prev/next arrows, navigation
+   is via touch swipe (see handleTouchStart/End in gallery/page.tsx). */
+.gallery-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+}
+.gallery-viewer-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: max(10px, env(safe-area-inset-top)) 12px 24px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0));
+}
+.gallery-viewer-close {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+}
+.gallery-viewer-close svg {
+  width: 20px;
+  height: 20px;
+}
+.gallery-viewer-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #fff;
+  font-weight: 650;
+  font-size: 0.92rem;
+}
+.gallery-viewer-download {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  text-decoration: none;
+}
+.gallery-viewer-download svg {
+  width: 20px;
+  height: 20px;
+}
+.gallery-viewer-download-spacer {
+  flex: none;
+  width: 40px;
+  height: 40px;
+}
+.gallery-viewer-media {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+.gallery-viewer-media img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .gallery-copy-skeleton {
@@ -2804,15 +2927,46 @@ p.copy {
 }
 .profile-bio { margin: 0; color: var(--ink-muted); white-space: pre-wrap; }
 
-/* F11.1 — attendee personal stats grid on the Settings/Profile screen. */
-.stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-.stat-tile { padding: 16px 12px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface-2, var(--surface)); text-align: center; animation: app-content-in 0.3s ease both; }
+/* F11.1 — attendee personal stats grid on the Settings/Profile screen. Flat,
+   no card boxes — a thin divider line between tiles instead. */
+.stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0; }
+.stat-tile {
+  position: relative;
+  padding: 14px 8px;
+  border: none;
+  background: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  animation: app-content-in 0.3s ease both;
+}
 .stat-tile:nth-child(2) { animation-delay: 0.04s; }
 .stat-tile:nth-child(3) { animation-delay: 0.08s; }
-.stat-tile strong { display: block; color: var(--brand-700); font: 800 1.5rem var(--font-display); }
+.stat-tile:nth-child(odd)::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 18%;
+  bottom: 18%;
+  width: 1px;
+  background: var(--border);
+}
+.stats-grid .stat-tile:nth-child(-n+2)::before {
+  content: "";
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: 0;
+  height: 1px;
+  background: var(--border);
+}
+.stat-tile strong { display: block; color: var(--brand-700); font: 800 1.7rem var(--font-display); }
 .stat-tile em { display: block; margin-top: 2px; color: var(--ink-faint); font-style: normal; font-size: .72rem; }
 .stat-tile span { display: block; margin-top: 4px; color: var(--ink-muted); font-size: .72rem; }
 .stat-tile-wide { grid-column: 1 / -1; }
+.stat-tile-wide::after { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .stat-tile {
     animation: none;
@@ -2824,7 +2978,13 @@ p.copy {
 .profile-contact a { color: var(--brand-600); }
 
 /* Contact rows — tappable phone/email/table with an icon badge (F2.5 + F4.1) */
-.contact-rows { display: flex; flex-direction: column; gap: 8px; }
+.contact-rows { display: flex; flex-direction: column; gap: 10px; }
+/* A standalone .contact-row (e.g. Website on the attendee profile page) rendered
+   as a sibling after .contact-rows had no gap of its own — it butted straight up
+   against the last row, especially cramped when Email wraps to two lines. */
+.contact-rows + .contact-row {
+  margin-top: 10px;
+}
 .contact-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); text-decoration: none; color: inherit; transition: background 0.15s ease, border-color 0.15s ease; }
 a.contact-row:hover { background: var(--brand-100); border-color: var(--brand-500); }
 a.contact-row:active { background: var(--brand-100); }
@@ -2953,15 +3113,19 @@ a.contact-row:active { background: var(--brand-100); }
   font-size: 0.95rem;
   line-height: 1.55;
 }
-.profile-tag-group {
+/* Scoped to .business-card — the tutorial demo's own TagGroup (label + chip-row).
+   Un-scoped, this collided with the real Profile page's .profile-tag-group
+   (h3 + .profile-tags), stacking an extra flex "gap" on top of its h3 margin
+   and inflating the spacing between the label and its chips. */
+.business-card .profile-tag-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-.profile-tag-group .chip-row {
+.business-card .profile-tag-group .chip-row {
   gap: 9px;
 }
-.profile-tag-group .chip.static {
+.business-card .profile-tag-group .chip.static {
   cursor: default;
   background: var(--brand-50);
   border-color: color-mix(in srgb, var(--brand-500) 42%, var(--border));
@@ -3103,6 +3267,16 @@ a.contact-row:active { background: var(--brand-100); }
   font: 800 1.1rem/1 var(--font-display);
   box-shadow: 0 6px 14px rgba(20, 40, 80, 0.22);
 }
+.profile-edit-photo-badge svg,
+.photo-add-button svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .profile-edit-photo-picker:focus-within {
   outline: 2px solid var(--brand-500);
   outline-offset: 3px;
@@ -3224,10 +3398,6 @@ a.contact-row:active { background: var(--brand-100); }
 .connections-list { display: grid; gap: 14px; margin-top: 14px; }
 .connection-card { position: relative; padding: 18px; border: 1px solid var(--border); border-radius: var(--radius-lg, 18px); background: var(--surface); box-shadow: 0 3px 10px rgba(20,40,80,.06); }
 .connection-person { display: flex; align-items: center; gap: 13px; padding-right: 82px; color: var(--ink); text-decoration: none; }
-.connection-remove { position: absolute; z-index: 1; top: 13px; right: 13px; min-height: 32px; display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; border: 1px solid transparent; border-radius: var(--radius-pill); background: transparent; color: var(--ink-faint); font: 700 .72rem/1 var(--font-body); cursor: pointer; }
-.connection-remove span { font-size: 1.05rem; font-weight: 400; line-height: 1; }
-.connection-remove:hover { border-color: var(--border); background: var(--surface-2); color: var(--danger-700, #a52828); }
-.connection-remove:disabled { cursor: not-allowed; opacity: .4; }
 .connection-person > div { min-width: 0; flex: 1; }
 .connection-person h2 { margin: 0; font: 700 1rem var(--font-display); }
 .connection-person p { margin: 3px 0; font-size: .88rem; font-weight: 600; }
@@ -3633,20 +3803,39 @@ a.contact-row:active { background: var(--brand-100); }
   justify-content: center;
   text-decoration: none;
 }
+.home-progress-section {
+  border: none;
+  background: none;
+  padding: 20px 0;
+}
 .home-stats-grid {
   grid-template-columns: repeat(3, 1fr);
 }
 /* Three tiles across a 360px phone leaves ~85px each, and "24h 52m" wraps at a
    fixed 1.25rem — which unbalances the row. Scale with the viewport instead. */
 .home-stats-grid .stat-tile {
-  padding: 14px 8px;
+  padding: 12px 8px;
 }
 .home-stats-grid .stat-tile strong {
-  font-size: clamp(1rem, 4.4vw, 1.25rem);
+  font-size: clamp(1.5rem, 7vw, 2rem);
   white-space: nowrap;
 }
-.home-stat-link { position: relative; border-color: var(--brand-400); background: var(--brand-50); color: inherit; text-decoration: none; transition: transform 120ms ease, border-color 120ms ease; }
-.home-stat-link:hover { border-color: var(--brand-600); transform: translateY(-1px); }
+/* Single row of 3 — divider between every adjacent pair, not the 2-column
+   odd/even pattern the base .stats-grid rule uses. */
+.home-stats-grid .stat-tile::after,
+.home-stats-grid .stat-tile::before {
+  content: none;
+}
+.home-stats-grid .stat-tile:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 18%;
+  bottom: 18%;
+  width: 1px;
+  background: var(--border);
+}
+.home-stat-link { position: relative; color: inherit; text-decoration: none; }
 .home-nudge {
   margin: 12px 0 0;
   text-align: center;
@@ -3954,20 +4143,20 @@ a.contact-row:active { background: var(--brand-100); }
 .directory-card-actions .bookmark-button,
 .directory-card-actions .icon-btn {
   width: auto;
-  height: 44px;
-  min-height: 44px;
+  height: 34px;
+  min-height: 34px;
   flex: 0 0 auto;
-  gap: 8px;
-  padding: 0 12px;
+  gap: 6px;
+  padding: 0 10px;
   border-radius: var(--radius-md);
   border-color: var(--border-strong);
   color: var(--brand-600);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 750;
   line-height: 1;
   letter-spacing: 0.01em;
 }
-.directory-card-actions .icon-btn.icon-only { width: 44px; flex-basis: 44px; padding: 0; border-radius: 50%; }
+.directory-card-actions .icon-btn.icon-only { width: 34px; flex-basis: 34px; padding: 0; border-radius: 50%; }
 .directory-card-actions .bookmark-button span,
 .directory-card-actions .icon-btn span {
   display: inline-flex;
@@ -3976,8 +4165,8 @@ a.contact-row:active { background: var(--brand-100); }
   white-space: nowrap;
 }
 .directory-card-actions svg {
-  width: 19px;
-  height: 19px;
+  width: 15px;
+  height: 15px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.8;
@@ -4068,7 +4257,7 @@ a.contact-row:active { background: var(--brand-100); }
   justify-content: center;
 }
 .feed-page .photo-card .person-line {
-  margin-top: 3px;
+  margin-top: 6px;
 }
 .feed-page .photo-card .post-menu {
   align-self: center;
@@ -4221,7 +4410,7 @@ a.contact-row:active { background: var(--brand-100); }
   gap: 11px;
   padding: 10px 8px;
   margin: 0 -8px;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   color: inherit;
   text-decoration: none;
   transition: background-color 120ms ease-out, transform 120ms ease-out;
@@ -4249,7 +4438,7 @@ a.contact-row:active { background: var(--brand-100); }
 .event-details-hero { position: relative; padding: 24px; overflow: hidden; border-radius: 22px; background: linear-gradient(135deg,var(--brand-900),var(--brand-700)); color: #fff; }
 .event-details-hero .eyebrow { color: #a9cff7; }
 .event-details-hero h1 { margin: 4px 0 6px; font: 700 clamp(1.5rem,5vw,2.1rem) var(--font-display); }
-.event-details-date { margin: 0; color: #d4e5f7; }
+.event-details-date { margin: 10px 0 0; color: #d4e5f7; }
 .event-details-section { margin-top: 20px; padding-top: 20px; border: none; border-top: 1px solid var(--border); border-radius: 0; background: none; }
 .event-details-section h2 { margin: 0 0 12px; font: 700 1.05rem var(--font-display); }
 /* Flat, box-less rows on the Event Details page (the shared .contact-row keeps
@@ -4574,17 +4763,30 @@ a.contact-row:active { background: var(--brand-100); }
   text-transform: uppercase;
 }
 .photo-modal-close {
-  min-height: 38px;
-  padding: 0 14px;
-  border-radius: 999px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
   border: 1px solid rgba(107, 154, 238, 0.24);
   background: rgba(255, 255, 255, 0.03);
   color: var(--ink-muted);
-  font-family: var(--font-body);
-  font-size: 0.82rem;
-  font-weight: 700;
   cursor: pointer;
   flex-shrink: 0;
+}
+.photo-modal-close svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.photo-modal-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .photo-modal-field {
   margin-bottom: 0;
@@ -4845,7 +5047,7 @@ a.contact-row:active { background: var(--brand-100); }
   transform: scale(0.97);
 }
 .post-action.active {
-  color: var(--brand-500);
+  color: #e0245e;
 }
 .post-action.active svg {
   animation: like-pulse 0.3s ease;
@@ -4928,8 +5130,8 @@ a.contact-row:active { background: var(--brand-100); }
   margin-left: 8px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: var(--success-100);
-  color: var(--success-700);
+  background: var(--brand-100);
+  color: var(--brand-700);
   font-size: 0.66rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -4983,9 +5185,8 @@ a.contact-row:active { background: var(--brand-100); }
     gap: 12px;
   }
   .feed-composer-card .photo-modal-close {
-    min-height: 36px;
-    padding: 0 12px;
-    font-size: 0.8rem;
+    width: 36px;
+    height: 36px;
   }
   .feed-composer-card .photo-picker,
   .feed-composer-card .photo-picker-placeholder {
@@ -5472,28 +5673,42 @@ a.contact-row:active { background: var(--brand-100); }
   }
 }
 
+/* Styled to match the Phone/Email .contact-row: a circular icon badge plus
+   text, instead of a plain bordered pill with an inline icon. */
 .profile-link-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   min-height: 44px;
   margin-top: 12px;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--brand-700);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: inherit;
   text-decoration: none;
   word-break: break-word;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+a.profile-link-row:hover {
+  background: var(--brand-100);
+  border-color: var(--brand-500);
 }
 
 .profile-link-row svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
+  flex: none;
+  box-sizing: border-box;
+  width: 38px;
+  height: 38px;
+  padding: 9px;
+  border-radius: 50%;
+  background: var(--brand-100);
+  color: var(--brand-600);
 }
 
 .profile-link-row span {
+  font-weight: 600;
+  color: var(--ink);
   word-break: break-word;
 }
 

@@ -221,7 +221,6 @@ export default function AdminCheckinPage() {
 function VenueQrCard() {
   const [token, setToken] = useState<string | null>(null);
   const [dataUrl, setDataUrl] = useState<string | null>(null);
-  const [regenerating, setRegenerating] = useState(false);
 
   const render = useCallback(async (nextToken: string) => {
     setToken(nextToken);
@@ -240,20 +239,6 @@ function VenueQrCard() {
       .catch(() => undefined);
   }, [render]);
 
-  async function regenerate() {
-    if (!window.confirm("Generate a new QR? Any printout of the current one will stop working.")) return;
-    setRegenerating(true);
-    try {
-      const res = await fetch("/api/admin/event/venue-qr/regenerate", withCsrfHeaders({ method: "POST" }));
-      if (res.ok) {
-        const data = (await res.json()) as { token: string };
-        await render(data.token);
-      }
-    } finally {
-      setRegenerating(false);
-    }
-  }
-
   return (
     <section className="venue-qr-card">
       <div className="venue-qr-copy">
@@ -271,9 +256,6 @@ function VenueQrCard() {
           >
             Download PNG
           </a>
-          <button className="btn-secondary" type="button" onClick={regenerate} disabled={regenerating}>
-            {regenerating ? "Regenerating…" : "Regenerate"}
-          </button>
         </div>
       </div>
       <div className="venue-qr-preview">

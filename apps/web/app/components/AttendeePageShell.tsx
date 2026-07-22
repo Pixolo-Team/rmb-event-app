@@ -131,6 +131,8 @@ export function AttendeePageShell({
   return (
     <div className="attendee-shell">
       <header className={`full-page-header attendee-app-header${pathname === "/matches" ? " no-divider" : ""}`}>
+        <AttendeeMenu attendee={attendee} />
+        <h1 className="app-header-title">{pageTitle(pathname)}</h1>
         <Link href="/home" aria-label="Go to Home">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -141,8 +143,6 @@ export function AttendeePageShell({
             height={50}
           />
         </Link>
-        <h1 className="app-header-title">{pageTitle(pathname)}</h1>
-        <AttendeeMenu attendee={attendee} />
       </header>
       <InstallBanner />
       <div className="attendee-shell-content">
