@@ -2204,8 +2204,8 @@ p.copy {
 .venue-qr-copy { flex: 1; min-width: 240px; }
 .venue-qr-copy h2 { margin: 0 0 6px; font: 700 1.1rem var(--font-display); }
 .venue-qr-copy .copy { margin: 0 0 14px; }
-.venue-qr-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-.venue-qr-actions .btn-primary, .venue-qr-actions .btn-secondary { width: auto; padding: 0 20px; text-decoration: none; display: inline-flex; align-items: center; }
+.venue-qr-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.venue-qr-actions .btn-primary, .venue-qr-actions .btn-secondary { width: auto; min-height: 44px; margin: 0; padding: 0 20px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
 .venue-qr-actions .btn-primary[aria-disabled="true"] { opacity: .5; pointer-events: none; }
 .venue-qr-preview { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .venue-qr-preview img { border-radius: var(--radius-md); border: 1px solid var(--border); }
