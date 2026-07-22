@@ -1,6 +1,6 @@
 "use client";
 import { withCsrfHeaders } from "../../lib/csrf";
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AttendeeMe } from "./TutorialPage";
 import { PoweredByFooter } from "./PoweredByFooter";
 import { MultiSelectDropdown } from "../../components/MultiSelectDropdown";
@@ -91,11 +91,8 @@ export function EditProfileForm({
   onSaved: (patch: Partial<AttendeeMe>) => void;
   onClose: () => void;
 }) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [options, setOptions] = useState<ProfileOptions>(DEMO_OPTIONS);
   const [isOffline, setIsOffline] = useState(false);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(attendee.photoUrl ?? null);
   const [businessName, setBusinessName] = useState(attendee.businessName ?? "");
   const [businessCategory, setBusinessCategory] = useState(attendee.businessCategory ?? "");
   const [city, setCity] = useState(attendee.city ?? "");
@@ -142,14 +139,6 @@ export function EditProfileForm({
   }, []);
 
   useEffect(() => {
-    return () => {
-      if (photoPreview && photoPreview.startsWith("blob:")) {
-        URL.revokeObjectURL(photoPreview);
-      }
-    };
-  }, [photoPreview]);
-
-  useEffect(() => {
     setBusinessCategory(attendee.businessCategory ?? "");
     setBusinessName(attendee.businessName ?? "");
     setCity(attendee.city ?? "");
@@ -159,13 +148,6 @@ export function EditProfileForm({
     setBio(attendee.bio ?? "");
     setLinkedInUrl(attendee.linkedInUrl ?? "");
     setWebsiteUrl(attendee.websiteUrl ?? "");
-    setPhotoFile(null);
-    setPhotoPreview((current) => {
-      if (current && current.startsWith("blob:")) {
-        URL.revokeObjectURL(current);
-      }
-      return attendee.photoUrl ?? null;
-    });
     setError(null);
   }, [attendee]);
 
@@ -226,7 +208,6 @@ export function EditProfileForm({
         bio: attendee.bio ?? "",
         linkedInUrl: attendee.linkedInUrl ?? "",
         websiteUrl: attendee.websiteUrl ?? "",
-        photoUrl: attendee.photoUrl ?? null,
       }),
     [attendee],
   );
@@ -241,18 +222,8 @@ export function EditProfileForm({
     bio,
     linkedInUrl,
     websiteUrl,
-    photoUrl: photoPreview,
   });
   const isDirty = initialSnapshot !== currentSnapshot;
-
-  function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0] ?? null;
-    if (photoPreview && photoPreview.startsWith("blob:")) {
-      URL.revokeObjectURL(photoPreview);
-    }
-    setPhotoFile(file);
-    setPhotoPreview(file ? URL.createObjectURL(file) : attendee.photoUrl ?? null);
-  }
 
   function handleAttemptClose() {
     if (isDirty && typeof window !== "undefined" && !window.confirm("Discard your profile changes?")) {
@@ -319,55 +290,6 @@ export function EditProfileForm({
         return;
       }
 
-      let photoUrl = attendee.photoUrl ?? null;
-      if (photoFile) {
-        const formData = new FormData();
-        formData.append("photo", photoFile);
-        const photoRes = await fetch("/api/attendees/me/photo", withCsrfHeaders({
-          method: "POST",
-          credentials: "include",
-          body: formData,
-        }));
-        if (!photoRes.ok) {
-          setError("Your profile saved, but the photo upload failed. Try the photo again.");
-          onSaved({
-            businessName: businessName.trim() || null,
-            businessCategory,
-            city: city.trim(),
-            lookingFor: sanitizedLookingFor,
-            offering: sanitizedOffering,
-            goals: sanitizedGoals,
-            bio: bio.trim() || null,
-            linkedInUrl: linkedInUrl.trim() || null,
-            websiteUrl: normalizedWebsiteUrl || null,
-          });
-          return;
-        }
-        const body = await photoRes.json();
-        photoUrl = body.photoUrl ?? photoUrl;
-      } else if (!photoPreview && attendee.photoUrl) {
-        const removeRes = await fetch("/api/attendees/me/photo/remove", withCsrfHeaders({
-          method: "PATCH",
-          credentials: "include",
-        }));
-        if (!removeRes.ok) {
-          setError("Your profile saved, but the photo could not be removed. Try again.");
-          onSaved({
-            businessName: businessName.trim() || null,
-            businessCategory,
-            city: city.trim(),
-            lookingFor: sanitizedLookingFor,
-            offering: sanitizedOffering,
-            goals: sanitizedGoals,
-            bio: bio.trim() || null,
-            linkedInUrl: linkedInUrl.trim() || null,
-            websiteUrl: normalizedWebsiteUrl || null,
-          });
-          return;
-        }
-        photoUrl = null;
-      }
-
       onSaved({
         businessName: businessName.trim() || null,
         businessCategory,
@@ -378,7 +300,6 @@ export function EditProfileForm({
         bio: bio.trim() || null,
         linkedInUrl: linkedInUrl.trim() || null,
         websiteUrl: normalizedWebsiteUrl || null,
-        photoUrl,
       });
       onClose();
     } catch {
@@ -395,11 +316,7 @@ export function EditProfileForm({
           <div>
             <p className="photo-modal-eyebrow">Edit profile</p>
             <h1 className="settings-title">Update your attendee card</h1>
-            <p className="settings-copy">Change the fields you set during onboarding. Registered details stay organizer-controlled.</p>
           </div>
-          <button className="btn-secondary profile-edit-close" type="button" onClick={handleAttemptClose}>
-            Cancel
-          </button>
         </div>
 
         {isOffline ? (
@@ -410,26 +327,6 @@ export function EditProfileForm({
             </div>
           </div>
         ) : null}
-
-        <div className="field profile-edit-photo-field">
-          <label htmlFor="edit-photo">Photo</label>
-          <label htmlFor="edit-photo" className="profile-edit-photo-picker" aria-label="Change profile photo">
-            {photoPreview && (
-              <img src={photoPreview} alt="Profile preview" />
-            )}
-            <span className="profile-edit-photo-badge" aria-hidden="true">
-              +
-            </span>
-          </label>
-          <input
-            id="edit-photo"
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handlePhotoChange}
-            className="sr-only"
-          />
-        </div>
 
         <section className="profile-edit-readonly">
           <h2 className="profile-edit-section-title">Registered details</h2>
@@ -473,6 +370,15 @@ export function EditProfileForm({
             }}
           />
 
+          <MultiSelectDropdown
+            label="Offering"
+            options={availableOfferings}
+            selected={offering}
+            onToggle={(v) => setOffering((s) => toggle(s, v))}
+            disabled={!businessCategory}
+            placeholder={businessCategory ? "Select offerings" : "Select a business category first"}
+          />
+
           <div className="field">
             <label htmlFor="edit-city">City</label>
             <input
@@ -491,14 +397,6 @@ export function EditProfileForm({
           </div>
 
           <MultiSelectDropdown label="Looking for" options={options.lookingFor} selected={lookingFor} onToggle={(v) => setLookingFor((s) => toggle(s, v))} />
-          <MultiSelectDropdown
-            label="Offering"
-            options={availableOfferings}
-            selected={offering}
-            onToggle={(v) => setOffering((s) => toggle(s, v))}
-            disabled={!businessCategory}
-            placeholder={businessCategory ? "Select offerings" : "Select a business category first"}
-          />
           <MultiSelectDropdown label="Goals" options={options.goals} selected={goals} onToggle={(v) => setGoals((s) => toggle(s, v))} />
 
           <div className="field">

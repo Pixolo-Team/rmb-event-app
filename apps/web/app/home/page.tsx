@@ -50,7 +50,7 @@ const METHOD_LABEL: Record<CheckinMethod, string> = {
   GEOLOCATION: "via location",
   MANUAL: "checked in at the desk",
   STAFF_QR: "staff scan",
-  VENUE_QR: "by QR scan",
+  VENUE_QR: "via QR Code Scan",
 };
 
 // Within 3 days of the start we show a live ticking countdown; further out, a
@@ -654,7 +654,7 @@ function ProgressSection({ stats }: { stats: PersonalStats | null }) {
   const totalRanked = stats ? Math.max(stats.totalRanked, stats.rank ?? 0) : 0;
 
   return (
-    <section className="profile-section" aria-label="Your progress">
+    <section className="profile-section home-progress-section" aria-label="Your progress">
       <h2>Your progress</h2>
       <div className="stats-grid home-stats-grid">
         <StatTile value={stats?.peopleMet ?? "—"} label="People met" />
@@ -770,6 +770,9 @@ function StatTile({ value, label, sub }: { value: React.ReactNode; label: string
 function PageHeader({ attendee }: { attendee: Attendee | null }) {
   return (
     <div className="full-page-header attendee-app-header">
+      {attendee && <AttendeeMenu attendee={attendee} />}
+      {!attendee && <span className="app-header-spacer" aria-hidden="true" />}
+      <h1 className="app-header-title">Home</h1>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/images/rmb-fellowship-logo.png"
@@ -778,9 +781,6 @@ function PageHeader({ attendee }: { attendee: Attendee | null }) {
         width={50}
         height={50}
       />
-      <h1 className="app-header-title">Home</h1>
-      {attendee && <AttendeeMenu attendee={attendee} />}
-      {!attendee && <span className="app-header-spacer" aria-hidden="true" />}
     </div>
   );
 }

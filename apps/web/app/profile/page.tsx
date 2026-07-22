@@ -282,10 +282,10 @@ export default function ProfilePage() {
                         className="photo-add-button"
                         type="button"
                         onClick={() => setPhotoModalOpen(true)}
-                        aria-label="Add or change photo"
-                        title="Add or change photo"
+                        aria-label="Edit photo"
+                        title="Edit photo"
                       >
-                        +
+                        <PencilIcon />
                       </button>
                     </div>
                     <div className="qr-identity-text">
@@ -426,10 +426,6 @@ export default function ProfilePage() {
                   </ProfileSection>
                 ) : null}
 
-                <p className="profile-readonly-note">
-                  Registered details are read-only. Contact the event organizer to change your name, phone, or email.
-                </p>
-
                 <PoweredByFooter />
               </>
             )}
@@ -524,8 +520,18 @@ function TagGroup({ title, values }: { title: string; values: string[] }) {
   );
 }
 
+function PencilIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4Z" /><path d="m12.5 7.5 4 4" /></svg>;
+}
+
 function WebsiteIcon() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M4 12h16M12 4a13 13 0 0 1 0 16M12 4a13 13 0 0 0 0 16" /></svg>;
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="8" fill="currentColor" opacity="0.1" />
+      <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M4 12h16M12 4a13 13 0 0 1 0 16M12 4a13 13 0 0 0 0 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
 }
 
 function LinkedInIcon() {
