@@ -2528,14 +2528,6 @@ p.copy {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.status-dot {
-  width: 9px;
-  height: 9px;
-  flex: 0 0 9px;
-  border-radius: 50%;
-  background: var(--success-700);
-  box-shadow: 0 0 0 3px var(--success-100);
-}
 .attendee-meta {
   margin: 2px 0 0;
   overflow: hidden;

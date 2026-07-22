@@ -226,7 +226,7 @@ function AttendeeCard({ attendee, onBookmark }: { attendee: DirectoryAttendee; o
           <div className="directory-name-row">
             <h2>{attendee.name}</h2>
             {attendee.met && <span className="met-badge">Met</span>}
-            {attendee.checkedIn && <span className="status-dot" title="Checked in" />}
+            {attendee.checkedIn && <span className="wtm-here">Present</span>}
           </div>
           {primaryLine ? <p className="attendee-meta primary">{primaryLine}</p> : null}
           {secondaryLine ? <p className="attendee-meta secondary">{secondaryLine}</p> : null}

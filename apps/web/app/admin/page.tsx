@@ -293,7 +293,7 @@ export default function AdminHome() {
           <div className="admin-method-grid">
             <SmallStat label="Via location" value={data?.breakdown.GEOLOCATION ?? "—"} />
             <SmallStat label="Venue scan" value={data?.breakdown.VENUE_QR ?? "—"} />
-            <SmallStat label="Manual" value={data?.breakdown.MANUAL ?? "—"} />
+            <SmallStat label="Desk check-in" value={data?.breakdown.MANUAL ?? "—"} />
             <SmallStat label="Staff scan" value={data?.breakdown.STAFF_QR ?? "—"} />
           </div>
         </article>

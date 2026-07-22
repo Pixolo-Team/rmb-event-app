@@ -19,7 +19,7 @@ interface StatusResponse {
 
 const METHOD_LABEL: Record<Method, string> = {
   GEOLOCATION: "via location",
-  MANUAL: "manual",
+  MANUAL: "desk check-in",
   STAFF_QR: "staff scan",
   VENUE_QR: "venue scan",
 };
@@ -160,7 +160,7 @@ export default function AdminCheckinPage() {
             />
             <StatPill label="Via location" value={status.breakdown.GEOLOCATION} tone="neutral" />
             <StatPill label="Venue scan" value={status.breakdown.VENUE_QR} tone="neutral" />
-            <StatPill label="Manual" value={status.breakdown.MANUAL} tone="neutral" />
+            <StatPill label="Desk check-in" value={status.breakdown.MANUAL} tone="neutral" />
             <StatPill label="Staff scan" value={status.breakdown.STAFF_QR} tone="neutral" />
           </div>
 

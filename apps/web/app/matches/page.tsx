@@ -172,7 +172,7 @@ function PersonRow({
             <span className="wtm-row-name">
               {name}
               {met && <span className="met-badge">Met</span>}
-              {checkedIn && <span className="wtm-here">Here</span>}
+              {checkedIn && <span className="wtm-here">Present</span>}
             </span>
             {sub && <span className="wtm-row-sub">{sub}</span>}
           </span>

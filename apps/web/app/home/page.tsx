@@ -48,7 +48,7 @@ interface CheckinStatus {
 
 const METHOD_LABEL: Record<CheckinMethod, string> = {
   GEOLOCATION: "via location",
-  MANUAL: "manual",
+  MANUAL: "checked in at the desk",
   STAFF_QR: "staff scan",
   VENUE_QR: "by QR scan",
 };
@@ -711,7 +711,7 @@ function PeopleToMeet({ matches, loading }: { matches: MatchSuggestion[]; loadin
                   <b>{match.name}</b>
                   <em>{match.headline || match.businessName || ""}</em>
                 </span>
-                {match.checkedIn && <span className="badge badge-success">Here</span>}
+                {match.checkedIn && <span className="badge badge-success">Present</span>}
               </Link>
             </li>
           ))}
