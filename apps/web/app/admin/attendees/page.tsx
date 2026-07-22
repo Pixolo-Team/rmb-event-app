@@ -26,7 +26,9 @@ export default function AdminAttendeesPage() {
   const [query, setQuery] = useState("");
   const [state, setState] = useState<LoadState>("loading");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [checkingInId, setCheckingInId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [actionMenuId, setActionMenuId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
@@ -36,6 +38,14 @@ export default function AdminAttendeesPage() {
   useEffect(() => {
     loadAttendees();
   }, []);
+
+  useEffect(() => {
+    if (!message || message.startsWith("Could")) return;
+    const timeout = window.setTimeout(() => {
+      setMessage((current) => current === message ? null : current);
+    }, 10000);
+    return () => window.clearTimeout(timeout);
+  }, [message]);
 
   async function loadAttendees() {
     setState("loading");
@@ -61,10 +71,45 @@ export default function AdminAttendeesPage() {
       await loadAttendees();
       setMessage(`${attendee.name} was soft deleted.`);
       setConfirmingId(null);
+      setActionMenuId(null);
     } catch {
       setMessage("Could not delete attendee. Try again.");
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  async function markAsPresent(attendee: AdminAttendee) {
+    setCheckingInId(attendee.id);
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/admin/checkin/manual/${attendee.id}`, withCsrfHeaders({
+        method: "POST",
+        credentials: "include",
+      }));
+      if (!response.ok) throw new Error("Failed to check in attendee");
+
+      const outcome = await response.json() as { status?: string; checkedInAt?: string; method?: AdminAttendee["checkInMethod"] };
+      setAttendees((current) =>
+        current.map((item) =>
+          item.id === attendee.id
+            ? {
+                ...item,
+                checkedInAt: outcome.checkedInAt ?? item.checkedInAt ?? new Date().toISOString(),
+                checkInMethod: outcome.method ?? item.checkInMethod ?? "MANUAL",
+              }
+            : item,
+        ),
+      );
+      setMessage(
+        outcome.status === "already_checked_in"
+          ? `${attendee.name} was already marked present.`
+          : `${attendee.name} marked as present.`,
+      );
+    } catch {
+      setMessage("Could not mark attendee as present. Try again.");
+    } finally {
+      setCheckingInId(null);
     }
   }
 
@@ -243,28 +288,56 @@ export default function AdminAttendeesPage() {
                 <span>{attendee.profileCompletedAt ? "Profile complete" : "Profile pending"}</span>
                 <span>{attendee.checkedInAt ? `Checked in ${formatDate(attendee.checkedInAt)}` : "Not checked in"}</span>
               </div>
-              {confirmingId === attendee.id ? (
-                <div className="admin-attendee-confirm" role="group" aria-label={`Confirm delete ${attendee.name}`}>
-                  <span>Soft delete this attendee?</span>
-                  <div>
-                    <button className="btn-secondary" type="button" onClick={() => setConfirmingId(null)} disabled={deletingId === attendee.id}>
-                      Cancel
-                    </button>
-                    <button className="btn-danger-soft" type="button" onClick={() => deleteAttendee(attendee)} disabled={deletingId === attendee.id}>
-                      {deletingId === attendee.id ? "Deleting..." : "Confirm delete"}
-                    </button>
-                  </div>
-                </div>
-              ) : (
+              <div className="admin-attendee-actions">
                 <button
-                  className="btn-secondary admin-delete-button"
+                  className="btn-secondary admin-present-button"
                   type="button"
-                  onClick={() => setConfirmingId(attendee.id)}
-                  disabled={Boolean(attendee.deletedAt) || deletingId === attendee.id}
+                  onClick={() => markAsPresent(attendee)}
+                  disabled={Boolean(attendee.deletedAt) || Boolean(attendee.checkedInAt) || checkingInId === attendee.id}
                 >
-                  {attendee.deletedAt ? "Deleted" : "Delete"}
+                  {checkingInId === attendee.id ? "Marking..." : attendee.checkedInAt ? "Present" : "Mark as present"}
                 </button>
-              )}
+                {confirmingId === attendee.id ? (
+                  <div className="admin-attendee-confirm" role="group" aria-label={`Confirm delete ${attendee.name}`}>
+                    <span>Soft delete this attendee?</span>
+                    <div>
+                      <button className="btn-secondary" type="button" onClick={() => setConfirmingId(null)} disabled={deletingId === attendee.id}>
+                        Cancel
+                      </button>
+                      <button className="btn-danger-soft" type="button" onClick={() => deleteAttendee(attendee)} disabled={deletingId === attendee.id}>
+                        {deletingId === attendee.id ? "Deleting..." : "Confirm delete"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="admin-attendee-menu">
+                    <button
+                      className="admin-attendee-menu-button"
+                      type="button"
+                      aria-label={`More actions for ${attendee.name}`}
+                      aria-expanded={actionMenuId === attendee.id}
+                      onClick={() => setActionMenuId((current) => current === attendee.id ? null : attendee.id)}
+                      disabled={Boolean(attendee.deletedAt) || deletingId === attendee.id}
+                    >
+                      <span aria-hidden="true">⋮</span>
+                    </button>
+                    {actionMenuId === attendee.id && (
+                      <div className="admin-attendee-menu-dropdown">
+                        <button
+                          className="admin-delete-button"
+                          type="button"
+                          onClick={() => {
+                            setConfirmingId(attendee.id);
+                            setActionMenuId(null);
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </article>
           ))
         ) : (
