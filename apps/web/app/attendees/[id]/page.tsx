@@ -9,6 +9,7 @@ import { directoryCache, type AttendeeProfile } from "../../lib/directoryCache";
 import { SaveContactButton } from "../../components/SaveContactButton";
 import { BookmarkButton } from "../../components/BookmarkButton";
 import { trackEvent } from "../../lib/gtag";
+import { getCachedVenueConfig } from "../../lib/offlineQueue";
 
 export default function AttendeeProfilePage({ params }: { params: { id: string } }) {
   const [profile, setProfile] = useState<AttendeeProfile | null>(null);
@@ -88,10 +89,25 @@ function ProfileSkeleton() {
 
 function ProfileContent({ profile }: { profile: AttendeeProfile }) {
   const [canShare, setCanShare] = useState(false);
+  const [eventName, setEventName] = useState<string | null>(null);
   const whatsappNumber = profile.phone.replace(/[^\d]/g, "");
-  const whatsappText = encodeURIComponent(`Hi ${profile.name}, we connected through Evento.`);
+  const whatsappText = encodeURIComponent(
+    eventName ? `Hi ${profile.name}, we met at the ${eventName}.` : `Hi ${profile.name}, we met at the event.`,
+  );
 
   useEffect(() => setCanShare(typeof navigator.share === "function"), []);
+
+  useEffect(() => {
+    getCachedVenueConfig().then((cached) => {
+      if (cached?.name) setEventName(cached.name);
+    });
+    fetch("/api/event")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { name?: string } | null) => {
+        if (data?.name) setEventName(data.name);
+      })
+      .catch(() => undefined);
+  }, []);
 
   return (
     <>

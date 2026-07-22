@@ -57,7 +57,6 @@ export function PersonalStats() {
         <StatTile value={`#${stats.rank}`} sub={`of ${stats.totalRanked}`} label="Rank" />
         <StatTile value={stats.bookmarks} label="Bookmarks" />
         <StatTile value={stats.photos} label="Photos posted" />
-        <StatTile value={timeAtEvent ?? "—"} label={checkedIn ? "Time at event" : "Not checked in yet"} wide />
       </div>
     </section>
   );

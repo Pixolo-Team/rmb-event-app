@@ -188,8 +188,8 @@ function AttendeeCard({ attendee, onBookmark }: { attendee: DirectoryAttendee; o
   // field and no mutual-connections aggregate, so those two items aren't
   // shown; everything below is genuine profile data. City is intentionally
   // left out per request — company + industry lead, chapter/table follow.
-  const primaryLine = [attendee.businessName, attendee.businessCategory].filter(Boolean).join(" · ");
-  const secondaryLine = [attendee.chapterName, attendee.tableNumber && `Table ${attendee.tableNumber}`]
+  const primaryLine = attendee.businessName;
+  const secondaryLine = [attendee.businessCategory, attendee.chapterName, attendee.tableNumber && `Table ${attendee.tableNumber}`]
     .filter(Boolean)
     .join(" · ");
 
@@ -206,16 +206,21 @@ function AttendeeCard({ attendee, onBookmark }: { attendee: DirectoryAttendee; o
           {primaryLine ? <p className="attendee-meta primary">{primaryLine}</p> : null}
           {secondaryLine ? <p className="attendee-meta secondary">{secondaryLine}</p> : null}
         </div>
+        <span className="directory-card-chevron" aria-hidden="true"><ChevronIcon /></span>
       </Link>
       <div className="directory-card-actions" aria-label={`Actions for ${attendee.name}`}>
-        <BookmarkButton attendeeId={attendee.id} initialBookmarked={Boolean(attendee.bookmarked)} compact onChange={onBookmark} />
-        <a className="icon-btn" href={`tel:${attendee.phone}`} aria-label={`Call ${attendee.name}`} title="Call"><PhoneIcon /></a>
-        {attendee.linkedInUrl && <a className="icon-btn" href={attendee.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${attendee.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /></a>}
-        {attendee.websiteUrl && <a className="icon-btn" href={attendee.websiteUrl} target="_blank" rel="noreferrer" aria-label={`${attendee.name} website`} title="Website"><WebsiteIcon /></a>}
-        <button className="icon-btn" type="button" onClick={shareAttendee} aria-label={`Share ${attendee.name}`} title="Share"><ShareIcon /></button>
+        <BookmarkButton attendeeId={attendee.id} initialBookmarked={Boolean(attendee.bookmarked)} compact compactLabel onChange={onBookmark} />
+        <a className="icon-btn" href={`tel:${attendee.phone}`} aria-label={`Call ${attendee.name}`}><PhoneIcon /><span>Call</span></a>
+        <button className="icon-btn icon-only" type="button" onClick={shareAttendee} aria-label={`Share ${attendee.name}`} title="Share"><ShareIcon /></button>
+        {attendee.linkedInUrl && <a className="icon-btn icon-only" href={attendee.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${attendee.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /></a>}
+        {attendee.websiteUrl && <a className="icon-btn icon-only" href={attendee.websiteUrl} target="_blank" rel="noreferrer" aria-label={`${attendee.name} website`} title="Website"><WebsiteIcon /></a>}
       </div>
     </article>
   );
+}
+
+function ChevronIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>;
 }
 
 function FilterSelect({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {

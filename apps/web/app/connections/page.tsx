@@ -8,6 +8,7 @@ import { PageIntro } from "../components/PageIntro";
 import { Connection, ConnectionsResponse, connectionsCache } from "../lib/connectionsCache";
 import { SaveContactButton } from "../components/SaveContactButton";
 import { withCsrfHeaders } from "../lib/csrf";
+import { getCachedVenueConfig } from "../lib/offlineQueue";
 
 type SortOption = "recent" | "name";
 
@@ -17,18 +18,37 @@ export default function ConnectionsPage() {
   const [offline, setOffline] = useState(false);
   const [error, setError] = useState(false);
   const [sort, setSort] = useState<SortOption>("recent");
+  const [eventName, setEventName] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCachedVenueConfig().then((cached) => {
+      if (cached?.name) setEventName(cached.name);
+    });
+    fetch("/api/event")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { name?: string } | null) => {
+        if (data?.name) setEventName(data.name);
+      })
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     const cached = connectionsCache.get();
     if (cached) {
       setData(cached);
       setOffline(!navigator.onLine);
-      setLoading(false);
+      // A populated cache is immediately useful. An empty cache is not proof
+      // that the attendee still has no connections, so keep the skeleton up
+      // until the live response confirms the empty state.
+      if (cached.connections.length > 0) setLoading(false);
     }
-    Promise.all([fetch("/api/attendees/me/connections", { credentials: "include" }), fetch("/api/bookmarks", { credentials: "include" })])
-      .then(async ([connectionsResponse, bookmarksResponse]) => {
-        if (!connectionsResponse.ok || !bookmarksResponse.ok) throw new Error("connections unavailable");
-        const result = { ...(await connectionsResponse.json()), bookmarks: await bookmarksResponse.json() } as ConnectionsResponse;
+    fetch("/api/attendees/me/connections", { credentials: "include" })
+      .then(async (connectionsResponse) => {
+        if (!connectionsResponse.ok) throw new Error("connections unavailable");
+        // My Connections only renders confirmed meetings. Preserve any cached
+        // bookmark snapshot for the Want to Meet screen instead of delaying
+        // this page on a second, unrelated API request.
+        const result = { ...(await connectionsResponse.json()), bookmarks: cached?.bookmarks ?? [] } as ConnectionsResponse;
         connectionsCache.set(result);
         setData(result);
         setOffline(false);
@@ -61,28 +81,55 @@ export default function ConnectionsPage() {
       <main className="attendee-page connections-page">
         <div className="page-context-row">
           <PageIntro>People whose QR code you’ve scanned. Saved attendees live on the Want to Meet tab.</PageIntro>
-          <span className="connections-count">{connections.length}</span>
+          {!loading || connections.length > 0 ? <span className="connections-count">{connections.length}</span> : <span className="connections-count skeleton-block" aria-hidden="true" />}
         </div>
 
         {offline && <div className="banner info"><div><b>Showing saved connections</b>You’re offline. Notes and removals need a connection.</div></div>}
 
         {connections.length > 1 && <label className="connections-sort"><span>Sort by</span><select value={sort} onChange={(event) => setSort(event.target.value as SortOption)}><option value="recent">Most recent</option><option value="name">Name</option></select></label>}
 
-        {loading && <div className="directory-loading" role="status">Loading connections…</div>}
+        {loading && connections.length === 0 && <ConnectionsSkeleton />}
         {!loading && error && !data && <ConnectionState title="Can’t load connections" body="Check your connection and try again." />}
         {!loading && data && connections.length === 0 && <ConnectionState title="You haven’t met anyone yet" body="Scan someone’s QR code to exchange details and they’ll appear here." action />}
-        {connections.length > 0 && <div className="connections-list">{connections.map((connection) => <ConnectionCard key={connection.id} connection={connection} offline={offline} onNote={(note) => updateConnection(connection.id, { note })} onRemove={() => removeConnection(connection.id)} />)}</div>}
+        {connections.length > 0 && <div className="connections-list">{connections.map((connection) => <ConnectionCard key={connection.id} connection={connection} offline={offline} eventName={eventName} onNote={(note) => updateConnection(connection.id, { note })} onRemove={() => removeConnection(connection.id)} />)}</div>}
       </main>
     </AttendeePageShell>
   );
 }
 
-function ConnectionCard({ connection, offline, onNote, onRemove }: { connection: Connection; offline: boolean; onNote: (note: string) => void; onRemove: () => void }) {
+function ConnectionsSkeleton() {
+  return (
+    <div className="connections-list connections-skeleton" role="status" aria-label="Loading connections" aria-busy="true">
+      {[0, 1, 2].map((item) => (
+        <article className="connection-card" key={item}>
+          <div className="connection-person">
+            <span className="skeleton-block connection-skeleton-avatar" />
+            <div className="connection-skeleton-copy">
+              <span className="skeleton-block connection-skeleton-name" />
+              <span className="skeleton-block connection-skeleton-line" />
+              <span className="skeleton-block connection-skeleton-line short" />
+            </div>
+          </div>
+          <div className="connection-skeleton-actions">
+            <span className="skeleton-block" />
+            <span className="skeleton-block" />
+          </div>
+        </article>
+      ))}
+      <span className="sr-only">Loading connections…</span>
+    </div>
+  );
+}
+
+function ConnectionCard({ connection, offline, eventName, onNote, onRemove }: { connection: Connection; offline: boolean; eventName: string | null; onNote: (note: string) => void; onRemove: () => void }) {
   const [editing, setEditing] = useState(false);
   const [note, setNote] = useState(connection.note);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const whatsappNumber = connection.phone.replace(/[^\d]/g, "");
+  const whatsappText = encodeURIComponent(
+    eventName ? `Hi ${connection.name}, we met at the ${eventName}.` : `Hi ${connection.name}, we met at the event.`,
+  );
 
   async function saveNote() {
     setSaving(true);
@@ -130,7 +177,7 @@ function ConnectionCard({ connection, offline, onNote, onRemove }: { connection:
     {message && <p className="connection-error" role="alert">{message}</p>}
     <div className="connection-actions">
       <a href={`tel:${connection.phone}`}><CallIcon /> Call</a>
-      <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noreferrer"><WhatsAppIcon /> WhatsApp</a>
+      <a href={`https://wa.me/${whatsappNumber}?text=${whatsappText}`} target="_blank" rel="noreferrer"><WhatsAppIcon /> WhatsApp</a>
       {connection.linkedInUrl && <a href={connection.linkedInUrl} target="_blank" rel="noreferrer"><LinkedInIcon /> LinkedIn</a>}
     </div>
     <SaveContactButton contact={{ name: connection.name, phone: connection.phone, email: connection.email, company: connection.businessName, note: connection.note || "Met at Evento" }} />

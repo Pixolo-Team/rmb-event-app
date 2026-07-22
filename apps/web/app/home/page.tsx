@@ -60,13 +60,6 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
-function formatDuration(ms: number): string {
-  if (ms <= 0) return "0m";
-  const totalMin = Math.floor(ms / 60000);
-  const hours = Math.floor(totalMin / 60);
-  return hours > 0 ? `${hours}h ${totalMin % 60}m` : `${totalMin}m`;
-}
-
 function formatEventDate(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
     weekday: "long",
@@ -612,21 +605,16 @@ function Countdown({ ms }: { ms: number }) {
 // ---------------------------------------------------------------- sections
 
 function ProgressSection({ stats }: { stats: PersonalStats | null }) {
-  const timeAtEvent =
-    stats?.checkedInAt
-      ? formatDuration(
-          Math.min(Date.now(), stats.eventEndAt ? new Date(stats.eventEndAt).getTime() : Date.now()) -
-            new Date(stats.checkedInAt).getTime(),
-        )
-      : null;
-
   return (
     <section className="profile-section" aria-label="Your progress">
       <h2>Your progress</h2>
       <div className="stats-grid home-stats-grid">
         <StatTile value={stats?.peopleMet ?? "—"} label="People met" />
         <StatTile value={stats ? `#${stats.rank}` : "—"} sub={stats ? `of ${stats.totalRanked}` : undefined} label="Rank" />
-        <StatTile value={timeAtEvent ?? "—"} label="Time at event" />
+        <Link className="stat-tile home-stat-link" href="/matches" aria-label={`${stats?.bookmarks ?? 0} people in Want to Meet`}>
+          <strong>{stats?.bookmarks ?? "—"}</strong>
+          <span>Want to meet</span>
+        </Link>
       </div>
       {stats?.peopleMet === 0 && <p className="empty-copy home-nudge">No meetings yet. Start scanning!</p>}
     </section>
