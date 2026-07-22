@@ -7,7 +7,7 @@ import type { AttendeeMe, DirectoryAttendee } from "./TutorialPage";
 import { TEMP_BYPASS_LOGIN } from "./TutorialPage";
 import { getInitials } from "./AttendeeCard";
 import { EditProfileForm } from "./EditProfileForm";
-import { LinkedInIcon, ScanIcon } from "./icons";
+import { LinkedInIcon, ScanIcon, WebsiteIcon } from "./icons";
 import { ScanConnect } from "./ScanConnect";
 import { PoweredByFooter } from "./PoweredByFooter";
 import { withCsrfHeaders } from "../../lib/csrf";
@@ -150,11 +150,18 @@ export function ProfileView({
             <p className="person-line muted">{attendee.phone}</p>
             <p className="person-line muted">{attendee.email}</p>
           </div>
-          {attendee.linkedInUrl ? (
-            <a className="icon-btn" href={attendee.linkedInUrl} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
-              <LinkedInIcon />
-            </a>
-          ) : null}
+          <div className="card-icon-actions" aria-label="Profile links">
+            {attendee.linkedInUrl ? (
+              <a className="icon-btn" href={attendee.linkedInUrl} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                <LinkedInIcon />
+              </a>
+            ) : null}
+            {attendee.websiteUrl ? (
+              <a className="icon-btn" href={attendee.websiteUrl} target="_blank" rel="noopener noreferrer" aria-label="Website">
+                <WebsiteIcon />
+              </a>
+            ) : null}
+          </div>
         </div>
         <button type="button" className="btn-secondary profile-edit-button" onClick={openEditProfile}>
           Edit profile

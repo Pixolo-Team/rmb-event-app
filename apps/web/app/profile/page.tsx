@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { EditProfileForm } from "../(app)/tutorial/EditProfileForm";
+import type { AttendeeMe } from "../(app)/tutorial/TutorialPage";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { ContactRows } from "../components/ContactRows";
 import { PersonalStats } from "../components/PersonalStats";
@@ -12,6 +14,7 @@ import { ProfileSkeleton } from "./ProfileSkeleton";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<MyProfile | null>(null);
+  const [editingProfile, setEditingProfile] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [enlarged, setEnlarged] = useState(false);
   const [offline, setOffline] = useState(false);
@@ -205,204 +208,241 @@ export default function ProfilePage() {
     }
   }
 
+  function toEditProfileAttendee(value: MyProfile): AttendeeMe {
+    return {
+      id: value.id,
+      name: value.name,
+      email: value.email,
+      phone: value.phone,
+      businessName: value.businessName,
+      chapterName: value.chapterName,
+      tableNumber: value.tableNumber,
+      city: value.city,
+      businessCategory: value.businessCategory,
+      photoUrl: value.photoUrl,
+      lookingFor: value.lookingFor,
+      offering: value.offering,
+      goals: value.goals,
+      bio: value.bio,
+      linkedInUrl: value.linkedInUrl ?? null,
+      websiteUrl: value.websiteUrl ?? null,
+      qrToken: value.qrToken,
+      profileCompletedAt: value.profileCompletedAt,
+    };
+  }
+
   return (
-    <AttendeePageShell showFooter={false}>
-      <main className="attendee-page profile-page">
-        {!profile ? (
-          <ProfileSkeleton />
-        ) : (
-          <>
-            {offline && (
-              <div className="banner info">
-                <div><b>Offline</b>Showing your saved profile. Your QR still works.</div>
-              </div>
-            )}
-
-            <section className="qr-card">
-              <p className="qr-eyebrow">Scan to connect</p>
-              <div className="qr-card-container">
-                {qrDataUrl ? (
-                  <button className="qr-frame" type="button" onClick={() => setEnlarged(true)} aria-label="Enlarge your QR code">
-                    <img src={qrDataUrl} alt="Your personal QR code" />
-                  </button>
-                ) : (
-                  <div className="qr-frame qr-frame-placeholder" role="status">Preparing your QR...</div>
+    <AttendeePageShell showFooter={false} showTabs={!editingProfile}>
+      {editingProfile && profile ? (
+        <EditProfileForm
+          attendee={toEditProfileAttendee(profile)}
+          onSaved={(patch) => syncProfile({ ...profile, ...patch })}
+          onClose={() => setEditingProfile(false)}
+        />
+      ) : (
+        <>
+          <main className="attendee-page profile-page">
+            {!profile ? (
+              <ProfileSkeleton />
+            ) : (
+              <>
+                {offline && (
+                  <div className="banner info">
+                    <div><b>Offline</b>Showing your saved profile. Your QR still works.</div>
+                  </div>
                 )}
-              </div>
-              <p className="qr-hint">Tap the code to enlarge it for scanning</p>
 
-              <div className="qr-card-divider" aria-hidden="true" />
+                <section className="qr-card">
+                  <p className="qr-eyebrow">Scan to connect</p>
+                  <div className="qr-card-container">
+                    {qrDataUrl ? (
+                      <button className="qr-frame" type="button" onClick={() => setEnlarged(true)} aria-label="Enlarge your QR code">
+                        <img src={qrDataUrl} alt="Your personal QR code" />
+                      </button>
+                    ) : (
+                      <div className="qr-frame qr-frame-placeholder" role="status">Preparing your QR...</div>
+                    )}
+                  </div>
+                  <p className="qr-hint">Tap the code to enlarge it for scanning</p>
 
-              <div className="qr-photo-row">
-                <div className="qr-with-photo">
-                  {profile.photoUrl && (
-                    <img src={profile.photoUrl} alt={profile.name} className="profile-photo" />
-                  )}
-                  {!profile.photoUrl && <div className="profile-photo-placeholder">{getInitials(profile.name)}</div>}
-                  <button
-                    className="photo-add-button"
-                    type="button"
-                    onClick={() => setPhotoModalOpen(true)}
-                    aria-label="Add or change photo"
-                    title="Add or change photo"
-                  >
-                    +
+                  <div className="qr-card-divider" aria-hidden="true" />
+
+                  <div className="qr-photo-row">
+                    <div className="qr-with-photo">
+                      {profile.photoUrl && (
+                        <img src={profile.photoUrl} alt={profile.name} className="profile-photo" />
+                      )}
+                      {!profile.photoUrl && <div className="profile-photo-placeholder">{getInitials(profile.name)}</div>}
+                      <button
+                        className="photo-add-button"
+                        type="button"
+                        onClick={() => setPhotoModalOpen(true)}
+                        aria-label="Add or change photo"
+                        title="Add or change photo"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <div className="qr-identity-text">
+                      <p className="qr-identity-name">{profile.name}</p>
+                      {profile.businessName && <p className="qr-identity-business">{profile.businessName}</p>}
+                    </div>
+                  </div>
+
+                  <button className="btn-secondary profile-edit-button" type="button" onClick={() => setEditingProfile(true)}>
+                    Edit profile
                   </button>
-                </div>
-                <div className="qr-identity-text">
-                  <p className="qr-identity-name">{profile.name}</p>
-                  {profile.businessName && <p className="qr-identity-business">{profile.businessName}</p>}
-                </div>
-              </div>
-            </section>
+                </section>
 
-            <PersonalStats />
+                <PersonalStats />
 
-            <div className="profile-details-grid">
-              <ProfileSection title="Contact">
-                <ContactRows phone={profile.phone} email={profile.email} tableNumber={profile.tableNumber} />
-                <div className="profile-website-panel">
-                  <div className="profile-website-header">
-                    <span className="contact-row-label">Website</span>
-                    {!websiteEditing ? (
-                      <button className="profile-inline-action" type="button" onClick={() => {
-                        setWebsiteDraft(profile.websiteUrl ?? "");
-                        setWebsiteError(null);
-                        setWebsiteEditing(true);
-                      }}>
-                        {profile.websiteUrl ? "Edit link" : "Add link"}
-                      </button>
-                    ) : null}
-                  </div>
-
-                  {!websiteEditing ? (
-                    profile.websiteUrl ? (
-                      <a className="profile-link-row" href={profile.websiteUrl} target="_blank" rel="noreferrer">
-                        <WebsiteIcon />
-                        <span>{profile.websiteUrl}</span>
-                      </a>
-                    ) : (
-                      <p className="empty-copy">No website added yet</p>
-                    )
-                  ) : (
-                    <div className="profile-inline-form">
-                      <input
-                        type="text"
-                        inputMode="url"
-                        value={websiteDraft}
-                        onChange={(event) => setWebsiteDraft(event.target.value)}
-                        placeholder="yourwebsite.com"
-                      />
-                      <div className="profile-inline-form-actions">
-                        <button className="btn-secondary" type="button" disabled={websiteSaving} onClick={() => {
-                          setWebsiteDraft(profile.websiteUrl ?? "");
-                          setWebsiteError(null);
-                          setWebsiteEditing(false);
-                        }}>
-                          Cancel
-                        </button>
-                        <button className="btn-primary" type="button" disabled={websiteSaving} onClick={saveWebsite}>
-                          {websiteSaving ? "Saving..." : "Save link"}
-                        </button>
+                <div className="profile-details-grid">
+                  <ProfileSection title="Contact">
+                    <ContactRows phone={profile.phone} email={profile.email} tableNumber={profile.tableNumber} />
+                    <div className="profile-website-panel">
+                      <div className="profile-website-header">
+                        <span className="contact-row-label">Website</span>
+                        {!websiteEditing ? (
+                          <button className="profile-inline-action" type="button" onClick={() => {
+                            setWebsiteDraft(profile.websiteUrl ?? "");
+                            setWebsiteError(null);
+                            setWebsiteEditing(true);
+                          }}>
+                            {profile.websiteUrl ? "Edit link" : "Add link"}
+                          </button>
+                        ) : null}
                       </div>
-                      {websiteError ? <p className="hint err">{websiteError}</p> : null}
+
+                      {!websiteEditing ? (
+                        profile.websiteUrl ? (
+                          <a className="profile-link-row" href={profile.websiteUrl} target="_blank" rel="noreferrer">
+                            <WebsiteIcon />
+                            <span>{formatProfileLinkLabel(profile.websiteUrl, "website")}</span>
+                          </a>
+                        ) : (
+                          <p className="empty-copy">No website added yet</p>
+                        )
+                      ) : (
+                        <div className="profile-inline-form">
+                          <input
+                            type="text"
+                            inputMode="url"
+                            value={websiteDraft}
+                            onChange={(event) => setWebsiteDraft(event.target.value)}
+                            placeholder="yourwebsite.com"
+                          />
+                          <div className="profile-inline-form-actions">
+                            <button className="btn-secondary" type="button" disabled={websiteSaving} onClick={() => {
+                              setWebsiteDraft(profile.websiteUrl ?? "");
+                              setWebsiteError(null);
+                              setWebsiteEditing(false);
+                            }}>
+                              Cancel
+                            </button>
+                            <button className="btn-primary" type="button" disabled={websiteSaving} onClick={saveWebsite}>
+                              {websiteSaving ? "Saving..." : "Save link"}
+                            </button>
+                          </div>
+                          {websiteError ? <p className="hint err">{websiteError}</p> : null}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                <div className="profile-website-panel">
-                  <div className="profile-website-header">
-                    <span className="contact-row-label">LinkedIn</span>
-                    {!linkedInEditing ? (
-                      <button className="profile-inline-action" type="button" onClick={() => {
-                        setLinkedInDraft(profile.linkedInUrl ?? "");
-                        setLinkedInError(null);
-                        setLinkedInEditing(true);
-                      }}>
-                        {profile.linkedInUrl ? "Edit link" : "Add link"}
-                      </button>
-                    ) : null}
-                  </div>
-
-                  {!linkedInEditing ? (
-                    profile.linkedInUrl ? (
-                      <a className="profile-link-row" href={profile.linkedInUrl} target="_blank" rel="noreferrer">
-                        <LinkedInIcon />
-                        <span>{profile.linkedInUrl}</span>
-                      </a>
-                    ) : (
-                      <p className="empty-copy">No LinkedIn added yet</p>
-                    )
-                  ) : (
-                    <div className="profile-inline-form">
-                      <input
-                        type="text"
-                        inputMode="url"
-                        value={linkedInDraft}
-                        onChange={(event) => setLinkedInDraft(event.target.value)}
-                        placeholder="linkedin.com/in/you"
-                      />
-                      <div className="profile-inline-form-actions">
-                        <button className="btn-secondary" type="button" disabled={linkedInSaving} onClick={() => {
-                          setLinkedInDraft(profile.linkedInUrl ?? "");
-                          setLinkedInError(null);
-                          setLinkedInEditing(false);
-                        }}>
-                          Cancel
-                        </button>
-                        <button className="btn-primary" type="button" disabled={linkedInSaving} onClick={saveLinkedIn}>
-                          {linkedInSaving ? "Saving..." : "Save link"}
-                        </button>
+                    <div className="profile-website-panel">
+                      <div className="profile-website-header">
+                        <span className="contact-row-label">LinkedIn</span>
+                        {!linkedInEditing ? (
+                          <button className="profile-inline-action" type="button" onClick={() => {
+                            setLinkedInDraft(profile.linkedInUrl ?? "");
+                            setLinkedInError(null);
+                            setLinkedInEditing(true);
+                          }}>
+                            {profile.linkedInUrl ? "Edit link" : "Add link"}
+                          </button>
+                        ) : null}
                       </div>
-                      {linkedInError ? <p className="hint err">{linkedInError}</p> : null}
-                    </div>
-                  )}
-                </div>
-              </ProfileSection>
-              <ProfileSection title="Business">
-                <dl className="profile-contact">
-                  {profile.businessCategory && <div><dt>Category</dt><dd>{profile.businessCategory}</dd></div>}
-                  {profile.city && <div><dt>City</dt><dd>{profile.city}</dd></div>}
-                  {profile.chapterName && <div><dt>Chapter</dt><dd>{profile.chapterName}</dd></div>}
-                  {!profile.businessCategory && !profile.city && !profile.chapterName && (
-                    <p className="empty-copy">No business details on file</p>
-                  )}
-                </dl>
-              </ProfileSection>
-            </div>
 
-            {profile.bio && (
-              <ProfileSection title="About"><p className="profile-bio">{profile.bio}</p></ProfileSection>
+                      {!linkedInEditing ? (
+                        profile.linkedInUrl ? (
+                          <a className="profile-link-row" href={profile.linkedInUrl} target="_blank" rel="noreferrer">
+                            <LinkedInIcon />
+                            <span>{formatProfileLinkLabel(profile.linkedInUrl, "linkedin")}</span>
+                          </a>
+                        ) : (
+                          <p className="empty-copy">No LinkedIn added yet</p>
+                        )
+                      ) : (
+                        <div className="profile-inline-form">
+                          <input
+                            type="text"
+                            inputMode="url"
+                            value={linkedInDraft}
+                            onChange={(event) => setLinkedInDraft(event.target.value)}
+                            placeholder="linkedin.com/in/you"
+                          />
+                          <div className="profile-inline-form-actions">
+                            <button className="btn-secondary" type="button" disabled={linkedInSaving} onClick={() => {
+                              setLinkedInDraft(profile.linkedInUrl ?? "");
+                              setLinkedInError(null);
+                              setLinkedInEditing(false);
+                            }}>
+                              Cancel
+                            </button>
+                            <button className="btn-primary" type="button" disabled={linkedInSaving} onClick={saveLinkedIn}>
+                              {linkedInSaving ? "Saving..." : "Save link"}
+                            </button>
+                          </div>
+                          {linkedInError ? <p className="hint err">{linkedInError}</p> : null}
+                        </div>
+                      )}
+                    </div>
+                  </ProfileSection>
+                  <ProfileSection title="Business">
+                    <dl className="profile-contact">
+                      {profile.businessCategory && <div><dt>Category</dt><dd>{profile.businessCategory}</dd></div>}
+                      {profile.city && <div><dt>City</dt><dd>{profile.city}</dd></div>}
+                      {profile.chapterName && <div><dt>Chapter</dt><dd>{profile.chapterName}</dd></div>}
+                      {!profile.businessCategory && !profile.city && !profile.chapterName && (
+                        <p className="empty-copy">No business details on file</p>
+                      )}
+                    </dl>
+                  </ProfileSection>
+                </div>
+
+                {profile.bio && (
+                  <ProfileSection title="About"><p className="profile-bio">{profile.bio}</p></ProfileSection>
+                )}
+                <ProfileSection title="Looking for"><TagList values={profile.lookingFor} empty="Not specified" /></ProfileSection>
+                <ProfileSection title="Offering"><TagList values={profile.offering} empty="Not specified" /></ProfileSection>
+                <ProfileSection title="Networking goals"><TagList values={profile.goals} empty="No goals added yet" /></ProfileSection>
+
+                <p className="profile-readonly-note">
+                  Registered details are read-only. Contact the event organizer to change your name, phone, or email.
+                </p>
+
+                <PoweredByFooter />
+              </>
             )}
-            <ProfileSection title="Looking for"><TagList values={profile.lookingFor} empty="Not specified" /></ProfileSection>
-            <ProfileSection title="Offering"><TagList values={profile.offering} empty="Not specified" /></ProfileSection>
-            <ProfileSection title="Networking goals"><TagList values={profile.goals} empty="No goals added yet" /></ProfileSection>
+          </main>
 
-            <p className="profile-readonly-note">
-              Registered details are read-only. Contact the event organizer to change your name, phone, or email.
-            </p>
+          {enlarged && qrDataUrl && profile && (
+            <div className="qr-fullscreen" role="dialog" aria-modal="true" aria-label="Your QR code" onClick={() => setEnlarged(false)}>
+              <img src={qrDataUrl} alt="Your personal QR code, enlarged" />
+              <p className="qr-fullscreen-name">{profile.name}</p>
+              <button className="qr-fullscreen-close" type="button" aria-label="Close">Tap anywhere to close</button>
+            </div>
+          )}
 
-            <PoweredByFooter />
-          </>
-        )}
-      </main>
-
-      {enlarged && qrDataUrl && profile && (
-        <div className="qr-fullscreen" role="dialog" aria-modal="true" aria-label="Your QR code" onClick={() => setEnlarged(false)}>
-          <img src={qrDataUrl} alt="Your personal QR code, enlarged" />
-          <p className="qr-fullscreen-name">{profile.name}</p>
-          <button className="qr-fullscreen-close" type="button" aria-label="Close">Tap anywhere to close</button>
-        </div>
+          <PhotoUploadModal
+            isOpen={photoModalOpen}
+            onClose={() => setPhotoModalOpen(false)}
+            onPhotoUpload={handlePhotoUpload}
+            hasExistingPhoto={Boolean(profile?.photoUrl)}
+            onPhotoRemove={handlePhotoRemove}
+            isLoading={photoUploading}
+          />
+        </>
       )}
-
-      <PhotoUploadModal
-        isOpen={photoModalOpen}
-        onClose={() => setPhotoModalOpen(false)}
-        onPhotoUpload={handlePhotoUpload}
-        hasExistingPhoto={Boolean(profile?.photoUrl)}
-        onPhotoRemove={handlePhotoRemove}
-        isLoading={photoUploading}
-      />
     </AttendeePageShell>
   );
 }
@@ -435,6 +475,23 @@ function normalizeLinkedInUrl(value: string) {
     return url.toString();
   } catch {
     return null;
+  }
+}
+
+function formatProfileLinkLabel(value: string, kind: "website" | "linkedin") {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./i, "");
+    const path = url.pathname.replace(/\/+$/, "");
+
+    if (kind === "linkedin") {
+      const compactPath = path.length > 24 ? `${path.slice(0, 24)}...` : path;
+      return compactPath ? `${host}${compactPath}` : host;
+    }
+
+    return path && path !== "/" ? `${host}${path}` : host;
+  } catch {
+    return value;
   }
 }
 

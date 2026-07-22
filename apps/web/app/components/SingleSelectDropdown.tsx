@@ -10,6 +10,12 @@ export function ChevronDownIcon() {
   );
 }
 
+type SingleSelectOption = string | { value: string; label: string };
+
+function normalizeOption(option: SingleSelectOption) {
+  return typeof option === "string" ? { value: option, label: option } : option;
+}
+
 // Native <select> popups are positioned and sized by the OS/browser, ignoring
 // our layout entirely — on some platforms that lets the options panel spill
 // past the app's frame. This draws the same list ourselves so it's confined
@@ -23,13 +29,15 @@ export function SingleSelectDropdown({
   id,
 }: {
   label: string;
-  options: readonly string[];
+  options: readonly SingleSelectOption[];
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   id?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const normalizedOptions = options.map(normalizeOption);
+  const selectedLabel = normalizedOptions.find((option) => option.value === value)?.label ?? "";
 
   function choose(next: string) {
     onChange(next);
@@ -45,7 +53,7 @@ export function SingleSelectDropdown({
         className={`multiselect-trigger${!value ? " placeholder" : ""}`}
         onClick={() => setOpen((o) => !o)}
       >
-        <span>{value || placeholder || `Select ${label.toLowerCase()}`}</span>
+        <span>{selectedLabel || placeholder || `Select ${label.toLowerCase()}`}</span>
         <span className={`multiselect-caret${open ? " open" : ""}`}>
           <ChevronDownIcon />
         </span>
@@ -54,14 +62,14 @@ export function SingleSelectDropdown({
         <>
           <div className="multiselect-backdrop" onClick={() => setOpen(false)} />
           <div className="multiselect-panel">
-            {options.map((opt) => (
+            {normalizedOptions.map((opt) => (
               <button
-                key={opt}
+                key={`${label}-${opt.value || "__empty__"}`}
                 type="button"
-                className={`select-dropdown-option${opt === value ? " active" : ""}`}
-                onClick={() => choose(opt)}
+                className={`select-dropdown-option${opt.value === value ? " active" : ""}`}
+                onClick={() => choose(opt.value)}
               >
-                {opt}
+                {opt.label}
               </button>
             ))}
           </div>

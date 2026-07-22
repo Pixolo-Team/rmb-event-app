@@ -8,6 +8,7 @@ import { PoweredByFooter } from "../components/PoweredByFooter";
 import { enqueueWrite, useOfflineSync } from "../lib/offlineQueue";
 import { withCsrfHeaders } from "../lib/csrf";
 import { trackEvent } from "../lib/gtag";
+import { refreshPersonalStats } from "../lib/statsCache";
 
 type ScanApiResult =
   | { status: "not_found" }
@@ -31,7 +32,11 @@ export default function ScanPage() {
   const pausedRef = useRef(false);
 
   // Keep the offline queue draining while this screen is open.
-  useOfflineSync();
+  useOfflineSync((kind) => {
+    if (kind === "meeting-scan") {
+      refreshPersonalStats().catch(() => undefined);
+    }
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -68,7 +73,10 @@ export default function ScanPage() {
         }
         if (data.status === "self") showResult({ kind: "self" });
         else if (data.status === "not_found") showResult({ kind: "not_found" });
-        else showResult({ kind: data.status, id: data.attendee.id, name: data.attendee.name, businessName: data.attendee.businessName });
+        else {
+          refreshPersonalStats().catch(() => undefined);
+          showResult({ kind: data.status, id: data.attendee.id, name: data.attendee.name, businessName: data.attendee.businessName });
+        }
       } catch {
         // Network dropped mid-scan — queue rather than losing the meeting.
         await enqueueWrite("meeting-scan", "/api/meetings/scan", { qrToken });

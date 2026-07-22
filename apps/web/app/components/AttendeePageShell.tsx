@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
@@ -43,9 +44,11 @@ function toMenuAttendee(profile: MyProfile): MenuAttendee {
 export function AttendeePageShell({
   children,
   showFooter = true,
+  showTabs = true,
 }: {
   children: ReactNode;
   showFooter?: boolean;
+  showTabs?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -128,14 +131,16 @@ export function AttendeePageShell({
   return (
     <div className="attendee-shell">
       <header className="full-page-header attendee-app-header">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/images/rmb-fellowship-logo.png"
-          alt="Rotary Means Business Fellowship"
-          className="app-topbar-brand"
-          width={50}
-          height={50}
-        />
+        <Link href="/home" aria-label="Go to Home">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/rmb-fellowship-logo.png"
+            alt="Rotary Means Business Fellowship"
+            className="app-topbar-brand"
+            width={50}
+            height={50}
+          />
+        </Link>
         <h1 className="app-header-title">{pageTitle(pathname)}</h1>
         <AttendeeMenu attendee={attendee} />
       </header>
@@ -144,7 +149,7 @@ export function AttendeePageShell({
         {children}
         {showFooter ? <PoweredByFooter /> : null}
       </div>
-      <AttendeeBottomTabs />
+      {showTabs ? <AttendeeBottomTabs /> : null}
     </div>
   );
 }
