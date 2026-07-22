@@ -8,6 +8,7 @@ import { PageIntro } from "../components/PageIntro";
 import { Connection, ConnectionsResponse, connectionsCache } from "../lib/connectionsCache";
 import { SaveContactButton } from "../components/SaveContactButton";
 import { withCsrfHeaders } from "../lib/csrf";
+import { getCachedVenueConfig } from "../lib/offlineQueue";
 
 type SortOption = "recent" | "name";
 
@@ -17,6 +18,19 @@ export default function ConnectionsPage() {
   const [offline, setOffline] = useState(false);
   const [error, setError] = useState(false);
   const [sort, setSort] = useState<SortOption>("recent");
+  const [eventName, setEventName] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCachedVenueConfig().then((cached) => {
+      if (cached?.name) setEventName(cached.name);
+    });
+    fetch("/api/event")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { name?: string } | null) => {
+        if (data?.name) setEventName(data.name);
+      })
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     const cached = connectionsCache.get();
@@ -77,7 +91,7 @@ export default function ConnectionsPage() {
         {loading && connections.length === 0 && <ConnectionsSkeleton />}
         {!loading && error && !data && <ConnectionState title="Can’t load connections" body="Check your connection and try again." />}
         {!loading && data && connections.length === 0 && <ConnectionState title="You haven’t met anyone yet" body="Scan someone’s QR code to exchange details and they’ll appear here." action />}
-        {connections.length > 0 && <div className="connections-list">{connections.map((connection) => <ConnectionCard key={connection.id} connection={connection} offline={offline} onNote={(note) => updateConnection(connection.id, { note })} onRemove={() => removeConnection(connection.id)} />)}</div>}
+        {connections.length > 0 && <div className="connections-list">{connections.map((connection) => <ConnectionCard key={connection.id} connection={connection} offline={offline} eventName={eventName} onNote={(note) => updateConnection(connection.id, { note })} onRemove={() => removeConnection(connection.id)} />)}</div>}
       </main>
     </AttendeePageShell>
   );
@@ -107,12 +121,15 @@ function ConnectionsSkeleton() {
   );
 }
 
-function ConnectionCard({ connection, offline, onNote, onRemove }: { connection: Connection; offline: boolean; onNote: (note: string) => void; onRemove: () => void }) {
+function ConnectionCard({ connection, offline, eventName, onNote, onRemove }: { connection: Connection; offline: boolean; eventName: string | null; onNote: (note: string) => void; onRemove: () => void }) {
   const [editing, setEditing] = useState(false);
   const [note, setNote] = useState(connection.note);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const whatsappNumber = connection.phone.replace(/[^\d]/g, "");
+  const whatsappText = encodeURIComponent(
+    eventName ? `Hi ${connection.name}, we met at the ${eventName}.` : `Hi ${connection.name}, we met at the event.`,
+  );
 
   async function saveNote() {
     setSaving(true);
@@ -160,7 +177,7 @@ function ConnectionCard({ connection, offline, onNote, onRemove }: { connection:
     {message && <p className="connection-error" role="alert">{message}</p>}
     <div className="connection-actions">
       <a href={`tel:${connection.phone}`}><CallIcon /> Call</a>
-      <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noreferrer"><WhatsAppIcon /> WhatsApp</a>
+      <a href={`https://wa.me/${whatsappNumber}?text=${whatsappText}`} target="_blank" rel="noreferrer"><WhatsAppIcon /> WhatsApp</a>
       {connection.linkedInUrl && <a href={connection.linkedInUrl} target="_blank" rel="noreferrer"><LinkedInIcon /> LinkedIn</a>}
     </div>
     <SaveContactButton contact={{ name: connection.name, phone: connection.phone, email: connection.email, company: connection.businessName, note: connection.note || "Met at Evento" }} />

@@ -753,7 +753,7 @@ function PhotoCard({
       {photo.caption ? <p className={`post-caption${captionExpanded ? " expanded" : ""}`}><span>{photo.caption}</span>{photo.caption.length > 72 && <button type="button" onClick={() => setCaptionExpanded(!captionExpanded)}>{captionExpanded ? "less" : "Read more"}</button>}</p> : null}
 
       <div className="post-carousel">
-      <button type="button" className="photo-card-media" onClick={onEnlarge} aria-label="Enlarge photo">
+      <button type="button" className="photo-card-media" aria-label="Enlarge photo">
         {mediaUrls[activeMedia] ? (
           <img src={mediaUrls[activeMedia]} alt="" loading="lazy" decoding="async" />
         ) : (

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Req, UseGuards } from "@nestjs/common";
 import { CheckinService } from "./checkin.service";
 import { GeolocationCheckinDto } from "./dto/geolocation-checkin.dto";
 import { QrScanCheckinDto } from "./dto/qr-scan-checkin.dto";
@@ -44,6 +44,13 @@ export class CheckinController {
   @RateLimit(120)
   async qrScan(@Body() dto: QrScanCheckinDto) {
     return this.checkin.checkInByStaffQrScan(dto.qrToken);
+  }
+
+  @Post("admin/checkin/manual/:attendeeId")
+  @UseGuards(AdminGuard, RateLimitGuard)
+  @RateLimit(120)
+  async adminManual(@Param("attendeeId") attendeeId: string) {
+    return this.checkin.checkInByAdminManual(attendeeId);
   }
 
   @Get("admin/checkin/status")
