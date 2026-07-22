@@ -117,12 +117,13 @@ export default function ProfilePage() {
   }, []);
 
   useEffect(() => {
-    if (!profile?.qrToken) return;
+    const qrToken = profile?.qrToken;
+    if (!qrToken) return;
     // Dynamically imported: qrcode is a meaningfully-sized library only this
     // effect needs, so it shouldn't sit in Profile's initial JS bundle.
     let cancelled = false;
     import("qrcode").then(({ default: QRCode }) =>
-      QRCode.toDataURL(profile.qrToken, { margin: 1, width: 512, errorCorrectionLevel: "M" }),
+      QRCode.toDataURL(qrToken, { margin: 1, width: 512, errorCorrectionLevel: "M" }),
     )
       .then((url) => { if (!cancelled) setQrDataUrl(url); })
       .catch(() => { if (!cancelled) setQrDataUrl(null); });

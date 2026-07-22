@@ -43,7 +43,7 @@ type AdminOverview = {
   chapterSummaries: ChapterSummaryRow[];
   topConnectors: {
     id: string;
-    rank: number;
+    rank: number | null;
     name: string;
     businessName: string | null;
     metCount: number;
@@ -78,7 +78,7 @@ export class StatsService {
 
     return {
       peopleMet,
-      rank: board.me?.rank ?? board.totalAttendees + 1,
+      rank: checkIn ? board.me?.rank ?? null : null,
       totalRanked: board.totalAttendees,
       bookmarks,
       photos,

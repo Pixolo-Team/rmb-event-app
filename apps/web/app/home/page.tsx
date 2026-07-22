@@ -204,7 +204,9 @@ export default function HomePage() {
       .catch(() => {
         if (!renderedFromCache) setLoadFailed(true);
       });
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -613,7 +615,7 @@ function ProgressSection({ stats }: { stats: PersonalStats | null }) {
       <h2>Your progress</h2>
       <div className="stats-grid home-stats-grid">
         <StatTile value={stats?.peopleMet ?? "—"} label="People met" />
-        <StatTile value={stats ? `#${stats.rank}` : "—"} sub={stats ? `of ${stats.totalRanked}` : undefined} label="Rank" />
+        <StatTile value={stats ? formatRank(stats.rank) : "—"} sub={stats?.rank ? `of ${stats.totalRanked}` : undefined} label="Rank" />
         <Link className="stat-tile home-stat-link" href="/matches" aria-label={`${stats?.bookmarks ?? 0} bookmarks. Open Want to Meet`}>
           <strong>{stats?.bookmarks ?? "—"}</strong>
           <span>Bookmarks</span>
@@ -622,6 +624,10 @@ function ProgressSection({ stats }: { stats: PersonalStats | null }) {
       {stats?.peopleMet === 0 && <p className="empty-copy home-nudge">No meetings yet. Start scanning!</p>}
     </section>
   );
+}
+
+function formatRank(rank: number | null) {
+  return rank ? `#${rank}` : "Not ranked";
 }
 
 function PeopleToMeet({ matches, loading }: { matches: MatchSuggestion[]; loading: boolean }) {

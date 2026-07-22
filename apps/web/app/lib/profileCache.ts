@@ -21,7 +21,7 @@ export interface MyProfile {
   offering: string[];
   goals: string[];
   bio: string | null;
-  qrToken: string;
+  qrToken: string | null;
   profileCompletedAt: string | null;
 }
 
