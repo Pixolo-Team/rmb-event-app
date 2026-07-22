@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 
-type ExportConnection = { name: string; phone: string; email: string; businessName: string | null; tableNumber: string | null; metAt: Date; note: string };
+type ExportConnection = { name: string; phone: string; email: string; businessName: string | null; businessCategory: string | null; chapterName: string | null; tableNumber: string | null; metAt: Date; note: string };
 
 @Injectable()
 export class SummaryService {
@@ -47,8 +47,8 @@ export class SummaryService {
       where: { OR: [{ attendeeAId: attendeeId, attendeeAHidden: false }, { attendeeBId: attendeeId, attendeeBHidden: false }] },
       orderBy: { createdAt: "desc" },
       include: {
-        attendeeA: { select: { id: true, name: true, phone: true, email: true, businessName: true, tableNumber: true } },
-        attendeeB: { select: { id: true, name: true, phone: true, email: true, businessName: true, tableNumber: true } },
+        attendeeA: { select: { id: true, name: true, phone: true, email: true, businessName: true, businessCategory: true, tableNumber: true, chapter: { select: { name: true } } } },
+        attendeeB: { select: { id: true, name: true, phone: true, email: true, businessName: true, businessCategory: true, tableNumber: true, chapter: { select: { name: true } } } },
       },
     });
   }
@@ -56,7 +56,8 @@ export class SummaryService {
   private mapConnections(attendeeId: string, meetings: Awaited<ReturnType<SummaryService["connectionRows"]>>): ExportConnection[] {
     return meetings.map((meeting) => {
       const viewerIsA = meeting.attendeeAId === attendeeId;
-      return { ...(viewerIsA ? meeting.attendeeB : meeting.attendeeA), metAt: meeting.createdAt, note: (viewerIsA ? meeting.attendeeANote : meeting.attendeeBNote) ?? "" };
+      const { chapter, ...other } = viewerIsA ? meeting.attendeeB : meeting.attendeeA;
+      return { ...other, chapterName: chapter?.name ?? null, metAt: meeting.createdAt, note: (viewerIsA ? meeting.attendeeANote : meeting.attendeeBNote) ?? "" };
     });
   }
 }

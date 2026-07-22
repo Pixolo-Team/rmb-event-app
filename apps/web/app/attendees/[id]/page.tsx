@@ -122,12 +122,18 @@ function ProfileContent({ profile }: { profile: AttendeeProfile }) {
       </section>
 
       <div className="profile-actions">
-        <BookmarkButton attendeeId={profile.id} initialBookmarked={Boolean(profile.bookmarked)} onChange={(bookmarked) => directoryCache.setProfile(profile.id, { ...profile, bookmarked })} />
-        <a className="profile-action call" href={`tel:${profile.phone}`}><PhoneIcon /><span>Call</span></a>
-        <a className="profile-action whatsapp" href={`https://wa.me/${whatsappNumber}?text=${whatsappText}`} target="_blank" rel="noreferrer"><WhatsAppIcon /><span>WhatsApp</span></a>
-        {profile.linkedInUrl && <a className="profile-action linkedin" href={profile.linkedInUrl} target="_blank" rel="noreferrer"><LinkedInIcon /><span>LinkedIn</span></a>}
-        {profile.websiteUrl && <a className="profile-action website" href={profile.websiteUrl} target="_blank" rel="noreferrer"><WebsiteIcon /><span>Website</span></a>}
-        {canShare && <button className="profile-action share" type="button" onClick={() => navigator.share({ title: profile.name, text: `${profile.name} · ${profile.businessName ?? "Evento attendee"}` })}><ShareIcon /><span>Share</span></button>}
+        {profile.met ? (
+          <div className="profile-action already-met" aria-label="Already met">
+            <CheckIcon /><span>Already met</span>
+          </div>
+        ) : (
+          <BookmarkButton attendeeId={profile.id} initialBookmarked={Boolean(profile.bookmarked)} onChange={(bookmarked) => directoryCache.setProfile(profile.id, { ...profile, bookmarked })} />
+        )}
+        <a className="profile-action icon-only call" href={`tel:${profile.phone}`} aria-label={`Call ${profile.name}`} title="Call"><PhoneIcon /><span className="sr-only">Call</span></a>
+        <a className="profile-action icon-only whatsapp" href={`https://wa.me/${whatsappNumber}?text=${whatsappText}`} target="_blank" rel="noreferrer" aria-label={`WhatsApp ${profile.name}`} title="WhatsApp"><WhatsAppIcon /><span className="sr-only">WhatsApp</span></a>
+        {profile.linkedInUrl && <a className="profile-action icon-only linkedin" href={profile.linkedInUrl} target="_blank" rel="noreferrer" aria-label={`${profile.name} on LinkedIn`} title="LinkedIn"><LinkedInIcon /><span className="sr-only">LinkedIn</span></a>}
+        {profile.websiteUrl && <a className="profile-action icon-only website" href={profile.websiteUrl} target="_blank" rel="noreferrer" aria-label={`${profile.name} website`} title="Website"><WebsiteIcon /><span className="sr-only">Website</span></a>}
+        {canShare && <button className="profile-action icon-only share" type="button" aria-label={`Share ${profile.name}`} title="Share" onClick={() => navigator.share({ title: profile.name, text: `${profile.name} · ${profile.businessName ?? "Evento attendee"}` })}><ShareIcon /><span className="sr-only">Share</span></button>}
       </div>
 
       {profile.match && (
@@ -167,6 +173,10 @@ function TagList({ values, empty }: { values: string[]; empty: string }) {
 
 function PhoneIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 4.5h3.2l1.6 4.2-2 1.7a14.2 14.2 0 0 0 5.3 5.3l1.7-2 4.2 1.6v3.2a1.8 1.8 0 0 1-2 1.8A15.8 15.8 0 0 1 3.7 6.5a1.8 1.8 0 0 1 1.8-2Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+function CheckIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4.5 4.5L19 7" /></svg>;
 }
 
 function WhatsAppIcon() {
