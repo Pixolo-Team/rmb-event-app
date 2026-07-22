@@ -14,6 +14,7 @@ const TOOLS = [
 ];
 
 type Breakdown = { GEOLOCATION: number; MANUAL: number; STAFF_QR: number; VENUE_QR: number };
+type ChapterSummary = { chapterName: string; registrations: number; attendance: number };
 type Leader = { id: string; rank: number; name: string; businessName: string | null; metCount: number };
 type TimePoint = { label: string; checkIns: number; meetings: number };
 type DashboardData = {
@@ -34,6 +35,7 @@ type DashboardData = {
     feedbackAverage: number;
   };
   breakdown: Breakdown;
+  chapterSummaries: ChapterSummary[];
   topConnectors: Leader[];
   timeseries: { windowLabel: string; points: TimePoint[] };
 };
@@ -131,6 +133,7 @@ export default function AdminHome() {
   );
 
   const stale = !online && !!data;
+  const chapterSummaries = data?.chapterSummaries ?? [];
   const formattedUpdatedAt = data
     ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(data.generatedAt))
     : null;
@@ -310,6 +313,39 @@ export default function AdminHome() {
             <SmallStat label="Likes" value={data?.totals.likes ?? "—"} />
           </div>
         </article>
+      </section>
+
+      <section className="admin-overview-panel admin-tool-panel">
+        <div className="admin-panel-head">
+          <div>
+            <p className="eyebrow">Chapter wise count</p>
+            <h2>Registrations & attendance summary</h2>
+          </div>
+          <span>{chapterSummaries.length} chapters</span>
+        </div>
+        {loading && !data ? (
+          <div className="admin-list-skeleton" />
+        ) : chapterSummaries.length ? (
+          <div className="admin-chapter-summary-table">
+            <div className="admin-chapter-summary-head">
+              <span>Chapter</span>
+              <span><span className="wide-label">Registrations</span><span className="short-label">Reg.</span></span>
+              <span><span className="wide-label">Attendance</span><span className="short-label">Att.</span></span>
+            </div>
+            {chapterSummaries.map((summary) => (
+              <div key={summary.chapterName} className="admin-chapter-summary-row">
+                <b>{summary.chapterName}</b>
+                <strong>{summary.registrations}</strong>
+                <strong>{summary.attendance}</strong>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="directory-state">
+            <h2>No chapter data</h2>
+            <p>Chapter counts will appear after attendees are imported.</p>
+          </div>
+        )}
       </section>
 
       <section className="admin-overview-panel admin-tool-panel">

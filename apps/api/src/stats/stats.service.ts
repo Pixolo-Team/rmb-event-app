@@ -11,6 +11,12 @@ type HourlySeriesPoint = {
   meetings: number;
 };
 
+type ChapterSummaryRow = {
+  chapterName: string;
+  registrations: number;
+  attendance: number;
+};
+
 type AdminOverview = {
   generatedAt: string;
   event: {
@@ -34,6 +40,7 @@ type AdminOverview = {
     feedbackAverage: number;
   };
   breakdown: Record<"GEOLOCATION" | "MANUAL" | "STAFF_QR" | "VENUE_QR", number>;
+  chapterSummaries: ChapterSummaryRow[];
   topConnectors: {
     id: string;
     rank: number;
@@ -114,6 +121,10 @@ export class StatsService {
       where: { checkIn: { isNot: null }, deletedAt: null },
       select: { id: true, name: true, businessName: true },
     });
+    const attendeeChapters = await this.prisma.attendee.findMany({
+      where: { deletedAt: null },
+      select: { chapter: { select: { name: true } }, checkIn: { select: { id: true } } },
+    });
 
     const checkedInCount = checkedIns.length;
     const checkedInIds = new Set(checkedIns.map((checkIn) => checkIn.attendeeId));
@@ -135,6 +146,7 @@ export class StatsService {
 
     const hourly = this.buildHourlySeries(event, checkedIns, meetings);
     const topConnectors = this.buildTopConnectors(checkedInAttendees, meetings);
+    const chapterSummaries = this.buildChapterSummaries(attendeeChapters);
     const now = new Date();
     const eventState =
       event.startAt && event.startAt.getTime() > now.getTime() && checkedInCount === 0 && meetings.length === 0
@@ -166,6 +178,7 @@ export class StatsService {
         feedbackAverage: averageFeedbackRating,
       },
       breakdown,
+      chapterSummaries,
       topConnectors,
       timeseries: {
         windowLabel: "Last 8 hours",
@@ -239,6 +252,24 @@ export class StatsService {
       })
       .slice(0, 5);
   }
+
+  private buildChapterSummaries(
+    attendees: { chapter: { name: string } | null; checkIn: { id: string } | null }[],
+  ): ChapterSummaryRow[] {
+    const summaries = new Map<string, ChapterSummaryRow>();
+
+    for (const attendee of attendees) {
+      const chapterName = attendee.chapter?.name ?? "No chapter";
+      const summary = summaries.get(chapterName) ?? { chapterName, registrations: 0, attendance: 0 };
+      summary.registrations++;
+      if (attendee.checkIn) summary.attendance++;
+      summaries.set(chapterName, summary);
+    }
+
+    return [...summaries.values()].sort(
+      (a, b) => b.registrations - a.registrations || b.attendance - a.attendance || a.chapterName.localeCompare(b.chapterName),
+    );
+  }
 }
 
 function buildAnalyticsCsv(overview: AdminOverview) {
@@ -266,6 +297,15 @@ function buildAnalyticsCsv(overview: AdminOverview) {
     ["Check-in methods", "Geolocation", String(overview.breakdown.GEOLOCATION)],
     ["Check-in methods", "Manual", String(overview.breakdown.MANUAL)],
     ["Check-in methods", "Staff QR", String(overview.breakdown.STAFF_QR)],
+    ["Check-in methods", "Venue QR", String(overview.breakdown.VENUE_QR)],
+    [],
+    ["Chapter summary", "Chapter", "Registrations", "Attendance"],
+    ...overview.chapterSummaries.map((entry) => [
+      "Chapter summary",
+      entry.chapterName,
+      String(entry.registrations),
+      String(entry.attendance),
+    ]),
     [],
     ["Top connectors", "Rank", "Name", "Company", "Meetings"],
     ...overview.topConnectors.map((entry) => [
@@ -314,6 +354,14 @@ async function buildAnalyticsPdf(overview: AdminOverview) {
     `Geolocation: ${overview.breakdown.GEOLOCATION}`,
     `Manual: ${overview.breakdown.MANUAL}`,
     `Staff QR: ${overview.breakdown.STAFF_QR}`,
+    `Venue QR: ${overview.breakdown.VENUE_QR}`,
+    "",
+    "Chapter Summary",
+    ...(overview.chapterSummaries.length
+      ? overview.chapterSummaries.map(
+          (entry) => `${entry.chapterName}: ${entry.registrations} registrations, ${entry.attendance} attended`,
+        )
+      : ["No chapter data yet."]),
     "",
     "Top Connectors",
     ...(overview.topConnectors.length

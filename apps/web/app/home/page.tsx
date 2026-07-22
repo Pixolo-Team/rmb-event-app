@@ -611,9 +611,9 @@ function ProgressSection({ stats }: { stats: PersonalStats | null }) {
       <div className="stats-grid home-stats-grid">
         <StatTile value={stats?.peopleMet ?? "—"} label="People met" />
         <StatTile value={stats ? `#${stats.rank}` : "—"} sub={stats ? `of ${stats.totalRanked}` : undefined} label="Rank" />
-        <Link className="stat-tile home-stat-link" href="/matches" aria-label={`${stats?.bookmarks ?? 0} people in Want to Meet`}>
+        <Link className="stat-tile home-stat-link" href="/matches" aria-label={`${stats?.bookmarks ?? 0} bookmarks. Open Want to Meet`}>
           <strong>{stats?.bookmarks ?? "—"}</strong>
-          <span>Want to meet</span>
+          <span>Bookmarks</span>
         </Link>
       </div>
       {stats?.peopleMet === 0 && <p className="empty-copy home-nudge">No meetings yet. Start scanning!</p>}
