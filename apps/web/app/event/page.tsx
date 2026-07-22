@@ -45,9 +45,41 @@ function formatAgendaTime(item: { startTime?: string; endTime?: string | null; t
   return `${startText} – ${end.label} ${end.period}`;
 }
 
+type AgendaState = "completed" | "active" | "upcoming";
+
+function agendaDate(eventStart: string, hhmm?: string | null): Date | null {
+  if (!hhmm) return null;
+  const [hours, minutes] = hhmm.split(":").map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+  const date = new Date(eventStart);
+  date.setHours(hours, minutes, 0, 0);
+  return date;
+}
+
+function getAgendaState(
+  eventStart: string | null | undefined,
+  item: { startTime?: string; endTime?: string | null },
+  nextStartTime: string | undefined,
+  now: Date,
+): AgendaState {
+  if (!eventStart) return "upcoming";
+  const startsAt = agendaDate(eventStart, item.startTime);
+  if (!startsAt) return "upcoming";
+  const endsAt = agendaDate(eventStart, item.endTime) ?? agendaDate(eventStart, nextStartTime);
+  if (now < startsAt) return "upcoming";
+  if (!endsAt || now < endsAt) return "active";
+  return "completed";
+}
+
 export default function EventDetailsPage() {
   const [event, setEvent] = useState<CachedVenueConfig | null>(null);
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     getCachedVenueConfig().then((cached) => {
@@ -111,15 +143,19 @@ export default function EventDetailsPage() {
               <section className="event-details-section">
                 <h2>Agenda</h2>
                 <ol className="event-agenda-list">
-                  {event.agenda.map((item, index) => (
-                    <li key={index} className="event-agenda-row">
+                  {event.agenda.map((item, index) => {
+                    const state = getAgendaState(event.startAt, item, event.agenda?.[index + 1]?.startTime, now);
+                    return (
+                    <li key={index} className={`event-agenda-row event-agenda-row-${state}`}>
+                      <span className="event-agenda-marker" aria-label={state === "active" ? "In progress" : state} />
                       <span className="event-agenda-time">{formatAgendaTime(item)}</span>
                       <span className="event-agenda-body">
                         <span className="event-agenda-title">{item.title}</span>
                         {item.note && <span className="event-agenda-note">{item.note}</span>}
                       </span>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ol>
               </section>
             )}
