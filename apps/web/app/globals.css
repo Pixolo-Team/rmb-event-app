@@ -2702,6 +2702,7 @@ p.copy {
 .profile-action.already-met { width: 100%; flex: 0 0 100%; }
 .profile-action.icon-only { width: 44px; min-height: 44px; flex: 0 0 44px; padding: 0; border-radius: 50%; }
 .profile-action.icon-only svg { width: 20px; height: 20px; }
+.profile-action svg.brand-glyph { fill: currentColor; stroke: none; }
 
 /* Want to meet — outlined toggle that fills with brand colour once saved. */
 .profile-actions .bookmark-button.is-bookmarked { background: var(--brand-500); border-color: var(--brand-500); color: var(--ink-on-brand); }
