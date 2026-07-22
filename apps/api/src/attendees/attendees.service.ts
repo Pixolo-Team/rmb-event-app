@@ -468,7 +468,8 @@ export class AttendeesService {
       chapter: { select: { name: true } },
     } as const;
 
-    const [attendee, viewer, bookmark] = await Promise.all([
+    const [attendeeAId, attendeeBId] = [viewerId, targetId].sort();
+    const [attendee, viewer, bookmark, meeting] = await Promise.all([
       this.prisma.attendee.findUnique({
         where: { id: targetId },
         select: {
@@ -495,6 +496,12 @@ export class AttendeesService {
       viewerId === targetId
         ? Promise.resolve(null)
         : this.prisma.bookmark.findUnique({ where: { attendeeId_targetId: { attendeeId: viewerId, targetId } } }),
+      viewerId === targetId
+        ? Promise.resolve(null)
+        : this.prisma.meeting.findUnique({
+            where: { attendeeAId_attendeeBId: { attendeeAId, attendeeBId } },
+            select: { id: true },
+          }),
     ]);
     if (!attendee || attendee.deletedAt) throw new NotFoundException("Attendee not found");
 
@@ -513,6 +520,7 @@ export class AttendeesService {
       deletedAt: undefined,
       match: match && match.headline ? match : null,
       bookmarked: Boolean(bookmark),
+      met: Boolean(meeting),
     };
   }
 

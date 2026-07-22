@@ -2677,6 +2677,8 @@ p.copy {
 /* Want to meet — outlined toggle that fills with brand colour once saved. */
 .profile-actions .bookmark-button.is-bookmarked { background: var(--brand-500); border-color: var(--brand-500); color: var(--ink-on-brand); }
 .profile-actions .bookmark-button.is-bookmarked svg { fill: currentColor; stroke: currentColor; }
+.profile-action.already-met { border-color: var(--success-700); background: var(--success-100); color: var(--success-700); cursor: default; }
+.profile-action.already-met:hover { border-color: var(--success-700); }
 
 /* Call — solid brand primary with a filled handset. */
 .profile-action.call { background: var(--brand-500); border-color: var(--brand-500); color: var(--ink-on-brand); }
