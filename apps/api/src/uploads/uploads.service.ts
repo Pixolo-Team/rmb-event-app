@@ -305,6 +305,47 @@ export class UploadsService {
     });
   }
 
+  /**
+   * Resolves a stored profile object path to a signed, time-limited read URL
+   * for embedding directly in an API response (e.g. Attendee.photoUrl).
+   *
+   * Returns null if the path isn't a recognised GCS object path (e.g. a
+   * legacy local-disk avatar path) or the object no longer exists.
+   */
+  async resolveProfilePhotoUrl(objectPath: string): Promise<string | null> {
+    if (
+      !/^profile\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9-]+\.(jpg|jpeg|png|webp)$/.test(
+        objectPath,
+      )
+    ) {
+      return null;
+    }
+
+    const file = this.storage.bucket(this.bucketName).file(objectPath);
+
+    const [doesFileExist] = await file.exists();
+    if (!doesFileExist) {
+      return null;
+    }
+
+    const expiresAtDate = new Date(
+      Date.now() + this.downloadUrlTtlSeconds * 1_000,
+    );
+
+    try {
+      const [downloadUrl] = await file.getSignedUrl({
+        version: "v4",
+        action: "read",
+        expires: expiresAtDate,
+      });
+
+      return downloadUrl;
+    } catch (error: unknown) {
+      console.error("Failed to create signed download URL", error);
+      return null;
+    }
+  }
+
   private createObjectPath(
     attendeeId: string,
     category: UploadCategories,

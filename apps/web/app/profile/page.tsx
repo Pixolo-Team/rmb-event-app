@@ -48,21 +48,47 @@ export default function ProfilePage() {
   const handlePhotoUpload = async (file: File) => {
     setPhotoUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("photo", file);
+      const contentType = file.type as "image/jpeg" | "image/png" | "image/webp";
 
-      const res = await fetch("/api/attendees/me/photo", withCsrfHeaders({
+      const urlRes = await fetch("/api/uploads/upload-url", withCsrfHeaders({
         method: "POST",
         credentials: "include",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category: "profile", contentType }),
       }));
 
-      if (!res.ok) {
-        const body = await res.json().catch(() => null) as { message?: string } | null;
+      if (!urlRes.ok) {
+        const body = await urlRes.json().catch(() => null) as { message?: string } | null;
+        throw new Error(body?.message ?? "Could not prepare the upload");
+      }
+
+      const { upload } = await urlRes.json() as {
+        upload: { uploadUrl: string; objectPath: string; requiredHeaders: Record<string, string> };
+      };
+
+      const putRes = await fetch(upload.uploadUrl, {
+        method: "PUT",
+        headers: upload.requiredHeaders,
+        body: file,
+      });
+
+      if (!putRes.ok) {
+        throw new Error("Upload to storage failed");
+      }
+
+      const saveRes = await fetch("/api/attendees/me/photo", withCsrfHeaders({
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ objectPath: upload.objectPath }),
+      }));
+
+      if (!saveRes.ok) {
+        const body = await saveRes.json().catch(() => null) as { message?: string } | null;
         throw new Error(body?.message ?? "Upload failed");
       }
 
-      const data = await res.json() as { status: string; photoUrl: string };
+      const data = await saveRes.json() as { status: string; photoUrl: string };
       updateProfilePhoto(data.photoUrl);
     } catch (error) {
       console.error("Photo upload error:", error);
