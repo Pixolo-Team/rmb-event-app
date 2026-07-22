@@ -15,7 +15,6 @@ async function bootstrap() {
   const uploadsRoot = path.join(process.cwd(), "uploads");
   try {
     fs.mkdirSync(path.join(uploadsRoot, "photos"), { recursive: true });
-    fs.mkdirSync(path.join(uploadsRoot, "avatars"), { recursive: true });
   } catch (error) {
     // A read-only filesystem must not crash boot. Uploads then need object
     // storage or a mounted writable volume (see docs/DEPLOYMENT.md).
