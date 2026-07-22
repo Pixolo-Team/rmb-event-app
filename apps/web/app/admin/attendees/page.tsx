@@ -1,6 +1,7 @@
 "use client";
 
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, type KeyboardEvent, type MouseEvent, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { withCsrfHeaders } from "../../lib/csrf";
 
 type AdminAttendee = {
@@ -24,6 +25,7 @@ type LoadState = "loading" | "ready" | "error";
 const ATTENDEES_PER_PAGE = 10;
 
 export default function AdminAttendeesPage() {
+  const router = useRouter();
   const [attendees, setAttendees] = useState<AdminAttendee[]>([]);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -197,6 +199,22 @@ export default function AdminAttendeesPage() {
     }
   }
 
+  function openAttendeeProfile(attendee: AdminAttendee) {
+    router.push(`/admin/attendees/${attendee.id}`);
+  }
+
+  function handleAttendeeRowClick(event: MouseEvent<HTMLElement>, attendee: AdminAttendee) {
+    if (isInteractiveTarget(event.target)) return;
+    openAttendeeProfile(attendee);
+  }
+
+  function handleAttendeeRowKeyDown(event: KeyboardEvent<HTMLElement>, attendee: AdminAttendee) {
+    if (isInteractiveTarget(event.target)) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    openAttendeeProfile(attendee);
+  }
+
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
     if (!term) return attendees;
@@ -335,88 +353,102 @@ export default function AdminAttendeesPage() {
             <p>The roster will appear here in a moment.</p>
           </div>
         ) : filtered.length ? (
-          pagedAttendees.map((attendee) => (
-            <article key={attendee.id} className={`admin-attendee-row${attendee.deletedAt ? " is-deleted" : ""}`}>
-              <div>
-                <div className="admin-attendee-title">
-                  <b>{attendee.name}</b>
-                  <span className={attendee.deletedAt ? "badge-warning" : "badge-success"}>
-                    {attendee.deletedAt ? "Deleted" : "Active"}
-                  </span>
-                </div>
-                <span>{attendee.businessName ?? "No company"} · {attendee.email}</span>
-                <small>
-                  {[attendee.chapterName, attendee.businessCategory, attendee.city, attendee.tableNumber ? `Table ${attendee.tableNumber}` : null]
-                    .filter(Boolean)
-                    .join(" · ") || "No extra details"}
-                </small>
-              </div>
-              <div className="admin-attendee-meta">
-                <span>{attendee.profileCompletedAt ? "Profile complete" : "Profile pending"}</span>
-                <span>{attendee.checkedInAt ? `Checked in ${formatDate(attendee.checkedInAt)}` : "Not checked in"}</span>
-              </div>
-              <div className="admin-attendee-actions">
-                <button
-                  className="btn-secondary admin-present-button"
-                  type="button"
-                  onClick={() => markAsPresent(attendee)}
-                  disabled={Boolean(attendee.deletedAt) || Boolean(attendee.checkedInAt) || updatingAttendanceIds.has(attendee.id)}
-                >
-                  {attendee.checkedInAt ? "Present" : "Mark as present"}
-                </button>
-                {confirmingId === attendee.id ? (
-                  <div className="admin-attendee-confirm" role="group" aria-label={`Confirm delete ${attendee.name}`}>
-                    <span>Soft delete this attendee?</span>
-                    <div>
-                      <button className="btn-secondary" type="button" onClick={() => setConfirmingId(null)} disabled={deletingId === attendee.id}>
-                        Cancel
-                      </button>
-                      <button className="btn-danger-soft" type="button" onClick={() => deleteAttendee(attendee)} disabled={deletingId === attendee.id}>
-                        {deletingId === attendee.id ? "Deleting..." : "Confirm delete"}
-                      </button>
-                    </div>
+          pagedAttendees.map((attendee) => {
+            const primaryDetails = compactDetails([attendee.businessName, attendee.email]);
+            const extraDetails = compactDetails([
+              attendee.chapterName,
+              attendee.businessCategory,
+              attendee.city,
+              attendee.tableNumber ? `Table ${attendee.tableNumber}` : null,
+            ]);
+
+            return (
+              <article
+                key={attendee.id}
+                className={`admin-attendee-row is-clickable${attendee.deletedAt ? " is-deleted" : ""}`}
+                role="link"
+                tabIndex={0}
+                aria-label={`View ${attendee.name}'s profile`}
+                onClick={(event) => handleAttendeeRowClick(event, attendee)}
+                onKeyDown={(event) => handleAttendeeRowKeyDown(event, attendee)}
+              >
+                <div>
+                  <div className="admin-attendee-title">
+                    <b>{attendee.name}</b>
+                    <span className={attendee.deletedAt ? "badge-warning" : "badge-success"}>
+                      {attendee.deletedAt ? "Deleted" : "Active"}
+                    </span>
                   </div>
-                ) : (
-                  <div className="admin-attendee-menu">
-                    <button
-                      className="admin-attendee-menu-button"
-                      type="button"
-                      aria-label={`More actions for ${attendee.name}`}
-                      aria-expanded={actionMenuId === attendee.id}
-                      onClick={() => setActionMenuId((current) => current === attendee.id ? null : attendee.id)}
-                      disabled={Boolean(attendee.deletedAt) || deletingId === attendee.id}
-                    >
-                      <span aria-hidden="true">⋮</span>
-                    </button>
-                    {actionMenuId === attendee.id && (
-                      <div className="admin-attendee-menu-dropdown">
-                        {attendee.checkedInAt && (
-                          <button
-                            className="admin-absent-button"
-                            type="button"
-                            disabled={updatingAttendanceIds.has(attendee.id)}
-                            onClick={() => markAsAbsent(attendee)}
-                          >
-                            Mark as absent
-                          </button>
-                        )}
-                        <button
-                          className="admin-delete-button"
-                          type="button"
-                          onClick={() => {
-                            setConfirmingId(attendee.id);
-                            setActionMenuId(null);
-                          }}
-                        >
-                          Delete
+                  {primaryDetails && <span>{primaryDetails}</span>}
+                  {extraDetails && <small>{extraDetails}</small>}
+                </div>
+                <div className="admin-attendee-meta">
+                  <span>{attendee.profileCompletedAt ? "Profile complete" : "Profile pending"}</span>
+                  <span>{attendee.checkedInAt ? `Checked in ${formatDate(attendee.checkedInAt)}` : "Not checked in"}</span>
+                </div>
+                <div className="admin-attendee-actions">
+                  <button
+                    className="btn-secondary admin-present-button"
+                    type="button"
+                    onClick={() => markAsPresent(attendee)}
+                    disabled={Boolean(attendee.deletedAt) || Boolean(attendee.checkedInAt) || updatingAttendanceIds.has(attendee.id)}
+                  >
+                    {attendee.checkedInAt ? "Present" : "Mark as present"}
+                  </button>
+                  {confirmingId === attendee.id ? (
+                    <div className="admin-attendee-confirm" role="group" aria-label={`Confirm delete ${attendee.name}`}>
+                      <span>Soft delete this attendee?</span>
+                      <div>
+                        <button className="btn-secondary" type="button" onClick={() => setConfirmingId(null)} disabled={deletingId === attendee.id}>
+                          Cancel
+                        </button>
+                        <button className="btn-danger-soft" type="button" onClick={() => deleteAttendee(attendee)} disabled={deletingId === attendee.id}>
+                          {deletingId === attendee.id ? "Deleting..." : "Confirm delete"}
                         </button>
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </article>
-          ))
+                    </div>
+                  ) : (
+                    <div className="admin-attendee-menu">
+                      <button
+                        className="admin-attendee-menu-button"
+                        type="button"
+                        aria-label={`More actions for ${attendee.name}`}
+                        aria-expanded={actionMenuId === attendee.id}
+                        onClick={() => setActionMenuId((current) => current === attendee.id ? null : attendee.id)}
+                        disabled={Boolean(attendee.deletedAt) || deletingId === attendee.id}
+                      >
+                        <span aria-hidden="true">⋮</span>
+                      </button>
+                      {actionMenuId === attendee.id && (
+                        <div className="admin-attendee-menu-dropdown">
+                          {attendee.checkedInAt && (
+                            <button
+                              className="admin-absent-button"
+                              type="button"
+                              disabled={updatingAttendanceIds.has(attendee.id)}
+                              onClick={() => markAsAbsent(attendee)}
+                            >
+                              Mark as absent
+                            </button>
+                          )}
+                          <button
+                            className="admin-delete-button"
+                            type="button"
+                            onClick={() => {
+                              setConfirmingId(attendee.id);
+                              setActionMenuId(null);
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </article>
+            );
+          })
         ) : (
           <div className="directory-state">
             <h2>No attendees found</h2>
@@ -467,4 +499,15 @@ export default function AdminAttendeesPage() {
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}
+
+function compactDetails(values: Array<string | null>) {
+  return values
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value))
+    .join(" · ");
+}
+
+function isInteractiveTarget(target: EventTarget) {
+  return target instanceof Element && Boolean(target.closest("a,button,input,select,textarea,label,.admin-attendee-actions"));
 }

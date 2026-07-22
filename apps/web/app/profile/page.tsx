@@ -231,6 +231,10 @@ export default function ProfilePage() {
     };
   }
 
+  const hasNetworkingInfo = Boolean(
+    profile && (profile.lookingFor.length > 0 || profile.offering.length > 0 || profile.goals.length > 0),
+  );
+
   return (
     <AttendeePageShell showFooter={false} showTabs={!editingProfile}>
       {editingProfile && profile ? (
@@ -298,7 +302,7 @@ export default function ProfilePage() {
 
                 <div className="profile-details-grid">
                   <ProfileSection title="Contact">
-                    <ContactRows phone={profile.phone} email={profile.email} tableNumber={profile.tableNumber} />
+                    <ContactRows phone={profile.phone} email={profile.email} tableNumber={profile.tableNumber} interactive={false} />
                     <div className="profile-website-panel">
                       <div className="profile-website-header">
                         <span className="contact-row-label">Website</span>
@@ -399,10 +403,11 @@ export default function ProfilePage() {
                   </ProfileSection>
                   <ProfileSection title="Business">
                     <dl className="profile-contact">
+                      {profile.businessName && <div><dt>Company</dt><dd>{profile.businessName}</dd></div>}
                       {profile.businessCategory && <div><dt>Category</dt><dd>{profile.businessCategory}</dd></div>}
                       {profile.city && <div><dt>City</dt><dd>{profile.city}</dd></div>}
                       {profile.chapterName && <div><dt>Chapter</dt><dd>{profile.chapterName}</dd></div>}
-                      {!profile.businessCategory && !profile.city && !profile.chapterName && (
+                      {!profile.businessName && !profile.businessCategory && !profile.city && !profile.chapterName && (
                         <p className="empty-copy">No business details on file</p>
                       )}
                     </dl>
@@ -412,9 +417,13 @@ export default function ProfilePage() {
                 {profile.bio && (
                   <ProfileSection title="About"><p className="profile-bio">{profile.bio}</p></ProfileSection>
                 )}
-                <ProfileSection title="Looking for"><TagList values={profile.lookingFor} empty="Not specified" /></ProfileSection>
-                <ProfileSection title="Offering"><TagList values={profile.offering} empty="Not specified" /></ProfileSection>
-                <ProfileSection title="Networking goals"><TagList values={profile.goals} empty="No goals added yet" /></ProfileSection>
+                {hasNetworkingInfo ? (
+                  <ProfileSection title="Networking profile">
+                    {profile.lookingFor.length > 0 ? <TagGroup title="Looking for" values={profile.lookingFor} /> : null}
+                    {profile.offering.length > 0 ? <TagGroup title="Offering" values={profile.offering} /> : null}
+                    {profile.goals.length > 0 ? <TagGroup title="Networking goals" values={profile.goals} /> : null}
+                  </ProfileSection>
+                ) : null}
 
                 <p className="profile-readonly-note">
                   Registered details are read-only. Contact the event organizer to change your name, phone, or email.
@@ -505,10 +514,19 @@ function TagList({ values, empty }: { values: string[]; empty: string }) {
     : <p className="empty-copy">{empty}</p>;
 }
 
+function TagGroup({ title, values }: { title: string; values: string[] }) {
+  return (
+    <div className="profile-tag-group">
+      <h3>{title}</h3>
+      <div className="profile-tags">{values.map((value) => <span key={`${title}-${value}`}>{value}</span>)}</div>
+    </div>
+  );
+}
+
 function WebsiteIcon() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M4 12h16M12 4a13 13 0 0 1 0 16M12 4a13 13 0 0 0 0 16" /></svg>;
 }
 
 function LinkedInIcon() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M5 9v10M5 5.5v.1M10 19v-9M10 13.5c.7-2.2 2-3.5 4-3.5 2.6 0 4 1.7 4 5v4" /></svg>;
+  return <svg className="brand-glyph" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5A2.5 2.5 0 1 0 5 8.5a2.5 2.5 0 0 0-.02-5ZM3 9.5h4v11H3v-11Zm6 0h3.8v1.5h.05c.53-.95 1.83-1.95 3.77-1.95C20.3 9.05 21 11 21 14.1v6.4h-4v-5.7c0-1.36-.02-3.1-1.9-3.1-1.9 0-2.2 1.48-2.2 3v5.8H9v-11Z" /></svg>;
 }

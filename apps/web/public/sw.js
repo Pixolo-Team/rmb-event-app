@@ -6,8 +6,8 @@
 // all. Only a small set of truly static, rarely-changing assets are cached.
 // The real offline write-queue (IndexedDB) described in DEVELOPMENT_PLAN.md's
 // Platform Foundations lands with the check-in/scan features that need it.
-const CACHE_NAME = "evento-static-v2";
-const STATIC_ASSETS = ["/manifest.json", "/icon.svg"];
+const CACHE_NAME = "evento-static-v5";
+const STATIC_ASSETS = ["/manifest.json", "/icon.svg", "/images/rotary-app-icon.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)));

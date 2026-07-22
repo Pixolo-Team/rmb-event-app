@@ -18,7 +18,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   { href: "/admin/event", label: "Event Settings", icon: SettingsIcon },
   { href: "/admin/checkin", label: "Live Check-In", icon: CheckinIcon },
   { href: "/admin/badges", label: "Print Badges", icon: BadgeIcon },
-  { href: "/admin/feed", label: "Photo Moderation", icon: PhotoIcon },
+  { href: "/admin/feed", label: "Gallery Photos", icon: PhotoIcon },
   { href: "/admin/feedback", label: "Feedback", icon: FeedbackIcon },
 ];
 
@@ -223,4 +223,3 @@ function PhotoIcon() {
 function FeedbackIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" /></svg>;
 }
-

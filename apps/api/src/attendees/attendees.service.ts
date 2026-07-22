@@ -248,6 +248,7 @@ export class AttendeesService {
     const current = await this.prisma.attendee.findUnique({
       where: { id: attendeeId },
       select: {
+        businessName: true,
         businessCategory: true,
         city: true,
         lookingFor: true,
@@ -261,6 +262,7 @@ export class AttendeesService {
     if (!current) throw new NotFoundException("Attendee not found");
 
     const next = {
+      businessName: dto.businessName === undefined ? current.businessName : dto.businessName?.trim() || null,
       businessCategory: dto.businessCategory ?? current.businessCategory,
       city: dto.city ?? current.city,
       lookingFor: dto.lookingFor ?? current.lookingFor,
@@ -307,6 +309,7 @@ export class AttendeesService {
     return this.prisma.attendee.update({
       where: { id: attendeeId },
       data: {
+        businessName: next.businessName,
         businessCategory: next.businessCategory,
         city: next.city,
         lookingFor: next.lookingFor,
@@ -574,6 +577,57 @@ export class AttendeesService {
       checkedInAt: attendee.checkIn?.createdAt ?? null,
       checkInMethod: attendee.checkIn?.method ?? null,
     }));
+  }
+
+  async getAdminProfile(attendeeId: string) {
+    const attendee = await this.prisma.attendee.findUnique({
+      where: { id: attendeeId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        businessName: true,
+        businessCategory: true,
+        city: true,
+        tableNumber: true,
+        photoUrl: true,
+        lookingFor: true,
+        offering: true,
+        goals: true,
+        bio: true,
+        linkedInUrl: true,
+        websiteUrl: true,
+        profileCompletedAt: true,
+        deletedAt: true,
+        checkIn: { select: { createdAt: true, method: true } },
+        chapter: { select: { name: true } },
+      },
+    });
+    if (!attendee) throw new NotFoundException("Attendee not found");
+
+    return {
+      id: attendee.id,
+      name: attendee.name,
+      email: attendee.email,
+      phone: attendee.phone,
+      businessName: attendee.businessName,
+      businessCategory: attendee.businessCategory,
+      city: attendee.city,
+      tableNumber: attendee.tableNumber,
+      photoUrl: attendee.photoUrl,
+      lookingFor: attendee.lookingFor,
+      offering: attendee.offering,
+      goals: attendee.goals,
+      bio: attendee.bio,
+      linkedInUrl: attendee.linkedInUrl,
+      websiteUrl: attendee.websiteUrl,
+      chapterName: attendee.chapter?.name ?? null,
+      profileCompletedAt: attendee.profileCompletedAt,
+      deletedAt: attendee.deletedAt,
+      checkedInAt: attendee.checkIn?.createdAt ?? null,
+      checkInMethod: attendee.checkIn?.method ?? null,
+    };
   }
 
   async createForAdmin(dto: CreateAdminAttendeeDto) {
