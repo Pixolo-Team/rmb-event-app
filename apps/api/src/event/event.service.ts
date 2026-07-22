@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 import { BadRequestException, Injectable } from "@nestjs/common";
-import { Event } from "@prisma/client";
+import { Event, Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { UpdateEventDto } from "./dto/update-event.dto";
 
@@ -80,6 +80,13 @@ export class EventService {
         ...(dto.checkinRadiusM !== undefined && { checkinRadiusM: dto.checkinRadiusM }),
         ...(dto.contactName !== undefined && { contactName: dto.contactName?.trim() || null }),
         ...(dto.contactPhone !== undefined && { contactPhone: dto.contactPhone?.trim() || null }),
+        ...(dto.subtitle !== undefined && { subtitle: dto.subtitle?.trim() || null }),
+        ...(dto.chairName !== undefined && { chairName: dto.chairName?.trim() || null }),
+        ...(dto.chairTitle !== undefined && { chairTitle: dto.chairTitle?.trim() || null }),
+        ...(dto.chairPhotoUrl !== undefined && { chairPhotoUrl: dto.chairPhotoUrl?.trim() || null }),
+        ...(dto.registrationUrl !== undefined && { registrationUrl: dto.registrationUrl?.trim() || null }),
+        ...(dto.registrationPricing !== undefined && { registrationPricing: dto.registrationPricing?.trim() || null }),
+        ...(dto.agenda !== undefined && { agenda: dto.agenda as unknown as Prisma.InputJsonValue }),
       },
     });
     this.cached = { value: updated, expiresAt: Date.now() + EVENT_CACHE_TTL_MS };
