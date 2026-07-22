@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { PhotoUploadModal } from "../../components/PhotoUploadModal";
 import { distanceMeters } from "../../lib/geo";
 import { withCsrfHeaders } from "../../lib/csrf";
 
@@ -55,6 +56,8 @@ export default function AdminEventSettingsPage() {
   const [chairName, setChairName] = useState("");
   const [chairTitle, setChairTitle] = useState("");
   const [chairPhotoUrl, setChairPhotoUrl] = useState("");
+  const [chairPhotoModalOpen, setChairPhotoModalOpen] = useState(false);
+  const [chairPhotoUploading, setChairPhotoUploading] = useState(false);
   const [registrationUrl, setRegistrationUrl] = useState("");
   const [registrationPricing, setRegistrationPricing] = useState("");
   const [agenda, setAgenda] = useState<AgendaItem[]>([]);
@@ -116,6 +119,41 @@ export default function AdminEventSettingsPage() {
       setTimeout(() => setSaveState("idle"), 2500);
     } catch {
       setSaveState("error");
+    }
+  }
+
+  async function handleChairPhotoUpload(file: File) {
+    setChairPhotoUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("photo", file);
+      const res = await fetch("/api/admin/event/chair-photo", withCsrfHeaders({
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      }));
+      if (!res.ok) {
+        const body = await res.json().catch(() => null) as { message?: string } | null;
+        throw new Error(body?.message ?? "Upload failed");
+      }
+      const data = await res.json() as { chairPhotoUrl: string };
+      setChairPhotoUrl(data.chairPhotoUrl);
+    } finally {
+      setChairPhotoUploading(false);
+    }
+  }
+
+  async function handleChairPhotoRemove() {
+    setChairPhotoUploading(true);
+    try {
+      const res = await fetch("/api/admin/event/chair-photo/remove", withCsrfHeaders({
+        method: "PATCH",
+        credentials: "include",
+      }));
+      if (!res.ok) throw new Error("Remove failed");
+      setChairPhotoUrl("");
+    } finally {
+      setChairPhotoUploading(false);
     }
   }
 
@@ -359,14 +397,38 @@ export default function AdminEventSettingsPage() {
       </div>
 
       <div className="field">
-        <label htmlFor="chairPhotoUrl">Chair photo URL</label>
-        <input
-          id="chairPhotoUrl"
-          placeholder="https://..."
-          value={chairPhotoUrl}
-          onChange={(e) => setChairPhotoUrl(e.target.value)}
-        />
-        <div className="hint">Falls back to initials if left blank.</div>
+        <label>Chair photo</label>
+        <div className="admin-chair-photo-picker">
+          <div className="admin-chair-photo-preview" aria-hidden="true">
+            {chairPhotoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={chairPhotoUrl} alt="" />
+            ) : (
+              <span>{getInitials(chairName || "Chair")}</span>
+            )}
+          </div>
+          <div className="admin-chair-photo-actions">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setChairPhotoModalOpen(true)}
+              disabled={chairPhotoUploading}
+            >
+              {chairPhotoUrl ? "Change photo" : "Upload photo"}
+            </button>
+            {chairPhotoUrl ? (
+              <button
+                type="button"
+                className="btn-danger-soft"
+                onClick={handleChairPhotoRemove}
+                disabled={chairPhotoUploading}
+              >
+                Remove
+              </button>
+            ) : null}
+          </div>
+        </div>
+        <div className="hint">Shown on the attendee Event Details page.</div>
       </div>
 
       <h2 className="title" style={{ fontSize: "1.1rem", marginTop: 28 }}>Agenda</h2>
@@ -504,8 +566,21 @@ export default function AdminEventSettingsPage() {
       >
         Clear location
       </button>
+
+      <PhotoUploadModal
+        isOpen={chairPhotoModalOpen}
+        onClose={() => setChairPhotoModalOpen(false)}
+        onPhotoUpload={handleChairPhotoUpload}
+        hasExistingPhoto={Boolean(chairPhotoUrl)}
+        onPhotoRemove={handleChairPhotoRemove}
+        isLoading={chairPhotoUploading}
+      />
     </div>
   );
+}
+
+function getInitials(name: string): string {
+  return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("") || "CH";
 }
 
 function toDatetimeLocalValue(value: string | null) {

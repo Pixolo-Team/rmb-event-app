@@ -1,5 +1,8 @@
-import { Body, Controller, Get, Patch, Post, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Patch, Post, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import type { Express } from "express";
 import { AdminGuard } from "../admin-auth/admin.guard";
+import { avatarUploadOptions } from "../attendees/avatar-upload.config";
 import { EventService } from "./event.service";
 import { UpdateEventDto } from "./dto/update-event.dto";
 
@@ -16,6 +19,21 @@ export class EventController {
   @Patch()
   async update(@Body() dto: UpdateEventDto) {
     return this.eventService.updateVenue(dto);
+  }
+
+  @Post("chair-photo")
+  @UseInterceptors(FileInterceptor("photo", avatarUploadOptions))
+  async uploadChairPhoto(@UploadedFile() file: Express.Multer.File | undefined) {
+    if (!file) throw new BadRequestException("No photo uploaded");
+    const chairPhotoUrl = `/uploads/avatars/${file.filename}`;
+    await this.eventService.updateVenue({ chairPhotoUrl });
+    return { status: "ok", chairPhotoUrl };
+  }
+
+  @Patch("chair-photo/remove")
+  async removeChairPhoto() {
+    await this.eventService.updateVenue({ chairPhotoUrl: null });
+    return { status: "ok", chairPhotoUrl: null };
   }
 
   // F3.7 — the token behind the printable venue attendance QR (generated on first

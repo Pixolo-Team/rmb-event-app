@@ -27,6 +27,7 @@ async function main() {
       subtitle: "Cross Chapter Meeting",
       chairName: "Rtn. Arvind Batra",
       chairTitle: "Chairperson RMBF",
+      chairPhotoUrl: "https://mumbaibusinessconclave.rmbthanecity.com/assets/img/speaker/speaker-15.jpg",
       registrationPricing: "Early Bird ₹3000/- (till 30th Jun 2026)",
       agenda,
     },
