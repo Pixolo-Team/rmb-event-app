@@ -21,13 +21,22 @@ type AdminAttendee = {
 };
 
 type LoadState = "loading" | "ready" | "error";
+type StatusFilter = "all" | "present" | "pending" | "deleted";
 
 const ATTENDEES_PER_PAGE = 10;
+
+function getAttendeeStatus(attendee: AdminAttendee) {
+  if (attendee.deletedAt) return { key: "deleted" as const, label: "Deleted", className: "badge-danger" };
+  if (attendee.checkedInAt) return { key: "present" as const, label: "Present", className: "badge-success" };
+  if (!attendee.profileCompletedAt) return { key: "pending" as const, label: "Onboarding pending", className: "badge-warning" };
+  return { key: "active" as const, label: "Active", className: "badge-neutral" };
+}
 
 export default function AdminAttendeesPage() {
   const router = useRouter();
   const [attendees, setAttendees] = useState<AdminAttendee[]>([]);
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [page, setPage] = useState(1);
   const [state, setState] = useState<LoadState>("loading");
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -54,7 +63,7 @@ export default function AdminAttendeesPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [query]);
+  }, [query, statusFilter]);
 
   async function loadAttendees() {
     setState("loading");
@@ -217,9 +226,10 @@ export default function AdminAttendeesPage() {
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
-    if (!term) return attendees;
-    return attendees.filter((attendee) =>
-      [
+    return attendees.filter((attendee) => {
+      if (statusFilter !== "all" && getAttendeeStatus(attendee).key !== statusFilter) return false;
+      if (!term) return true;
+      return [
         attendee.name,
         attendee.email,
         attendee.phone,
@@ -228,9 +238,9 @@ export default function AdminAttendeesPage() {
         attendee.businessCategory,
         attendee.city,
         attendee.tableNumber,
-      ].some((value) => value?.toLowerCase().includes(term)),
-    );
-  }, [attendees, query]);
+      ].some((value) => value?.toLowerCase().includes(term));
+    });
+  }, [attendees, query, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ATTENDEES_PER_PAGE));
   const currentPage = Math.min(page, totalPages);
@@ -338,6 +348,16 @@ export default function AdminAttendeesPage() {
           placeholder="Search name, email, company, table"
           aria-label="Search attendees"
         />
+        <select
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+          aria-label="Filter by status"
+        >
+          <option value="all">All statuses</option>
+          <option value="present">Present</option>
+          <option value="pending">Onboarding pending</option>
+          <option value="deleted">Deleted</option>
+        </select>
       </div>
 
       {filtered.length > 0 && (
@@ -361,6 +381,7 @@ export default function AdminAttendeesPage() {
               attendee.city,
               attendee.tableNumber ? `Table ${attendee.tableNumber}` : null,
             ]);
+            const status = getAttendeeStatus(attendee);
 
             return (
               <article
@@ -375,9 +396,7 @@ export default function AdminAttendeesPage() {
                 <div>
                   <div className="admin-attendee-title">
                     <b>{attendee.name}</b>
-                    <span className={attendee.deletedAt ? "badge-warning" : "badge-success"}>
-                      {attendee.deletedAt ? "Deleted" : "Active"}
-                    </span>
+                    <span className={`badge ${status.className}`}>{status.label}</span>
                   </div>
                   {primaryDetails && <span>{primaryDetails}</span>}
                   {extraDetails && <small>{extraDetails}</small>}
