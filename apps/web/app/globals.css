@@ -1457,7 +1457,14 @@ p.copy {
   color: var(--ink);
   box-shadow: 10px 0 30px rgba(20, 40, 80, 0.22);
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   animation: menu-enter 200ms ease-out;
+}
+.attendee-menu::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 @keyframes menu-enter {
   from { transform: translateX(-100%); }
