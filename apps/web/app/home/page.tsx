@@ -392,8 +392,8 @@ export default function HomePage() {
             <h1>Can&rsquo;t load Home</h1>
           </div>
           <p className="copy">
-            We couldn&rsquo;t reach the server. Check your connection and try again — you can still be checked
-            in by staff at the desk.
+            We couldn&rsquo;t reach the server. Check your connection and try again. If you&rsquo;re at the venue,
+            use the entrance QR once the app is back online.
           </p>
           <button className="btn-primary" type="button" onClick={() => window.location.reload()}>
             Try again
@@ -410,6 +410,7 @@ export default function HomePage() {
 
   const firstName = attendee ? attendee.name.split(" ")[0] : "";
   const checkedIn = Boolean(checkin?.checkedIn);
+  const liveCheckedIn = checkedIn && mode !== "ended";
   const startMs = event?.startAt ? new Date(event.startAt).getTime() : null;
 
   return (
@@ -442,7 +443,7 @@ export default function HomePage() {
         )}
 
         {mode !== "pre_event" && mode !== "ended" && (
-          checkedIn ? (
+          liveCheckedIn ? (
             <CheckedInStrip checkin={checkin} pendingSync={pendingSync} confirmOffline={confirmOffline} />
           ) : (
             <CheckInCard
@@ -459,7 +460,7 @@ export default function HomePage() {
           )
         )}
 
-        {checkedIn && attendee?.tableNumber && (
+        {liveCheckedIn && attendee?.tableNumber && (
           <div className="table-callout">
             <span>Your table</span>
             <strong>{attendee.tableNumber}</strong>
@@ -467,14 +468,14 @@ export default function HomePage() {
         )}
 
         {/* ---- scan-to-connect: only during the live event, once checked in ---- */}
-        {mode === "dashboard" && checkedIn && (
+        {mode === "dashboard" && liveCheckedIn && (
           <button className="btn-primary home-scan-cta" type="button" onClick={() => router.push("/scan")}>
             Scan to connect
           </button>
         )}
 
         {/* ---- your progress: once you have an attendance record ---- */}
-        {(checkedIn || mode === "ended") && <ProgressSection stats={stats} />}
+        {(liveCheckedIn || mode === "ended") && <ProgressSection stats={stats} />}
 
         {/* ---- people to meet: always, with a skeleton + empty state ---- */}
         <PeopleToMeet matches={matches} loading={matchesLoading} />
@@ -650,14 +651,16 @@ function Countdown({ ms }: { ms: number }) {
 // ---------------------------------------------------------------- sections
 
 function ProgressSection({ stats }: { stats: PersonalStats | null }) {
+  const totalRanked = stats ? Math.max(stats.totalRanked, stats.rank ?? 0) : 0;
+
   return (
     <section className="profile-section" aria-label="Your progress">
       <h2>Your progress</h2>
       <div className="stats-grid home-stats-grid">
         <StatTile value={stats?.peopleMet ?? "—"} label="People met" />
-        <StatTile value={stats ? formatRank(stats.rank) : "—"} sub={stats?.rank ? `of ${stats.totalRanked}` : undefined} label="Rank" />
+        <StatTile value={stats ? formatRank(stats.rank) : "—"} sub={stats?.rank && totalRanked > 0 ? `of ${totalRanked}` : undefined} label="Rank" />
         <Link className="stat-tile home-stat-link" href="/matches" aria-label={`${stats?.bookmarks ?? 0} bookmarks. Open Want to Meet`}>
-          <strong>{stats?.bookmarks ?? "—"}</strong>
+          <strong>{stats?.bookmarks ?? "-"}</strong>
           <span>Bookmarks</span>
         </Link>
       </div>

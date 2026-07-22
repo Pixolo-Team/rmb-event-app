@@ -70,16 +70,12 @@ export default function GalleryPage() {
   return (
     <AttendeePageShell>
       <div className="attendee-page gallery-page">
-        <section className="gallery-copy-block">
-          <p className="gallery-copy">Browse every photo shared from tonight.</p>
-        </section>
-
         {state === "loading" ? <GallerySkeleton /> : null}
 
         {state === "ready" && photos.length === 0 ? (
-          <section className="feature-card">
-            <p className="feature-title">No photos yet</p>
-            <p className="feature-copy">Photos shared to the feed will show up here.</p>
+          <section className="gallery-empty">
+            <h2>No photos yet</h2>
+            <p>Photos shared to the feed will show up here.</p>
           </section>
         ) : null}
 

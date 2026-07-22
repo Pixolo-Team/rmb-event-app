@@ -34,7 +34,7 @@ export function InstallBanner() {
     <div className="pwa-install-banner" role="region" aria-label="Install app">
       <button type="button" className="pwa-install-banner-main" onClick={() => promptInstall()}>
         <DownloadIcon />
-        <span>Install Evento for quick, full-screen access</span>
+        <span>Install RMBF Evento for quick, full-screen access</span>
       </button>
       <button type="button" className="pwa-install-banner-close" aria-label="Never show this again" onClick={close}>
         <CloseIcon />

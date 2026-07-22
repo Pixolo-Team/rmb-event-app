@@ -4,6 +4,11 @@ import { GOALS_TAGS } from "../profile-options";
 export class UpdateProfileDto {
   @IsOptional()
   @IsString()
+  @MaxLength(160)
+  businessName?: string | null;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(100)
   businessCategory?: string;
 

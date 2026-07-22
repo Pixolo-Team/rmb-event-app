@@ -133,7 +133,7 @@ export default function MatchesPage() {
             {bookmarks.length > 0 ? (
               <ul className="wtm-list">{bookmarks.map((person) => <SavedRow key={person.id} person={person} onBookmark={(value) => updateBookmark(person.id, value)} />)}</ul>
             ) : (
-              <p className="empty-copy matches-section-empty">Nothing saved yet — add people from the suggestions below or from People.</p>
+              <p className="empty-copy matches-section-empty">Nothing saved yet - add people from the suggestions below or from People.</p>
             )}
           </section>
         )}

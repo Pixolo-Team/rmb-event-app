@@ -151,7 +151,7 @@ export default function ScanPage() {
             <div className="banner warn scan-banner">
               <div>
                 <b>Camera unavailable</b>
-                Allow camera access in your browser settings, then reload.
+                Allow camera access in your browser settings, then reload. You can still check in using the venue QR at the entrance.
               </div>
             </div>
           )}
