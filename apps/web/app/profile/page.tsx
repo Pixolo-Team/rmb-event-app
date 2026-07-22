@@ -317,7 +317,7 @@ export default function ProfilePage() {
                         profile.websiteUrl ? (
                           <a className="profile-link-row" href={profile.websiteUrl} target="_blank" rel="noreferrer">
                             <WebsiteIcon />
-                            <span>{profile.websiteUrl}</span>
+                            <span>{formatProfileLinkLabel(profile.websiteUrl, "website")}</span>
                           </a>
                         ) : (
                           <p className="empty-copy">No website added yet</p>
@@ -366,7 +366,7 @@ export default function ProfilePage() {
                         profile.linkedInUrl ? (
                           <a className="profile-link-row" href={profile.linkedInUrl} target="_blank" rel="noreferrer">
                             <LinkedInIcon />
-                            <span>{profile.linkedInUrl}</span>
+                            <span>{formatProfileLinkLabel(profile.linkedInUrl, "linkedin")}</span>
                           </a>
                         ) : (
                           <p className="empty-copy">No LinkedIn added yet</p>
@@ -475,6 +475,23 @@ function normalizeLinkedInUrl(value: string) {
     return url.toString();
   } catch {
     return null;
+  }
+}
+
+function formatProfileLinkLabel(value: string, kind: "website" | "linkedin") {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./i, "");
+    const path = url.pathname.replace(/\/+$/, "");
+
+    if (kind === "linkedin") {
+      const compactPath = path.length > 24 ? `${path.slice(0, 24)}...` : path;
+      return compactPath ? `${host}${compactPath}` : host;
+    }
+
+    return path && path !== "/" ? `${host}${path}` : host;
+  } catch {
+    return value;
   }
 }
 
