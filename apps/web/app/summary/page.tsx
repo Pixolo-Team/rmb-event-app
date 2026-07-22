@@ -7,6 +7,10 @@ import { DirectoryAvatar } from "../components/DirectoryAvatar";
 import { PoweredByFooter } from "../components/PoweredByFooter";
 import { EventSummary, summaryCache } from "../lib/summaryCache";
 
+function formatMetDate(iso: string): string {
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(new Date(iso));
+}
+
 export default function SummaryPage() {
   const [data, setData] = useState<EventSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -97,17 +101,26 @@ export default function SummaryPage() {
 
               {data.topConnections.length ? (
                 <div className="summary-connections">
-                  {data.topConnections.map((person) => (
-                    <Link href={`/attendees/${person.id}`} className="summary-person" key={person.id}>
-                      <DirectoryAvatar name={person.name} photoUrl={null} />
-                      <div>
-                        <b>{person.name}</b>
-                        <span>{person.businessName ?? "Evento attendee"}</span>
-                        {person.tableNumber ? <small>Table {person.tableNumber}</small> : null}
-                      </div>
-                      <span aria-hidden="true">›</span>
-                    </Link>
-                  ))}
+                  {data.topConnections.map((person) => {
+                    // Real identifiers, same pattern as the directory card — no
+                    // generic "Evento attendee" filler. Falls back to when you
+                    // met them (always available) only if there's truly no
+                    // business info to show.
+                    const infoLine = [person.businessName, person.businessCategory, person.chapterName]
+                      .filter(Boolean)
+                      .join(" · ");
+                    return (
+                      <Link href={`/attendees/${person.id}`} className="summary-person" key={person.id}>
+                        <DirectoryAvatar name={person.name} photoUrl={null} />
+                        <div>
+                          <b>{person.name}</b>
+                          <span>{infoLine || `Met ${formatMetDate(person.metAt)}`}</span>
+                          {person.tableNumber ? <small>Table {person.tableNumber}</small> : null}
+                        </div>
+                        <span className="summary-person-arrow" aria-hidden="true">›</span>
+                      </Link>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="summary-empty">
