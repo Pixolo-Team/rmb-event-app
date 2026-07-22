@@ -62,6 +62,7 @@ export function OnboardingFlow() {
   const [options, setOptions] = useState<ProfileOptions | null>(null);
 
   const [businessCategory, setBusinessCategory] = useState("");
+  const [businessName, setBusinessName] = useState("");
   const [city, setCity] = useState("");
   const [lookingFor, setLookingFor] = useState<string[]>([]);
   const [offering, setOffering] = useState<string[]>([]);
@@ -88,6 +89,7 @@ export function OnboardingFlow() {
           return;
         }
         setAttendee(me);
+        setBusinessName(me.businessName ?? "");
         if (me.city) setCity(me.city);
         if (me.businessCategory) setBusinessCategory(me.businessCategory);
         if (me.websiteUrl) setWebsiteUrl(me.websiteUrl);
@@ -118,6 +120,7 @@ export function OnboardingFlow() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
+          businessName: businessName.trim() || null,
           businessCategory,
           city: city.trim(),
           lookingFor,
@@ -268,8 +271,14 @@ export function OnboardingFlow() {
             <input value={attendee?.name ?? ""} disabled />
           </div>
           <div className="field">
-            <label>Business / profession</label>
-            <input value={attendee?.businessName ?? ""} disabled />
+            <label htmlFor="onboarding-company">Company name</label>
+            <input
+              id="onboarding-company"
+              value={businessName}
+              onChange={(event) => setBusinessName(event.target.value)}
+              placeholder="Enter your company name"
+              maxLength={160}
+            />
           </div>
           {attendee?.chapterName && (
             <div className="field">

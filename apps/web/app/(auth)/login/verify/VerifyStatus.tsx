@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { RotaryLoader } from "../../../components/RotaryLoader";
 import { withCsrfHeaders } from "../../../lib/csrf";
 import { profileCache } from "../../../lib/profileCache";
 
@@ -61,15 +62,9 @@ export function VerifyStatus() {
   }, [router, token]);
 
   return (
-    <div className="card">
-      <div className="wordmark">
-        <span className="dot" />
-        Evento
-      </div>
-      <div className="center-state">
-        <span className="spinner" style={{ borderTopColor: "var(--brand-500)", borderColor: "var(--border)" }} />
-        <p>Signing you in&hellip;</p>
-      </div>
+    <div className="center-state">
+      <RotaryLoader />
+      <p>Signing you in&hellip;</p>
     </div>
   );
 }

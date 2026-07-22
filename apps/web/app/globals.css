@@ -1114,11 +1114,15 @@ p.copy {
 
 .pwa-install-banner {
   display: flex;
-  align-items: stretch;
-  gap: 8px;
-  background: var(--brand-50);
-  border-bottom: 1px solid var(--brand-500);
+  align-items: center;
+  gap: 10px;
+  margin: 10px 16px 0;
+  padding: 8px 10px 8px 12px;
+  background: color-mix(in srgb, var(--brand-50) 88%, #ffffff 12%);
+  border: 1px solid color-mix(in srgb, var(--brand-500) 48%, transparent);
+  border-radius: 16px;
   color: var(--brand-700);
+  box-shadow: 0 12px 28px rgba(8, 15, 32, 0.12);
 }
 .pwa-install-banner-main {
   flex: 1;
@@ -1126,13 +1130,14 @@ p.copy {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 14px;
+  padding: 0;
   border: none;
   background: none;
   color: inherit;
   font: inherit;
   font-weight: 650;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
+  line-height: 1.35;
   text-align: left;
   cursor: pointer;
 }
@@ -1148,15 +1153,23 @@ p.copy {
 }
 .pwa-install-banner-close {
   flex-shrink: 0;
-  width: 44px;
+  width: 34px;
+  height: 34px;
   border: none;
-  border-left: 1px solid var(--brand-500);
-  background: none;
+  border-radius: 999px;
+  background: rgba(43, 108, 212, 0.08);
   color: inherit;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+.pwa-install-banner-close:hover {
+  background: rgba(43, 108, 212, 0.14);
+}
+.pwa-install-banner-close:active {
+  transform: scale(0.97);
 }
 .pwa-install-banner-close svg {
   width: 16px;
@@ -1444,7 +1457,14 @@ p.copy {
   color: var(--ink);
   box-shadow: 10px 0 30px rgba(20, 40, 80, 0.22);
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   animation: menu-enter 200ms ease-out;
+}
+.attendee-menu::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 @keyframes menu-enter {
   from { transform: translateX(-100%); }
@@ -3634,6 +3654,8 @@ a.contact-row:active { background: var(--brand-100); }
 @media (min-width: 980px) {
   .admin-shell {
     flex-direction: row;
+    height: 100vh;
+    overflow: hidden;
   }
 }
 .admin-mobile-topbar {
@@ -3730,11 +3752,19 @@ a.contact-row:active { background: var(--brand-100); }
   .admin-mobile-topbar {
     display: none;
   }
+  .admin-shell-content {
+    margin-left: 248px;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
   .admin-sidebar {
-    position: sticky;
+    position: fixed;
     top: 0;
-    align-self: stretch;
+    left: 0;
+    bottom: 0;
     min-height: 100vh;
+    max-height: 100vh;
     width: 248px;
     flex: 0 0 248px;
     display: flex;
