@@ -7,6 +7,8 @@ import { PageIntro } from "../components/PageIntro";
 import { PoweredByFooter } from "../components/PoweredByFooter";
 import { leaderboardCache, type LeaderboardResponse } from "../lib/leaderboardCache";
 
+const REFRESH_MS = 30_000;
+
 export default function LeaderboardPage() {
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,7 +40,7 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     load();
-    const timer = window.setInterval(() => load(true), 10000);
+    const timer = window.setInterval(() => load(true), REFRESH_MS);
     return () => window.clearInterval(timer);
   }, [load]);
 

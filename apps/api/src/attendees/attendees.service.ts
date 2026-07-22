@@ -248,6 +248,7 @@ export class AttendeesService {
     const current = await this.prisma.attendee.findUnique({
       where: { id: attendeeId },
       select: {
+        businessName: true,
         businessCategory: true,
         city: true,
         lookingFor: true,
@@ -261,6 +262,7 @@ export class AttendeesService {
     if (!current) throw new NotFoundException("Attendee not found");
 
     const next = {
+      businessName: dto.businessName === undefined ? current.businessName : dto.businessName?.trim() || null,
       businessCategory: dto.businessCategory ?? current.businessCategory,
       city: dto.city ?? current.city,
       lookingFor: dto.lookingFor ?? current.lookingFor,
@@ -307,6 +309,7 @@ export class AttendeesService {
     return this.prisma.attendee.update({
       where: { id: attendeeId },
       data: {
+        businessName: next.businessName,
         businessCategory: next.businessCategory,
         city: next.city,
         lookingFor: next.lookingFor,
