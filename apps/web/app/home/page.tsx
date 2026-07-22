@@ -365,7 +365,7 @@ export default function HomePage() {
             <h1>Can&rsquo;t load Home</h1>
           </div>
           <p className="copy">
-            We couldn&rsquo;t reach the server. Check your connection and try again — you can still be checked
+            We couldn&rsquo;t reach the server. Check your connection and try again - you can still be checked
             in by staff at the desk.
           </p>
           <button className="btn-primary" type="button" onClick={() => window.location.reload()}>
@@ -383,6 +383,7 @@ export default function HomePage() {
 
   const firstName = attendee ? attendee.name.split(" ")[0] : "";
   const checkedIn = Boolean(checkin?.checkedIn);
+  const liveCheckedIn = checkedIn && mode !== "ended";
   const startMs = event?.startAt ? new Date(event.startAt).getTime() : null;
 
   return (
@@ -415,7 +416,7 @@ export default function HomePage() {
         )}
 
         {mode !== "pre_event" && mode !== "ended" && (
-          checkedIn ? (
+          liveCheckedIn ? (
             <CheckedInStrip checkin={checkin} pendingSync={pendingSync} confirmOffline={confirmOffline} />
           ) : (
             <CheckInCard
@@ -431,7 +432,7 @@ export default function HomePage() {
           )
         )}
 
-        {checkedIn && attendee?.tableNumber && (
+        {liveCheckedIn && attendee?.tableNumber && (
           <div className="table-callout">
             <span>Your table</span>
             <strong>{attendee.tableNumber}</strong>
@@ -439,14 +440,14 @@ export default function HomePage() {
         )}
 
         {/* ---- scan-to-connect: only during the live event, once checked in ---- */}
-        {mode === "dashboard" && checkedIn && (
+        {mode === "dashboard" && liveCheckedIn && (
           <button className="btn-primary home-scan-cta" type="button" onClick={() => router.push("/scan")}>
             Scan to connect
           </button>
         )}
 
         {/* ---- your progress: once you have an attendance record ---- */}
-        {(checkedIn || mode === "ended") && <ProgressSection stats={stats} />}
+        {(liveCheckedIn || mode === "ended") && <ProgressSection stats={stats} />}
 
         {/* ---- people to meet: always, with a skeleton + empty state ---- */}
         <PeopleToMeet matches={matches} loading={matchesLoading} />
@@ -492,7 +493,7 @@ function CheckInCard({
         <span className="home-checkin-icon" aria-hidden="true">📍</span>
         <div>
           <b>You&rsquo;re not checked in yet</b>
-          <em>We&rsquo;ll use your location — or scan the venue QR at the entrance.</em>
+                  <em>We&rsquo;ll use your location - or scan the venue QR at the entrance.</em>
         </div>
       </div>
 
@@ -523,7 +524,7 @@ function CheckInCard({
       )}
 
       {!online && phase === "idle" && (
-        <p className="home-checkin-hint">You&rsquo;re offline — checking in will confirm once you reconnect.</p>
+        <p className="home-checkin-hint">You&rsquo;re offline - checking in will confirm once you reconnect.</p>
       )}
     </section>
   );
@@ -612,10 +613,10 @@ function ProgressSection({ stats }: { stats: PersonalStats | null }) {
     <section className="profile-section" aria-label="Your progress">
       <h2>Your progress</h2>
       <div className="stats-grid home-stats-grid">
-        <StatTile value={stats?.peopleMet ?? "—"} label="People met" />
-        <StatTile value={stats ? `#${stats.rank}` : "—"} sub={stats ? `of ${stats.totalRanked}` : undefined} label="Rank" />
+        <StatTile value={stats?.peopleMet ?? "-"} label="People met" />
+        <StatTile value={stats ? `#${stats.rank}` : "-"} sub={stats ? `of ${stats.totalRanked}` : undefined} label="Rank" />
         <Link className="stat-tile home-stat-link" href="/matches" aria-label={`${stats?.bookmarks ?? 0} bookmarks. Open Want to Meet`}>
-          <strong>{stats?.bookmarks ?? "—"}</strong>
+          <strong>{stats?.bookmarks ?? "-"}</strong>
           <span>Bookmarks</span>
         </Link>
       </div>
@@ -665,13 +666,13 @@ function PeopleToMeet({ matches, loading }: { matches: MatchSuggestion[]; loadin
                   <b>{match.name}</b>
                   <em>{match.headline || match.businessName || ""}</em>
                 </span>
-                {match.checkedIn && <span className="badge badge-success">Here</span>}
+                {match.checkedIn && <span className="badge badge-success">Present</span>}
               </Link>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="empty-copy">No strong matches yet — complete your profile and check back as more people arrive.</p>
+        <p className="empty-copy">No strong matches yet - complete your profile and check back as more people arrive.</p>
       )}
     </section>
   );

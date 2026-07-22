@@ -6,6 +6,7 @@ import { LeaderboardRows } from "../components/LeaderboardRows";
 import { PageIntro } from "../components/PageIntro";
 import { PoweredByFooter } from "../components/PoweredByFooter";
 import { leaderboardCache, type LeaderboardResponse } from "../lib/leaderboardCache";
+import { LeaderboardSkeleton } from "./LeaderboardSkeleton";
 
 const REFRESH_MS = 30_000;
 
@@ -44,6 +45,8 @@ export default function LeaderboardPage() {
     return () => window.clearInterval(timer);
   }, [load]);
 
+  const visibleTop = data?.top.filter((entry) => entry.metCount > 0) ?? [];
+
   return (
     <AttendeePageShell showFooter={false}>
       <main className="attendee-page leaderboard-page">
@@ -55,10 +58,10 @@ export default function LeaderboardPage() {
         </div>
         {offline && data && <div className="banner info"><div><b>Showing saved leaderboard</b>Last updated {formatTime(data.updatedAt)}.</div></div>}
         {data?.me && <section className="leaderboard-my-stat"><div><span>Your rank</span><strong>#{data.me.rank}</strong></div><div><span>People met</span><strong>{data.me.metCount}</strong></div><div><span>Attendees</span><strong>{data.totalAttendees}</strong></div></section>}
-        {loading && !data && <div className="leaderboard-skeleton" role="status">Loading live rankings...</div>}
+        {loading && !data && <LeaderboardSkeleton />}
         {error && !data && <div className="directory-state"><h2>Can&apos;t load leaderboard</h2><p>Check your connection and try refreshing.</p></div>}
-        {data && data.top.length === 0 && <div className="directory-state"><h2>No rankings yet</h2><p>No one has checked in yet.</p></div>}
-        {data && data.top.length > 0 && <><div className="leaderboard-label-row"><span>Top attendees</span><span>Updated {formatTime(data.updatedAt)}</span></div><LeaderboardRows entries={data.top} currentId={data.me?.id} /></>}
+        {data && visibleTop.length === 0 && <div className="directory-state"><h2>No rankings yet</h2><p>No one has made a confirmed connection yet.</p></div>}
+        {data && visibleTop.length > 0 && <><div className="leaderboard-label-row"><span>Top attendees</span><span>Updated {formatTime(data.updatedAt)}</span></div><LeaderboardRows entries={visibleTop} currentId={data.me?.id} /></>}
         <PoweredByFooter />
       </main>
     </AttendeePageShell>

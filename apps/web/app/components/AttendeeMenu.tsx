@@ -201,7 +201,14 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
               </button>
             </div>
 
-            <div className="menu-identity">
+            <Link
+              href="/profile"
+              className="menu-identity"
+              onClick={() => {
+                removeMenuHistoryMarker();
+                setOpen(false);
+              }}
+            >
               {attendee.photoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img className="menu-avatar" src={attendee.photoUrl} alt="" />
@@ -213,7 +220,7 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
                 {attendee.businessName && <span>{attendee.businessName}</span>}
                 {attendee.chapterName && <span className="menu-chapter">{attendee.chapterName}</span>}
               </div>
-            </div>
+            </Link>
 
             <nav className="menu-nav" aria-label="Attendee navigation">
               {DRAWER_ITEMS.filter((item) => item.available || SHOW_PLANNED_ITEMS).map((item) => {
