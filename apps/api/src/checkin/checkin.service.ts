@@ -3,6 +3,7 @@ import { CheckInMethod } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventService } from "../event/event.service";
 import { QRSigningService } from "../qr/qr-signing.service";
+import { WhatsAppService } from "../whatsapp/whatsapp.service";
 import { distanceMeters } from "../common/geo";
 
 export type CheckinOutcome =
@@ -20,6 +21,7 @@ export class CheckinService {
     private readonly prisma: PrismaService,
     private readonly eventService: EventService,
     private readonly qrSigning: QRSigningService,
+    private readonly whatsapp: WhatsAppService,
   ) {}
 
   async getMyStatus(attendeeId: string) {
@@ -44,18 +46,39 @@ export class CheckinService {
   }
 
   async checkInManual(attendeeId: string): Promise<CheckinOutcome> {
-    return this.recordCheckIn(attendeeId, "MANUAL");
+    const outcome = await this.recordCheckIn(attendeeId, "MANUAL");
+    if (outcome.status === "checked_in") {
+      const attendee = await this.prisma.attendee.findUnique({
+        where: { id: attendeeId },
+        select: { name: true, phone: true },
+      });
+      if (attendee) this.notifyCheckin(attendeeId, attendee.phone, attendee.name);
+    }
+    return outcome;
   }
 
   async checkInByAdminManual(attendeeId: string): Promise<CheckinOutcome & { attendeeName: string }> {
     const attendee = await this.prisma.attendee.findUnique({
       where: { id: attendeeId },
-      select: { id: true, name: true, deletedAt: true },
+      select: { id: true, name: true, phone: true, deletedAt: true },
     });
     if (!attendee || attendee.deletedAt) throw new NotFoundException("Attendee not found");
 
     const outcome = await this.recordCheckIn(attendee.id, "MANUAL");
+    if (outcome.status === "checked_in") {
+      this.notifyCheckin(attendee.id, attendee.phone, attendee.name);
+    }
     return { ...outcome, attendeeName: attendee.name };
+  }
+
+  // Fire-and-forget: a slow or failing WhatsApp API call shouldn't block or
+  // fail the check-in itself.
+  private notifyCheckin(attendeeId: string, phone: string, name: string): void {
+    this.whatsapp.sendCheckinConfirmation(phone, name).catch((err) => {
+      this.logger.error(
+        `WhatsApp check-in confirmation failed for attendee ${attendeeId}: ${(err as Error).message}`,
+      );
+    });
   }
 
   async markAbsentByAdmin(attendeeId: string) {
