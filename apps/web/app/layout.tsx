@@ -9,9 +9,9 @@ export const metadata: Metadata = {
   description: "Networking, planned.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/images/rmb-fellowship-logo.png",
-    shortcut: "/images/rmb-fellowship-logo.png",
-    apple: "/images/rmb-fellowship-logo.png",
+    icon: "/images/rotary-app-icon.png",
+    shortcut: "/images/rotary-app-icon.png",
+    apple: "/images/rotary-app-icon.png",
   },
 };
 
