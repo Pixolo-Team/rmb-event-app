@@ -19,10 +19,11 @@ const TITLES: Record<string, string> = {
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   if (pathname === LOGIN_PATH) return <>{children}</>;
+  const title = pathname.startsWith("/admin/attendees/") ? "Attendee profile" : TITLES[pathname];
 
   return (
     <div className="admin-shell">
-      <AdminMenu title={TITLES[pathname]} />
+      <AdminMenu title={title} />
       <div className="admin-shell-content">{children}</div>
     </div>
   );
