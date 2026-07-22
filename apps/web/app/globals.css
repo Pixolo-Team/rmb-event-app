@@ -2078,7 +2078,6 @@ p.copy {
   border: none;
   padding: 0;
   background: var(--surface-2);
-  cursor: pointer;
 }
 .photo-card-media img {
   width: 100%;
@@ -2666,7 +2665,7 @@ p.copy {
 .profile-company { margin: 6px 0 0; font-size: 1.05rem; font-weight: 600; }
 .profile-meta { margin: 4px 0 10px; color: var(--ink-muted); }
 /* F2.5 / F5 — polished want-to-meet / call / whatsapp / share action row. */
-.profile-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; margin: 16px 0 24px; }
+.profile-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; margin: 16px 0 24px; }
 .profile-action,
 .profile-actions .bookmark-button {
   min-height: 50px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
@@ -3959,10 +3958,17 @@ a.contact-row:active { background: var(--brand-100); }
 .matches-show-more { width: 100%; margin-top: 14px; padding: 11px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); color: var(--brand-700); font: 600 .85rem var(--font-body); cursor: pointer; }
 .matches-show-more:hover { border-color: var(--brand-300); background: var(--surface-2); }
 /* F2.8 — compact person rows (Your list + Suggested for you) */
-.wtm-list { margin: 0; padding: 0; list-style: none; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--surface); }
-.wtm-row { display: flex; flex-direction: column; gap: 9px; padding: 11px 14px; border-top: 1px solid var(--border); transition: background-color 0.12s ease; }
-.wtm-row:first-child { border-top: 0; }
-.wtm-row:hover { background: var(--surface-2); }
+.wtm-list { margin: 0; padding: 0; list-style: none;   display: flex; flex-direction: column; gap: 8px; }
+.wtm-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: background-color 0.12s ease;
+}.wtm-row:hover { background: var(--surface-2); }
 .wtm-row-top { display: flex; align-items: center; gap: 12px; }
 .wtm-row-main { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; text-decoration: none; color: inherit; }
 .wtm-row-main .directory-avatar { width: 44px; height: 44px; flex-basis: 44px; }
