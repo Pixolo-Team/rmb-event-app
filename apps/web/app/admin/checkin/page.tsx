@@ -1,11 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import QRCode from "qrcode";
-import type { Html5Qrcode } from "html5-qrcode";
-import { enqueueWrite, useOfflineSync } from "../../lib/offlineQueue";
-import { withCsrfHeaders } from "../../lib/csrf";
-import { stopAndClearScanner } from "../../lib/html5QrCode";
+import { useOfflineSync } from "../../lib/offlineQueue";
 
 type Method = "GEOLOCATION" | "MANUAL" | "STAFF_QR" | "VENUE_QR";
 
@@ -20,7 +17,7 @@ interface StatusResponse {
 const METHOD_LABEL: Record<Method, string> = {
   GEOLOCATION: "via location",
   MANUAL: "desk check-in",
-  STAFF_QR: "staff scan",
+  STAFF_QR: "admin check-in",
   VENUE_QR: "venue scan",
 };
 
@@ -29,20 +26,13 @@ const POLL_MS = 7000;
 export default function AdminCheckinPage() {
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [venueConfigured, setVenueConfigured] = useState(true);
-  const [copied, setCopied] = useState(false);
-  const [scannerOpen, setScannerOpen] = useState(false);
-  const [scanResult, setScanResult] = useState<{ tone: "ok" | "warn"; message: string } | null>(null);
-  const scanningLocked = useRef(false);
 
   async function loadStatus() {
     const res = await fetch("/api/admin/checkin/status");
     if (res.ok) setStatus(await res.json());
   }
 
-  // Reconcile the live list once a queued offline scan actually reaches the server.
-  const { online } = useOfflineSync((kind) => {
-    if (kind === "checkin-qr-scan") loadStatus();
-  });
+  const { online } = useOfflineSync();
 
   useEffect(() => {
     loadStatus();
@@ -53,78 +43,6 @@ export default function AdminCheckinPage() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    if (!scannerOpen) return;
-    let cancelled = false;
-    let scanner: Html5Qrcode | undefined;
-
-    import("html5-qrcode").then(({ Html5Qrcode }) => {
-      if (cancelled) return;
-      scanner = new Html5Qrcode("qr-reader");
-      scanner
-        .start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: 240 },
-          async (decodedText: string) => {
-            if (scanningLocked.current) return;
-            scanningLocked.current = true;
-
-            if (!navigator.onLine) {
-              await enqueueWrite("checkin-qr-scan", "/api/admin/checkin/qr-scan", { qrToken: decodedText });
-              setScanResult({ tone: "ok", message: "Scanned — saved offline, will confirm once back online" });
-            } else {
-              try {
-                const res = await fetch("/api/admin/checkin/qr-scan", withCsrfHeaders({
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ qrToken: decodedText }),
-                }));
-                const outcome = await res.json();
-                if (outcome.status === "not_found") {
-                  setScanResult({ tone: "warn", message: "Invalid QR code — not found in attendee list" });
-                } else if (outcome.status === "already_checked_in") {
-                  setScanResult({ tone: "warn", message: `${outcome.attendeeName} is already checked in` });
-                } else {
-                  setScanResult({ tone: "ok", message: `✓ ${outcome.attendeeName} checked in` });
-                  loadStatus();
-                }
-              } catch {
-                // Network dropped mid-scan — queue it rather than surfacing an error.
-                await enqueueWrite("checkin-qr-scan", "/api/admin/checkin/qr-scan", { qrToken: decodedText });
-                setScanResult({ tone: "ok", message: "Scanned — saved offline, will confirm once back online" });
-              }
-            }
-
-            setTimeout(() => {
-              setScanResult(null);
-              scanningLocked.current = false;
-            }, 2000);
-          },
-          () => {
-            // per-frame "no QR found yet" — expected, not an error to surface
-          },
-        )
-        .catch(() => {
-          setScanResult({ tone: "warn", message: "Camera permission required" });
-          setScannerOpen(false);
-        });
-    });
-
-    return () => {
-      cancelled = true;
-      void stopAndClearScanner(scanner);
-    };
-  }, [scannerOpen]);
-
-  function copyStragglerList() {
-    if (!status) return;
-    const text = status.notCheckedIn.map((a) => `${a.name} (${a.phone})`).join("\n");
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }
-
   return (
     <div className="admin-page">
       <h1 className="title">Check-in management</h1>
@@ -133,7 +51,7 @@ export default function AdminCheckinPage() {
         <div className="banner info" style={{ marginBottom: 18 }}>
           <div>
             <b>Offline</b>
-            Scanning still works — results are queued and will confirm once you&rsquo;re back online.
+            Live counts will refresh once you&rsquo;re back online.
           </div>
         </div>
       )}
@@ -161,27 +79,9 @@ export default function AdminCheckinPage() {
             <StatPill label="Via location" value={status.breakdown.GEOLOCATION} tone="neutral" />
             <StatPill label="Venue scan" value={status.breakdown.VENUE_QR} tone="neutral" />
             <StatPill label="Desk check-in" value={status.breakdown.MANUAL} tone="neutral" />
-            <StatPill label="Staff scan" value={status.breakdown.STAFF_QR} tone="neutral" />
           </div>
 
           <VenueQrCard />
-
-          <div style={{ marginBottom: 28 }}>
-            <button className="btn-primary" style={{ width: "auto", padding: "0 24px" }} onClick={() => setScannerOpen((o) => !o)}>
-              {scannerOpen ? "Close scanner" : "Open QR scanner"}
-            </button>
-
-            {scannerOpen && (
-              <div style={{ marginTop: 16, maxWidth: 360 }}>
-                <div id="qr-reader" />
-                {scanResult && (
-                  <div className={`banner ${scanResult.tone === "ok" ? "ok" : "warn"}`} style={{ marginTop: 12 }}>
-                    <div>{scanResult.message}</div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
 
           <div className="two-col-grid">
             <div>
@@ -196,14 +96,13 @@ export default function AdminCheckinPage() {
               />
             </div>
             <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <h3 style={{ fontSize: ".95rem" }}>Not yet checked in ({status.notCheckedIn.length})</h3>
-                <button className="link-muted" onClick={copyStragglerList} disabled={status.notCheckedIn.length === 0}>
-                  {copied ? "Copied ✓" : "Copy list"}
-                </button>
-              </div>
+              <h3 style={{ fontSize: ".95rem", marginBottom: 10 }}>Not yet checked in ({status.notCheckedIn.length})</h3>
               <ListTable
-                rows={status.notCheckedIn.map((a) => ({ key: a.attendeeId, cells: [a.name, a.phone] }))}
+                rows={status.notCheckedIn.map((a) => ({
+                  key: a.attendeeId,
+                  cells: [a.name, a.phone],
+                  href: `tel:${a.phone}`,
+                }))}
                 headers={["Name", "Phone"]}
                 empty="Everyone's checked in."
               />
@@ -290,7 +189,7 @@ function ListTable({
   empty,
 }: {
   headers: string[];
-  rows: { key: string; cells: string[] }[];
+  rows: { key: string; cells: string[]; href?: string }[];
   empty: string;
 }) {
   if (rows.length === 0) {
@@ -310,7 +209,11 @@ function ListTable({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.key} style={{ borderTop: "1px solid var(--border)" }}>
+            <tr
+              key={row.key}
+              style={{ borderTop: "1px solid var(--border)", cursor: row.href ? "pointer" : undefined }}
+              onClick={row.href ? () => { window.location.href = row.href as string; } : undefined}
+            >
               {row.cells.map((c, i) => (
                 <td key={i} style={{ padding: "8px 10px" }}>
                   {c}

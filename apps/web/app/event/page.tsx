@@ -171,6 +171,9 @@ export default function EventDetailsPage() {
                     <span className="contact-row-label">Get directions</span>
                     <span className="contact-row-value">{event.venueAddress}</span>
                   </span>
+                  <span className="contact-row-chevron contact-row-direction" aria-hidden="true">
+                    <DirectionIcon />
+                  </span>
                 </a>
               </section>
             )}
@@ -220,6 +223,15 @@ function PinIcon() {
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12Z" />
       <circle cx="12" cy="9" r="2.5" />
+    </svg>
+  );
+}
+
+function DirectionIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M7 17 17 7" />
+      <path d="M9 7h8v8" />
     </svg>
   );
 }

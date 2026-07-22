@@ -77,6 +77,13 @@ function ProfileContent({ profile }: { profile: AdminAttendeeProfile }) {
     profile.checkedInAt ? `Checked in ${formatDate(profile.checkedInAt)}` : "Not checked in",
     profile.deletedAt ? `Deleted ${formatDate(profile.deletedAt)}` : null,
   ]);
+  const status = profile.deletedAt
+    ? { label: "Deleted", className: "badge-danger" }
+    : profile.checkedInAt
+      ? { label: "Present", className: "badge-success" }
+      : !profile.profileCompletedAt
+        ? { label: "Onboarding pending", className: "badge-warning" }
+        : { label: "Active", className: "badge-neutral" };
 
   return (
     <>
@@ -85,9 +92,7 @@ function ProfileContent({ profile }: { profile: AdminAttendeeProfile }) {
         <div>
           <div className="profile-name-line">
             <h1>{profile.name}</h1>
-            <span className={profile.deletedAt ? "badge-warning" : "badge-success"}>
-              {profile.deletedAt ? "Deleted" : "Active"}
-            </span>
+            <span className={`badge ${status.className}`}>{status.label}</span>
           </div>
           {profile.businessName && <p className="profile-company">{profile.businessName}</p>}
           <p className="profile-meta">{compactDetails([profile.businessCategory, profile.city, profile.chapterName])}</p>

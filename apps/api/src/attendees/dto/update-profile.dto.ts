@@ -19,7 +19,6 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(6)
   @IsString({ each: true })
   @MaxLength(100, { each: true })
   lookingFor?: string[];

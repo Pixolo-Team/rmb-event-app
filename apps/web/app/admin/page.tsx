@@ -294,7 +294,6 @@ export default function AdminHome() {
             <SmallStat label="Via location" value={data?.breakdown.GEOLOCATION ?? "—"} />
             <SmallStat label="Venue scan" value={data?.breakdown.VENUE_QR ?? "—"} />
             <SmallStat label="Desk check-in" value={data?.breakdown.MANUAL ?? "—"} />
-            <SmallStat label="Staff scan" value={data?.breakdown.STAFF_QR ?? "—"} />
           </div>
         </article>
 
