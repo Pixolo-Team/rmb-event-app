@@ -1,14 +1,15 @@
 import { IsEnum, IsIn } from "class-validator";
 
-export enum UploadCategories {
-  Profile = "profile",
-  Feed = "feed",
-}
+import {
+  allowedImageContentTypes,
+  AllowedImageContentTypeData,
+  UploadCategories,
+} from "../upload.types";
 
 export class CreateUploadUrlRequestData {
   @IsEnum(UploadCategories)
   category!: UploadCategories;
 
-  @IsIn(["image/jpeg", "image/png", "image/webp"])
-  contentType!: "image/jpeg" | "image/png" | "image/webp";
+  @IsIn(allowedImageContentTypes)
+  contentType!: AllowedImageContentTypeData;
 }

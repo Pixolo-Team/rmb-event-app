@@ -1,6 +1,6 @@
 import { IsString, Matches } from "class-validator";
 
-export class CreateDownloadUrlRequestData {
+export class DeleteUploadRequestData {
   @IsString()
   @Matches(
     /^(profile|feed)\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9-]+\.(jpg|jpeg|png|webp)$/,

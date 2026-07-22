@@ -1,12 +1,14 @@
 import { IsEnum, IsString, Matches } from "class-validator";
 
-import { UploadCategories } from "./create-upload-url.request";
+import { UploadCategories } from "../upload.types";
 
 export class CompleteUploadRequestData {
   @IsEnum(UploadCategories)
   category!: UploadCategories;
 
   @IsString()
-  @Matches(/^[a-z0-9/_-]+\.(jpg|jpeg|png|webp)$/i)
+  @Matches(
+    /^(profile|feed)\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9-]+\.(jpg|jpeg|png|webp)$/,
+  )
   objectPath!: string;
 }
