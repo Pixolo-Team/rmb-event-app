@@ -85,8 +85,8 @@ export default function SummaryPage() {
                 <span>Cards collected</span>
               </div>
               <div>
-                <strong>#{data.rank}</strong>
-                <span>of {data.totalRanked} attendees</span>
+                <strong>{data.rank ? `#${data.rank}` : "Not ranked"}</strong>
+                <span>{data.rank ? `of ${data.totalRanked} attendees` : "Check in to join the leaderboard"}</span>
               </div>
             </section>
 

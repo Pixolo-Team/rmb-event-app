@@ -1,6 +1,6 @@
 export type PersonalStats = {
   peopleMet: number;
-  rank: number;
+  rank: number | null;
   totalRanked: number;
   bookmarks: number;
   photos: number;
