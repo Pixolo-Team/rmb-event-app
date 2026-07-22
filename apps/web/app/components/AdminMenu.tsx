@@ -13,10 +13,13 @@ type AdminMenuItem = {
 
 const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   { href: "/admin", label: "Analytics", icon: AnalyticsIcon },
+  { href: "/admin/import", label: "Attendee Import", icon: ImportIcon },
   { href: "/admin/attendees", label: "Manage Attendees", icon: PeopleIcon },
   { href: "/admin/event", label: "Event Settings", icon: SettingsIcon },
   { href: "/admin/checkin", label: "Live Check-In", icon: CheckinIcon },
   { href: "/admin/badges", label: "Print Badges", icon: BadgeIcon },
+  { href: "/admin/feed", label: "Photo Moderation", icon: PhotoIcon },
+  { href: "/admin/feedback", label: "Feedback", icon: FeedbackIcon },
 ];
 
 export function AdminMenu({ title }: { title?: string }) {
@@ -92,7 +95,10 @@ export function AdminMenu({ title }: { title?: string }) {
     <nav className="admin-menu-nav" aria-label="Admin navigation">
       {ADMIN_MENU_ITEMS.map((item) => {
         const Icon = item.icon;
-        const active = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
+        const active =
+            item.href === "/admin"
+            ? pathname === "/admin"
+            : pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
           <Link
             key={item.href}
@@ -204,5 +210,17 @@ function CheckinIcon() {
 
 function BadgeIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v6h-4v-2h-2" /></svg>;
+}
+
+function ImportIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 20h16" /></svg>;
+}
+
+function PhotoIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h4l1.5-2h5L16 6h4v14H4V6Z" /><circle cx="12" cy="13" r="4" /></svg>;
+}
+
+function FeedbackIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" /></svg>;
 }
 
