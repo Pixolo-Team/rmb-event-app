@@ -7,6 +7,10 @@ export default function HomeLoading() {
   return (
     <div className="home-dash attendee-tabbed-page" aria-busy="true" aria-label="Loading Home">
       <div className="full-page-header attendee-app-header">
+        <button className="menu-trigger" type="button" aria-label="Open menu" aria-hidden="true" tabIndex={-1}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+        </button>
+        <h1 className="app-header-title">Home</h1>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/images/rmb-fellowship-logo.png"
@@ -15,10 +19,6 @@ export default function HomeLoading() {
           width={50}
           height={50}
         />
-        <h1 className="app-header-title">Home</h1>
-        <button className="menu-trigger" type="button" aria-label="Open menu" aria-hidden="true" tabIndex={-1}>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
-        </button>
       </div>
       <main className="home-dash-body home-skeleton">
         <div className="home-skeleton-line greeting" />

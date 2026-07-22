@@ -6,7 +6,6 @@ import { QRCodeSVG } from "qrcode.react";
 import type { AttendeeMe, DirectoryAttendee } from "./TutorialPage";
 import { TEMP_BYPASS_LOGIN } from "./TutorialPage";
 import { getInitials } from "./AttendeeCard";
-import { EditProfileForm } from "./EditProfileForm";
 import { LinkedInIcon, ScanIcon, WebsiteIcon } from "./icons";
 import { ScanConnect } from "./ScanConnect";
 import { PoweredByFooter } from "./PoweredByFooter";
@@ -45,7 +44,6 @@ export function ProfileView({
   onEditingChange?: (editing: boolean) => void;
 }) {
   const router = useRouter();
-  const [showEditPage, setShowEditPage] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
   const [qrEnlarged, setQrEnlarged] = useState(false);
 
@@ -90,26 +88,6 @@ export function ProfileView({
     }
     profileCache.clear();
     router.push("/login");
-  }
-
-  function openEditProfile() {
-    onEditingChange?.(true);
-    setShowEditPage(true);
-  }
-
-  function closeEditProfile() {
-    setShowEditPage(false);
-    onEditingChange?.(false);
-  }
-
-  if (showEditPage) {
-    return (
-      <EditProfileForm
-        attendee={attendee}
-        onSaved={(patch) => setAttendee((current) => (current ? { ...current, ...patch } : current))}
-        onClose={closeEditProfile}
-      />
-    );
   }
 
   return (
@@ -163,9 +141,6 @@ export function ProfileView({
             ) : null}
           </div>
         </div>
-        <button type="button" className="btn-secondary profile-edit-button" onClick={openEditProfile}>
-          Edit profile
-        </button>
       </section>
 
       <section className="settings-card">

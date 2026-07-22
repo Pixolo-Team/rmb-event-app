@@ -10,6 +10,10 @@ export function AttendeeShellSkeleton({ title, children }: { title: string; chil
   return (
     <div className="attendee-shell">
       <header className="full-page-header attendee-app-header">
+        <button className="menu-trigger" type="button" aria-label="Open menu" aria-hidden="true" tabIndex={-1}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+        </button>
+        <h1 className="app-header-title">{title}</h1>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/images/rmb-fellowship-logo.png"
@@ -18,10 +22,6 @@ export function AttendeeShellSkeleton({ title, children }: { title: string; chil
           width={50}
           height={50}
         />
-        <h1 className="app-header-title">{title}</h1>
-        <button className="menu-trigger" type="button" aria-label="Open menu" aria-hidden="true" tabIndex={-1}>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
-        </button>
       </header>
       <div className="attendee-shell-content">{children}</div>
       <AttendeeBottomTabs />
