@@ -93,14 +93,41 @@ export default function AdminFeedPage() {
     setError(null);
     setUploadMessage(null);
 
-    const body = new FormData();
-    selectedFiles.forEach((file) => body.append("photos", file));
-    if (caption.trim()) body.append("caption", caption.trim());
-
     try {
-      const res = await fetch("/api/admin/photos", withCsrfHeaders({ method: "POST", body, credentials: "include" }));
+      const urlRes = await fetch("/api/admin/photos/upload-urls", withCsrfHeaders({
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: "feed",
+          files: selectedFiles.map((file) => ({ contentType: file.type })),
+        }),
+      }));
+      if (!urlRes.ok) {
+        setError("Couldn't prepare the upload. Please try again.");
+        return;
+      }
+      const { uploads } = await urlRes.json() as {
+        uploads: { uploadUrl: string; objectPath: string; requiredHeaders: Record<string, string> }[];
+      };
+
+      await Promise.all(
+        uploads.map((upload, index) =>
+          fetch(upload.uploadUrl, { method: "PUT", headers: upload.requiredHeaders, body: selectedFiles[index] }),
+        ),
+      );
+
+      const res = await fetch("/api/admin/photos", withCsrfHeaders({
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          objectPaths: uploads.map((upload) => upload.objectPath),
+          ...(caption.trim() ? { caption: caption.trim() } : {}),
+        }),
+      }));
       if (!res.ok) {
-        setError("Couldn't upload photos. Use JPEG, PNG, WEBP, or HEIC files under 5MB each.");
+        setError("Couldn't upload photos. Use JPEG, PNG, or WEBP files under 2MB each.");
         return;
       }
       const uploadedCount = selectedFiles.length;
@@ -172,7 +199,7 @@ export default function AdminFeedPage() {
           }}
         >
           <span style={{ fontWeight: 800, color: "var(--ink)" }}>Choose photos</span>
-          <span className="copy" style={{ margin: 0, fontSize: ".82rem" }}>JPEG, PNG, WEBP, or HEIC. Max 5MB each.</span>
+          <span className="copy" style={{ margin: 0, fontSize: ".82rem" }}>JPEG, PNG, or WEBP. Max 2MB each.</span>
           <input
             type="file"
             accept="image/*"

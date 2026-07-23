@@ -5,7 +5,7 @@ import { AttendeeMe, FeedCommentData, FeedPhotoData } from "./TutorialPage";
 import { CommentIcon } from "./icons";
 import { PoweredByFooter } from "./PoweredByFooter";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { getCsrfToken, withCsrfHeaders } from "../../lib/csrf";
+import { withCsrfHeaders } from "../../lib/csrf";
 import { trackEvent } from "../../lib/gtag";
 import { compressFeedImage } from "../../lib/imageCompression";
 type FeedPageResponse = {
@@ -29,40 +29,78 @@ function formatTimestamp(iso: string) {
   });
 }
 
-function uploadPhotoWithProgress(
+function putWithProgress(url: string, headers: Record<string, string>, file: File, onProgress: (percent: number) => void): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url);
+    Object.entries(headers).forEach(([key, value]) => xhr.setRequestHeader(key, value));
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error(`Upload failed with status ${xhr.status}`));
+    };
+    xhr.onerror = () => reject(new Error("Network error"));
+    xhr.send(file);
+  });
+}
+
+async function uploadPhotoWithProgress(
   files: File[],
   caption: string,
   onProgress: (percent: number) => void,
 ): Promise<FeedPhotoData> {
-  return new Promise((resolve, reject) => {
-    const formData = new FormData();
-    files.forEach((file) => formData.append("photos", file));
-    if (caption.trim()) formData.append("caption", caption.trim());
+  const urlRes = await fetch("/api/uploads/upload-urls", withCsrfHeaders({
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      category: "feed",
+      files: files.map((file) => ({ contentType: file.type })),
+    }),
+  }));
 
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/photos");
-    xhr.withCredentials = true;
-    const csrfToken = getCsrfToken();
-    if (csrfToken) xhr.setRequestHeader("X-CSRF-Token", csrfToken);
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) {
-        onProgress(Math.round((event.loaded / event.total) * 100));
-      }
-    };
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          resolve(JSON.parse(xhr.responseText) as FeedPhotoData);
-        } catch {
-          reject(new Error("Invalid response"));
-        }
-      } else {
-        reject(new Error(`Upload failed with status ${xhr.status}`));
-      }
-    };
-    xhr.onerror = () => reject(new Error("Network error"));
-    xhr.send(formData);
-  });
+  if (!urlRes.ok) {
+    const body = await urlRes.json().catch(() => null) as { message?: string } | null;
+    throw new Error(body?.message ?? "Could not prepare the upload");
+  }
+
+  const { uploads } = await urlRes.json() as {
+    uploads: { uploadUrl: string; objectPath: string; requiredHeaders: Record<string, string> }[];
+  };
+
+  const progressPerFile = new Array(files.length).fill(0);
+  const reportProgress = () => {
+    const total = progressPerFile.reduce((sum, value) => sum + value, 0);
+    onProgress(Math.round(total / files.length));
+  };
+
+  await Promise.all(
+    uploads.map((upload, index) =>
+      putWithProgress(upload.uploadUrl, upload.requiredHeaders, files[index], (percent) => {
+        progressPerFile[index] = percent;
+        reportProgress();
+      }),
+    ),
+  );
+
+  const postRes = await fetch("/api/photos", withCsrfHeaders({
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      objectPaths: uploads.map((upload) => upload.objectPath),
+      ...(caption.trim() ? { caption: caption.trim() } : {}),
+    }),
+  }));
+
+  if (!postRes.ok) {
+    const body = await postRes.json().catch(() => null) as { message?: string } | null;
+    throw new Error(body?.message ?? "Upload failed");
+  }
+
+  return postRes.json() as Promise<FeedPhotoData>;
 }
 
 export function PostComposerModal({
