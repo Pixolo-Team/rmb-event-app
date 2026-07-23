@@ -326,9 +326,6 @@ export function PostComposerModal({
         ) : null}
 
         <div className="photo-modal-actions feed-composer-actions">
-          <button className="photo-modal-secondary" type="button" onClick={closeComposer} disabled={composerStatus === "compressing" || composerStatus === "uploading"}>
-            Cancel
-          </button>
           <button className="btn-primary photo-modal-submit" type="button" disabled={composerStatus === "compressing" || composerStatus === "uploading"} onClick={handlePost}>
             {composerStatus === "compressing"
               ? "Preparing photos..."

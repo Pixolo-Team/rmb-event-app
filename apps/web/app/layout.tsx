@@ -13,6 +13,11 @@ export const metadata: Metadata = {
     shortcut: "/images/rotary-app-icon.png",
     apple: "/images/rotary-app-icon.png",
   },
+  // Stop mobile browsers/OSes from auto-linkifying email addresses and phone
+  // numbers shown as plain text (e.g. the read-only Email on the profile /
+  // edit-profile screens), which renders them underlined and tappable.
+  // Explicit tel:/mailto: links elsewhere are unaffected.
+  formatDetection: { telephone: false, email: false, address: false },
 };
 
 export const viewport: Viewport = {
