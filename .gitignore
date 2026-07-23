@@ -15,6 +15,7 @@ apps/api/uploads/
 .env.local
 apps/*/.env
 apps/*/.env.local
+apps/*/cloud-run.env.yaml
 
 # Prisma
 apps/api/prisma/*.db
@@ -27,3 +28,5 @@ apps/api/prisma/*.db
 
 # logs
 *.log
+
+
