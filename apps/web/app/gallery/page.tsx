@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type TouchEvent } from "react";
+import { useRouter } from "next/navigation";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { GallerySkeleton } from "./GallerySkeleton";
 import type { FeedPhotoData } from "../lib/feedTypes";
@@ -25,12 +26,14 @@ type GalleryFilter = "all" | "organizer" | "attendees";
 const SWIPE_THRESHOLD_PX = 50;
 
 export default function GalleryPage() {
+  const router = useRouter();
   const [photos, setPhotos] = useState<FeedPhotoData[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [state, setState] = useState<"loading" | "ready">("loading");
   const [loadingMore, setLoadingMore] = useState(false);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [filter, setFilter] = useState<GalleryFilter>("all");
+  const [downloading, setDownloading] = useState(false);
   const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
@@ -73,6 +76,33 @@ export default function GalleryPage() {
     setOpenIndex(null);
   }
 
+  // The photos are served from cross-origin signed URLs, so a plain
+  // <a download> is ignored by the browser and just opens the image in a new
+  // tab. Fetching the bytes into a blob first lets us force a real download.
+  async function downloadPhoto(photo: FeedPhotoData) {
+    if (!photo.url || downloading) return;
+    setDownloading(true);
+    try {
+      const response = await fetch(photo.url);
+      if (!response.ok) throw new Error();
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = downloadFileName(photo);
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      // Blob fetch can fail (network / CORS) — fall back to opening the image
+      // so the user can still save it manually.
+      window.open(photo.url, "_blank", "noopener");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   function showPrevious() {
     setOpenIndex((current) => (current === null ? current : Math.max(0, current - 1)));
   }
@@ -98,6 +128,13 @@ export default function GalleryPage() {
   return (
     <AttendeePageShell>
       <div className="attendee-page gallery-page">
+        <div className="back-link-row">
+          <button type="button" className="back-link gallery-back" onClick={() => router.back()}>
+            <span className="back-link-icon" aria-hidden="true"><BackArrowIcon /></span>
+            <span>Back</span>
+          </button>
+        </div>
+
         {state === "ready" && photos.length > 0 ? (
           <div className="gallery-filter-row" role="group" aria-label="Filter photos">
             <button type="button" className={`gallery-filter-chip${filter === "all" ? " active" : ""}`} onClick={() => setFilter("all")}>All</button>
@@ -154,17 +191,31 @@ export default function GalleryPage() {
       {openPhoto ? (
         <div className="gallery-viewer" role="dialog" aria-modal="true" onClick={closeViewer}>
           <div className="gallery-viewer-topbar">
+            <button
+              type="button"
+              className="gallery-viewer-close"
+              aria-label="Close"
+              onClick={(event) => {
+                event.stopPropagation();
+                closeViewer();
+              }}
+            >
+              <CloseIcon />
+            </button>
             <span className="gallery-viewer-name">{openPhoto.attendeeName}</span>
             {openPhoto.url ? (
-              <a
+              <button
+                type="button"
                 className="gallery-viewer-download"
-                href={openPhoto.url}
-                download={downloadFileName(openPhoto)}
                 aria-label="Download photo"
-                onClick={(event) => event.stopPropagation()}
+                disabled={downloading}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  downloadPhoto(openPhoto);
+                }}
               >
                 <DownloadIcon />
-              </a>
+              </button>
             ) : (
               <span className="gallery-viewer-download-spacer" aria-hidden="true" />
             )}
@@ -187,4 +238,12 @@ export default function GalleryPage() {
 
 function DownloadIcon() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M12 4v10" /><path d="m8 10 4 4 4-4" /><path d="M5 19h14" /></svg>;
+}
+
+function CloseIcon() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>;
+}
+
+function BackArrowIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6 9 12l6 6" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }

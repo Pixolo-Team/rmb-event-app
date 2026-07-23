@@ -52,8 +52,15 @@ export default function LeaderboardPage() {
       <main className="attendee-page leaderboard-page">
         <div className="page-context-row">
           <PageIntro>Every confirmed connection earns one point.</PageIntro>
-          <button className="leaderboard-refresh" type="button" onClick={() => load()} disabled={loading}>
-            Refresh
+          <button
+            className={`matches-refresh${loading ? " is-refreshing" : ""}`}
+            type="button"
+            disabled={loading}
+            onClick={() => load()}
+            aria-label={loading ? "Refreshing leaderboard" : "Refresh leaderboard"}
+          >
+            <RefreshIcon />
+            <span>{loading ? "Refreshing..." : "Refresh"}</span>
           </button>
         </div>
         {offline && data && <div className="banner info"><div><b>Showing saved leaderboard</b>Last updated {formatTime(data.updatedAt)}.</div></div>}
@@ -75,3 +82,5 @@ function formatTime(value: string) {
 function formatRank(rank: number | null) {
   return rank ? `#${rank}` : "N/A";
 }
+
+function RefreshIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5" /><path d="M18.3 12A6.5 6.5 0 0 0 7 7.5L4 12M5.7 12A6.5 6.5 0 0 0 17 16.5l3-4.5" /></svg>; }

@@ -2271,6 +2271,7 @@ p.copy {
   font-weight: 650;
   font-size: 0.92rem;
 }
+.gallery-viewer-close,
 .gallery-viewer-download {
   flex: none;
   width: 40px;
@@ -2283,7 +2284,13 @@ p.copy {
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
   text-decoration: none;
+  cursor: pointer;
 }
+.gallery-viewer-download:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.gallery-viewer-close svg,
 .gallery-viewer-download svg {
   width: 20px;
   height: 20px;
@@ -2871,6 +2878,17 @@ p.copy {
   height: 18px;
   flex-shrink: 0;
 }
+/* Gallery's back control is a <button> (router.back()) rather than a <Link>, so
+   it needs the default button chrome cleared and its own icon/text gap. */
+.gallery-back {
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
 .profile-hero { display: flex; align-items: center; gap: 14px; padding: 18px; border: 1px solid var(--border); border-radius: var(--radius-lg, 18px); background: var(--surface); }
 .profile-hero > div { min-width: 0; }
 .profile-name-line { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
@@ -3423,7 +3441,6 @@ a.contact-row:active { background: var(--brand-100); }
 
 /* F6 — live leaderboard */
 .leaderboard-page { max-width: 760px; display: flex; flex-direction: column; flex: 1; min-height: 100%; }
-.leaderboard-refresh { min-height: 44px; padding: 0 13px; border: 1.5px solid var(--border-strong); border-radius: var(--radius-md); background: var(--surface); color: var(--brand-700); font: 700 .8rem var(--font-body); cursor: pointer; }
 .leaderboard-my-stat { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin: 24px 0; overflow: hidden; border: 1px solid var(--brand-500); border-radius: var(--radius-lg, 18px); background: var(--brand-500); }
 .leaderboard-my-stat > div { display: flex; flex-direction: column; align-items: center; padding: 17px 8px; background: var(--brand-50); text-align: center; }
 .leaderboard-my-stat span { color: var(--ink-muted); font-size: .7rem; font-weight: 700; text-transform: uppercase; }
@@ -4108,7 +4125,7 @@ a.contact-row:active { background: var(--brand-100); }
   gap: 24px;
 }
 
-.bookmark-button { min-height: 44px; border: 1px solid #b9c5d5; border-radius: 10px; background: #fff; color: #26384f; padding: 9px 12px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: inherit; font-weight: 700; cursor: pointer; transition: transform 0.12s ease, background-color 0.15s ease, border-color 0.15s ease; }
+.bookmark-button { min-height: 44px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--surface); color: var(--brand-600); padding: 9px 12px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: inherit; font-weight: 700; cursor: pointer; transition: transform 0.12s ease, background-color 0.15s ease, border-color 0.15s ease; }
 .bookmark-button:active { transform: scale(0.92); }
 .bookmark-button svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; }
 .bookmark-button.is-bookmarked { color: #124e96; border-color: #7ea9d8; background: #edf5ff; }
@@ -5248,8 +5265,8 @@ a.contact-row:active { background: var(--brand-100); }
   margin-left: 8px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: var(--brand-100);
-  color: var(--brand-700);
+  background: var(--brand-600);
+  color: #fff;
   font-size: 0.66rem;
   font-weight: 800;
   text-transform: uppercase;
