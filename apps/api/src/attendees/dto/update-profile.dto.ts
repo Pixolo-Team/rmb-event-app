@@ -25,14 +25,12 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(6)
   @IsString({ each: true })
   @MaxLength(100, { each: true })
   offering?: string[];
 
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(6)
   @IsIn(GOALS_TAGS, { each: true })
   goals?: string[];
 

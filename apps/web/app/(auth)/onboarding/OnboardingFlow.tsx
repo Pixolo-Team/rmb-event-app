@@ -99,6 +99,12 @@ export function OnboardingFlow() {
       .catch(() => router.replace("/login"));
   }, [router]);
 
+  useEffect(() => {
+    setFieldErrors({});
+    setSubmitError(null);
+  }, [formStep]);
+
+
   async function submitProfile() {
     const errors: Record<string, string> = {};
     if (!businessCategory) errors.businessCategory = "Choose your business category";
