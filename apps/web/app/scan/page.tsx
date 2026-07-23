@@ -141,7 +141,7 @@ export default function ScanPage() {
     <AttendeePageShell showFooter={false}>
       <main className="attendee-page scan-page">
         <div className="scan-intro">
-          <p className="copy">Point your camera at another attendee&rsquo;s QR to swap cards and log that you met.</p>
+          <p className="copy">Point your camera at another attendee&rsquo;s QR to swap cards.</p>
         </div>
 
         <div className="scan-stage">
@@ -184,7 +184,7 @@ function ResultCard({ outcome, onScanNext }: { outcome: Outcome; onScanNext: () 
   }
 
   const copy: Record<"self" | "not_found" | "error" | "offline", { icon: string; tone: string; title: string; body: string }> = {
-    self: { icon: "🙂", tone: "tone-warning", title: "That's your own code", body: "Scan someone else's QR to connect with them." },
+    self: { icon: "", tone: "tone-warning", title: "That's your own code", body: "Scan someone else's QR to connect with them." },
     not_found: { icon: "!", tone: "tone-warning", title: "Couldn't read that code", body: "It isn't a valid attendee code. Try again, or ask staff for help." },
     error: { icon: "!", tone: "tone-warning", title: "Something went wrong", body: "Please try scanning again." },
     offline: { icon: "✓", tone: "tone-success", title: "Saved offline", body: "You're offline - this meeting will sync automatically once you're back online." },
@@ -192,7 +192,7 @@ function ResultCard({ outcome, onScanNext }: { outcome: Outcome; onScanNext: () 
   const c = copy[outcome.kind];
   return (
     <div className={`scan-result ${c.tone}`}>
-      <span className={`ring ${outcome.kind === "offline" ? "ok" : "warn"} lg`}>{c.icon}</span>
+      <span className={`ring ${outcome.kind === "offline" ? "ok" : "warn"} lg`}>{outcome.kind === "self" ? <SelfIcon /> : c.icon}</span>
       <h2>{c.title}</h2>
       <p className="copy">{c.body}</p>
       <div className="scan-actions">
@@ -200,4 +200,8 @@ function ResultCard({ outcome, onScanNext }: { outcome: Outcome; onScanNext: () 
       </div>
     </div>
   );
+}
+
+function SelfIcon() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M5 20c.7-3.8 3.2-6 7-6s6.3 2.2 7 6" /></svg>;
 }

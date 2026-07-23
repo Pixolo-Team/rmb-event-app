@@ -315,6 +315,9 @@ export default function ProfilePage() {
 
           {enlarged && qrDataUrl && profile && (
             <div className="qr-fullscreen" role="dialog" aria-modal="true" aria-label="Your QR code" onClick={() => setEnlarged(false)}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="qr-fullscreen-logo" src="/images/rotary-rmb-lockup.jpg" alt="Rotary Means Business Fellowship" />
+              <p className="qr-fullscreen-hint">Use this QR Code to Check In</p>
               <img src={qrDataUrl} alt="Your personal QR code, enlarged" />
               <p className="qr-fullscreen-name">{profile.name}</p>
               <button className="qr-fullscreen-close" type="button" aria-label="Close">Tap anywhere to close</button>

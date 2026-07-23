@@ -16,9 +16,24 @@ function getInitials(name: string) {
   return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("") || "EV";
 }
 
-function downloadFileName(photo: FeedPhotoData) {
-  const safeName = photo.attendeeName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "evento-photo";
-  return `${safeName}-${photo.id}.jpg`;
+function downloadFileName(item: GalleryItem) {
+  const safeName = item.attendeeName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "evento-photo";
+  return `${safeName}-${item.key}.jpg`;
+}
+
+// A feed post can carry several photos (a carousel). The gallery is a flat wall
+// of individual photos, so every photo in every post becomes its own tile.
+type GalleryItem = { key: string; url: string | null; attendeeName: string };
+
+function toGalleryItems(photos: FeedPhotoData[]): GalleryItem[] {
+  return photos.flatMap((photo) => {
+    const urls = photo.urls.length > 0 ? photo.urls : photo.url ? [photo.url] : [null];
+    return urls.map((url, index) => ({
+      key: `${photo.id}-${index}`,
+      url,
+      attendeeName: photo.attendeeName,
+    }));
+  });
 }
 
 type GalleryFilter = "all" | "organizer" | "attendees";
@@ -70,7 +85,8 @@ export default function GalleryPage() {
     if (filter === "attendees") return photo.attendeeId !== null;
     return true;
   });
-  const openPhoto = openIndex !== null ? visiblePhotos[openIndex] ?? null : null;
+  const galleryItems = toGalleryItems(visiblePhotos);
+  const openItem = openIndex !== null ? galleryItems[openIndex] ?? null : null;
 
   function closeViewer() {
     setOpenIndex(null);
@@ -79,17 +95,17 @@ export default function GalleryPage() {
   // The photos are served from cross-origin signed URLs, so a plain
   // <a download> is ignored by the browser and just opens the image in a new
   // tab. Fetching the bytes into a blob first lets us force a real download.
-  async function downloadPhoto(photo: FeedPhotoData) {
-    if (!photo.url || downloading) return;
+  async function downloadPhoto(item: GalleryItem) {
+    if (!item.url || downloading) return;
     setDownloading(true);
     try {
-      const response = await fetch(photo.url);
+      const response = await fetch(item.url);
       if (!response.ok) throw new Error();
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = downloadFileName(photo);
+      anchor.download = downloadFileName(item);
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -97,18 +113,10 @@ export default function GalleryPage() {
     } catch {
       // Blob fetch can fail (network / CORS) — fall back to opening the image
       // so the user can still save it manually.
-      window.open(photo.url, "_blank", "noopener");
+      window.open(item.url, "_blank", "noopener");
     } finally {
       setDownloading(false);
     }
-  }
-
-  function showPrevious() {
-    setOpenIndex((current) => (current === null ? current : Math.max(0, current - 1)));
-  }
-
-  function showNext() {
-    setOpenIndex((current) => (current === null ? current : Math.min(visiblePhotos.length - 1, current + 1)));
   }
 
   function handleTouchStart(event: TouchEvent) {
@@ -121,8 +129,11 @@ export default function GalleryPage() {
     const delta = endX - touchStartX.current;
     touchStartX.current = null;
     if (Math.abs(delta) < SWIPE_THRESHOLD_PX) return;
-    if (delta > 0) showPrevious();
-    else showNext();
+    setOpenIndex((current) => {
+      if (current === null) return current;
+      if (delta > 0) return Math.max(0, current - 1);
+      return Math.min(galleryItems.length - 1, current + 1);
+    });
   }
 
   return (
@@ -159,21 +170,21 @@ export default function GalleryPage() {
           </section>
         ) : null}
 
-        {state === "ready" && visiblePhotos.length > 0 ? (
+        {state === "ready" && galleryItems.length > 0 ? (
           <div className="gallery-grid">
-            {visiblePhotos.map((photo, index) => (
+            {galleryItems.map((item, index) => (
               <button
-                key={photo.id}
+                key={item.key}
                 type="button"
                 className="gallery-grid-item"
                 onClick={() => setOpenIndex(index)}
-                aria-label={`Open photo from ${photo.attendeeName}`}
+                aria-label={`Open photo from ${item.attendeeName}`}
               >
-                {photo.url ? (
-                  <img src={photo.url} alt="" loading="lazy" decoding="async" />
+                {item.url ? (
+                  <img src={item.url} alt="" loading="lazy" decoding="async" />
                 ) : (
                   <span className="gallery-grid-placeholder" aria-hidden="true">
-                    {getInitials(photo.attendeeName)}
+                    {getInitials(item.attendeeName)}
                   </span>
                 )}
               </button>
@@ -188,7 +199,7 @@ export default function GalleryPage() {
         ) : null}
       </div>
 
-      {openPhoto ? (
+      {openItem && openIndex !== null ? (
         <div className="gallery-viewer" role="dialog" aria-modal="true" onClick={closeViewer}>
           <div className="gallery-viewer-topbar">
             <button
@@ -202,8 +213,8 @@ export default function GalleryPage() {
             >
               <CloseIcon />
             </button>
-            <span className="gallery-viewer-name">{openPhoto.attendeeName}</span>
-            {openPhoto.url ? (
+            <span className="gallery-viewer-name">{openItem.attendeeName}</span>
+            {openItem.url ? (
               <button
                 type="button"
                 className="gallery-viewer-download"
@@ -211,7 +222,7 @@ export default function GalleryPage() {
                 disabled={downloading}
                 onClick={(event) => {
                   event.stopPropagation();
-                  downloadPhoto(openPhoto);
+                  downloadPhoto(openItem);
                 }}
               >
                 <DownloadIcon />
@@ -221,14 +232,26 @@ export default function GalleryPage() {
             )}
           </div>
 
-          <div className="gallery-viewer-media" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-            {openPhoto.url ? (
-              <img src={openPhoto.url} alt="" />
-            ) : (
-              <div className="photo-card-placeholder" aria-hidden="true">
-                {getInitials(openPhoto.attendeeName)}
+          <div
+            className="gallery-viewer-track"
+            style={{ transform: `translateX(-${openIndex * 100}%)` }}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            {galleryItems.map((item, index) => (
+              <div className="gallery-viewer-slide" key={item.key}>
+                {/* Only mount the image near the current slide — the track holds
+                    every photo for a smooth slide, but loading them all at once
+                    would be wasteful for a large gallery. */}
+                {Math.abs(index - openIndex) <= 1 && item.url ? (
+                  <img src={item.url} alt="" />
+                ) : Math.abs(index - openIndex) <= 1 ? (
+                  <div className="photo-card-placeholder" aria-hidden="true">
+                    {getInitials(item.attendeeName)}
+                  </div>
+                ) : null}
               </div>
-            )}
+            ))}
           </div>
         </div>
       ) : null}

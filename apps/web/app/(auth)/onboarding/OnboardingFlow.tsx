@@ -22,6 +22,7 @@ interface AttendeePrefill {
   city: string | null;
   businessCategory: string | null;
   websiteUrl?: string | null;
+  linkedInUrl?: string | null;
   profileCompletedAt: string | null;
 }
 
@@ -52,6 +53,21 @@ function normalizeWebsiteUrl(value: string) {
   }
 }
 
+function normalizeLinkedInUrl(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const url = new URL(withProtocol);
+    // Force https and require a linkedin. host so we store a clean, valid link.
+    if (!url.hostname.includes("linkedin.")) return null;
+    url.protocol = "https:";
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 export function OnboardingFlow() {
   const router = useRouter();
   const { canInstall, isInstalled, promptInstall } = usePwaInstall();
@@ -69,6 +85,7 @@ export function OnboardingFlow() {
   const [goals, setGoals] = useState<string[]>([]);
   const [bio, setBio] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
+  const [linkedInUrl, setLinkedInUrl] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -93,6 +110,7 @@ export function OnboardingFlow() {
         if (me.city) setCity(me.city);
         if (me.businessCategory) setBusinessCategory(me.businessCategory);
         if (me.websiteUrl) setWebsiteUrl(me.websiteUrl);
+        if (me.linkedInUrl) setLinkedInUrl(me.linkedInUrl);
         setOptions(await optionsRes.json());
         setStep("form");
       })
@@ -115,6 +133,10 @@ export function OnboardingFlow() {
     if (websiteUrl.trim() && !normalizedWebsiteUrl) {
       errors.websiteUrl = "Enter a valid website link";
     }
+    const normalizedLinkedInUrl = normalizeLinkedInUrl(linkedInUrl);
+    if (linkedInUrl.trim() && !normalizedLinkedInUrl) {
+      errors.linkedInUrl = "Enter a valid LinkedIn profile URL";
+    }
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
@@ -134,6 +156,7 @@ export function OnboardingFlow() {
           goals,
           bio: bio || undefined,
           websiteUrl: normalizedWebsiteUrl || undefined,
+          linkedInUrl: normalizedLinkedInUrl || undefined,
         }),
       }));
       if (!res.ok) {
@@ -381,6 +404,21 @@ export function OnboardingFlow() {
               placeholder="yourwebsite.com"
             />
             {fieldErrors.websiteUrl && <div className="hint err">{fieldErrors.websiteUrl}</div>}
+          </div>
+          <div className="field">
+            <label htmlFor="linkedInUrl">LinkedIn link (optional)</label>
+            <input
+              id="linkedInUrl"
+              type="text"
+              inputMode="url"
+              value={linkedInUrl}
+              onChange={(e) => {
+                setLinkedInUrl(e.target.value);
+                setFieldErrors(({ linkedInUrl: _drop, ...rest }) => rest);
+              }}
+              placeholder="linkedin.com/in/you"
+            />
+            {fieldErrors.linkedInUrl && <div className="hint err">{fieldErrors.linkedInUrl}</div>}
           </div>
         </section>
       )}

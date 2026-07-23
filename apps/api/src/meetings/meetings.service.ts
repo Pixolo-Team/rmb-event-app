@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { UploadsService } from "../uploads/uploads.service";
 
 export type ScanResult =
   | { status: "not_found" }
@@ -12,7 +13,10 @@ export type ScanResult =
 
 @Injectable()
 export class MeetingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uploads: UploadsService,
+  ) {}
 
   /**
    * Record a confirmed meeting from one QR scan (F4.2). Idempotent: a repeat scan
@@ -61,14 +65,21 @@ export class MeetingsService {
     });
 
     return {
-      connections: meetings.map((meeting) => {
-        const viewerIsA = meeting.attendeeAId === attendeeId;
-        return {
-          ...viewerIsA ? meeting.attendeeB : meeting.attendeeA,
-          metAt: meeting.createdAt,
-          note: (viewerIsA ? meeting.attendeeANote : meeting.attendeeBNote) ?? "",
-        };
-      }),
+      connections: await Promise.all(
+        meetings.map(async (meeting) => {
+          const viewerIsA = meeting.attendeeAId === attendeeId;
+          const other = viewerIsA ? meeting.attendeeB : meeting.attendeeA;
+          return {
+            ...other,
+            // photoUrl is stored as a private GCS object path; the client needs a
+            // signed, temporary download URL (as every other attendee-photo
+            // endpoint returns) — returning the raw path renders no image.
+            photoUrl: other.photoUrl ? await this.uploads.resolveProfilePhotoUrl(other.photoUrl) : null,
+            metAt: meeting.createdAt,
+            note: (viewerIsA ? meeting.attendeeANote : meeting.attendeeBNote) ?? "",
+          };
+        }),
+      ),
     };
   }
 

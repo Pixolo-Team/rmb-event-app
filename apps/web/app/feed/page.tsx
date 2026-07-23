@@ -87,7 +87,7 @@ export default function FeedPage() {
   }, []);
 
   return (
-    <AttendeePageShell>
+    <AttendeePageShell showFooter={false}>
       <div className="attendee-page feed-page">
         {error && !attendee ? (
           <div className="directory-state">

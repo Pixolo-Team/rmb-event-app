@@ -51,7 +51,7 @@ export default function LeaderboardPage() {
     <AttendeePageShell showFooter={false}>
       <main className="attendee-page leaderboard-page">
         <div className="page-context-row">
-          <PageIntro>Every confirmed connection earns one point.</PageIntro>
+          <PageIntro>Every connection earns you one point.</PageIntro>
           <button
             className={`matches-refresh${loading ? " is-refreshing" : ""}`}
             type="button"

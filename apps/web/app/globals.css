@@ -1043,6 +1043,10 @@ p.copy {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* As a flex item in a column layout the ring would otherwise shrink
+     vertically when space is tight — width stays fixed, height compresses, and
+     the circle renders as an oval. Pin its size. */
+  flex: none;
 }
 .ring.ok {
   background: var(--success-100);
@@ -2223,7 +2227,13 @@ p.copy {
   color: #fff;
 }
 .gallery-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: 0 16px;
+  text-align: center;
 }
 .gallery-empty h2,
 .gallery-empty p {
@@ -2327,20 +2337,32 @@ p.copy {
   width: 40px;
   height: 40px;
 }
-.gallery-viewer-media {
+.gallery-viewer-track {
   flex: 1;
+  min-height: 0;
+  display: flex;
+  transition: transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1);
+  touch-action: pan-y;
+}
+.gallery-viewer-slide {
+  flex: 0 0 100%;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  touch-action: pan-y;
 }
-.gallery-viewer-media img {
+.gallery-viewer-slide img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gallery-viewer-track {
+    transition: none;
+  }
 }
 
 .gallery-copy-skeleton {
@@ -3372,8 +3394,10 @@ a.contact-row:active { background: var(--brand-100); }
 
 /* Full-screen enlarge — a solid white field maximizes perceived brightness for
    another phone's camera (web has no screen-brightness API). */
-.qr-fullscreen { position: fixed; inset: 0; z-index: 1000; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 24px; cursor: pointer; animation: qr-fullscreen-in 0.2s ease-out; }
-.qr-fullscreen img { width: min(86vw, 86vh); height: auto; image-rendering: pixelated; }
+.qr-fullscreen { position: fixed; inset: 0; z-index: 1000; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; cursor: pointer; animation: qr-fullscreen-in 0.2s ease-out; }
+.qr-fullscreen img { width: min(74vw, 60vh); height: auto; image-rendering: pixelated; }
+.qr-fullscreen img.qr-fullscreen-logo { width: min(68vw, 300px); height: auto; image-rendering: auto; }
+.qr-fullscreen-hint { margin: 0; font: 700 1.05rem var(--font-display); color: #0b1220; text-align: center; }
 @keyframes qr-fullscreen-in {
   from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1); }
@@ -3857,6 +3881,36 @@ a.contact-row:active { background: var(--brand-100); }
   color: var(--ink);
 }
 
+.round-tables {
+  padding: 16px 18px;
+  border: 1px solid var(--brand-400);
+  border-radius: var(--radius-lg, 18px);
+  background: var(--brand-100);
+}
+.round-tables h2 {
+  margin: 0 0 12px;
+  font: 700 1rem var(--font-display);
+  color: var(--ink);
+}
+.round-tables-seq {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.round-tables-step {
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  border: 1px solid var(--brand-400);
+  color: var(--brand-700);
+  font: 800 1rem var(--font-display);
+}
+.round-tables-arrow {
+  color: var(--ink-faint);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
 .home-scan-cta {
   display: flex;
   align-items: center;
@@ -4338,7 +4392,10 @@ a.contact-row:active { background: var(--brand-100); }
 }
 .feed-page .photo-card > .photo-card-media { border-radius: 0; aspect-ratio: 16 / 10; }
 .post-carousel { position: relative; overflow: hidden; background: var(--surface-2); }
-.post-carousel > .photo-card-media { width: 100%; border-radius: 0; aspect-ratio: 16 / 10; touch-action: pan-y; }
+.post-carousel-track { display: flex; transition: transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1); touch-action: pan-y; }
+.post-carousel-slide { flex: 0 0 100%; width: 100%; }
+.post-carousel .photo-card-media { width: 100%; border-radius: 0; aspect-ratio: 16 / 10; }
+@media (prefers-reduced-motion: reduce) { .post-carousel-track { transition: none; } }
 .carousel-dots { position: absolute; left: 50%; bottom: 10px; display: flex; gap: 5px; transform: translateX(-50%); }.carousel-dots span{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.55)}.carousel-dots span.active{background:#fff;transform:scale(1.25)}
 .post-caption { display: flex; min-width: 0; gap: 5px; margin: 0; padding: 0 16px 7px; color: var(--ink); font-size: .92rem; line-height: 1.4; }.post-caption span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.post-caption.expanded span{white-space:normal}.post-caption button{flex:0 0 auto;border:0;background:transparent;color:var(--ink-muted);font:inherit;font-weight:700;cursor:pointer}
 .feed-page .photo-card > .person-bio { margin: 0; padding: 14px 16px 10px; color: var(--ink); font-size: .94rem; line-height: 1.5; }
@@ -5131,6 +5188,7 @@ a.contact-row:active { background: var(--brand-100); }
   align-items: center;
   justify-content: center;
   width: 100%;
+  height: 100%;
   min-height: 204px;
   gap: 14px;
   padding: 18px;
@@ -5209,6 +5267,13 @@ a.contact-row:active { background: var(--brand-100); }
   transform: scale(0.97);
 }
 .post-action.active {
+  color: #e0245e;
+}
+/* While the like request is in flight the button is disabled, and the plain
+   .post-action:disabled grey rule (later in the file, equal specificity) was
+   winning over .active — so a just-liked heart stayed grey until the request
+   resolved, then flipped red. Keep it red the instant it's liked. */
+.post-action.active:disabled {
   color: #e0245e;
 }
 .post-action.active svg {
@@ -5307,6 +5372,16 @@ a.contact-row:active { background: var(--brand-100); }
 }
 .public-profile-card {
   max-width: 420px;
+}
+.public-profile-card .profile-hero {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  border: none;
+  background: none;
+  padding: 0;
 }
 .public-profile-actions {
   display: flex;
@@ -5581,6 +5656,9 @@ a.contact-row:active { background: var(--brand-100); }
   background: var(--paper);
   border-radius: var(--radius-md);
   overflow: hidden;
+  /* Without this the surrounding scroll container swallows the drag gesture on
+     touch devices, so the photo can't be repositioned inside the crop frame. */
+  touch-action: none;
 }
 
 .photo-crop-controls {

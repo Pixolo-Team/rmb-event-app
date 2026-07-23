@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AttendeePageShell } from "../../components/AttendeePageShell";
 import { BookmarkButton } from "../../components/BookmarkButton";
 import { ContactRows } from "../../components/ContactRows";
@@ -10,12 +11,23 @@ import { SaveContactButton } from "../../components/SaveContactButton";
 import { trackEvent } from "../../lib/gtag";
 import { directoryCache, type AttendeeProfile } from "../../lib/directoryCache";
 import { getCachedVenueConfig } from "../../lib/offlineQueue";
+import { profileCache } from "../../lib/profileCache";
 
 export default function AttendeeProfilePage({ params }: { params: { id: string } }) {
+  const router = useRouter();
   const [profile, setProfile] = useState<AttendeeProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [offlineResult, setOfflineResult] = useState(false);
   const [error, setError] = useState(false);
+
+  // Viewing your own attendee page shows the "meet someone else" UI (bookmark,
+  // WhatsApp, save-contact) pointed at yourself, which is meaningless — send
+  // yourself to your own editable Profile instead.
+  useEffect(() => {
+    if (profileCache.get()?.id === params.id) {
+      router.replace("/profile");
+    }
+  }, [params.id, router]);
 
   useEffect(() => {
     const cached = directoryCache.getProfile(params.id);

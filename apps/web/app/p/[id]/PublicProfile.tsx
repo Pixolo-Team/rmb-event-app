@@ -11,6 +11,7 @@ type PublicProfileData = {
   businessCategory: string | null;
   bio: string | null;
   phone: string;
+  email: string;
   photoUrl: string | null;
   linkedInUrl: string | null;
   websiteUrl?: string | null;
@@ -116,6 +117,9 @@ export function PublicProfile({ id }: { id: string }) {
         <div className="public-profile-actions">
           <a className="btn-primary" href={`tel:${profile.phone}`} style={{ marginTop: 0 }}>
             Call {profile.phone}
+          </a>
+          <a className="btn-secondary" href={`mailto:${profile.email}`}>
+            Email {profile.email}
           </a>
           {profile.websiteUrl ? (
             <a className="btn-secondary" href={profile.websiteUrl} target="_blank" rel="noopener noreferrer">

@@ -1,7 +1,7 @@
 "use client";
 
 // REACT //
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 // COMPONENTS //
@@ -61,6 +61,16 @@ const MAX_LIFECYCLE_TIMER_MS = 60 * 60 * 1000;
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+// A table value may be a single table ("A5") or a round-table rotation the
+// organizer enters as an arrow/comma sequence ("A1->A2->A3->A5->A4"). Split it
+// into individual stops so we can render them with arrows between.
+function parseTableSequence(value: string): string[] {
+  return value
+    .split(/->|→|,/)
+    .map((part) => part.trim())
+    .filter(Boolean);
 }
 
 function formatEventDate(iso: string): string {
@@ -461,13 +471,6 @@ export default function HomePage() {
           )
         )}
 
-        {liveCheckedIn && attendee?.tableNumber && (
-          <div className="table-callout">
-            <span>Your table</span>
-            <strong>{attendee.tableNumber}</strong>
-          </div>
-        )}
-
         {/* ---- scan-to-connect: only during the live event, once checked in ---- */}
         {mode === "dashboard" && liveCheckedIn && (
           <button className="btn-primary home-scan-cta" type="button" onClick={() => router.push("/scan")}>
@@ -495,6 +498,21 @@ export default function HomePage() {
           <Link href="/summary" className="btn-secondary home-secondary-cta">
             View your summary
           </Link>
+        )}
+
+        {/* ---- round-table seating: moved to the end of the dashboard ---- */}
+        {liveCheckedIn && attendee?.tableNumber && (
+          <section className="round-tables" aria-label="Round tables">
+            <h2>Round Tables</h2>
+            <div className="round-tables-seq">
+              {parseTableSequence(attendee.tableNumber).map((table, index) => (
+                <Fragment key={index}>
+                  {index > 0 && <span className="round-tables-arrow" aria-hidden="true">→</span>}
+                  <span className="round-tables-step">{table}</span>
+                </Fragment>
+              ))}
+            </div>
+          </section>
         )}
 
         <PoweredByFooter />

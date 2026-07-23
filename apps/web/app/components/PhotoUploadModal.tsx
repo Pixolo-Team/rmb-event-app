@@ -154,7 +154,7 @@ export function PhotoUploadModal({
                 onCropChange={setCrop}
                 onCropComplete={onCropComplete}
                 onZoomChange={setZoom}
-                objectFit="cover"
+                objectFit="contain"
               />
               <div className="photo-crop-controls">
                 <div className="zoom-control">
