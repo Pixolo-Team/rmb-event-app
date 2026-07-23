@@ -1043,6 +1043,10 @@ p.copy {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* As a flex item in a column layout the ring would otherwise shrink
+     vertically when space is tight — width stays fixed, height compresses, and
+     the circle renders as an oval. Pin its size. */
+  flex: none;
 }
 .ring.ok {
   background: var(--success-100);
@@ -2333,20 +2337,32 @@ p.copy {
   width: 40px;
   height: 40px;
 }
-.gallery-viewer-media {
+.gallery-viewer-track {
   flex: 1;
+  min-height: 0;
+  display: flex;
+  transition: transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1);
+  touch-action: pan-y;
+}
+.gallery-viewer-slide {
+  flex: 0 0 100%;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  touch-action: pan-y;
 }
-.gallery-viewer-media img {
+.gallery-viewer-slide img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gallery-viewer-track {
+    transition: none;
+  }
 }
 
 .gallery-copy-skeleton {
@@ -3865,6 +3881,36 @@ a.contact-row:active { background: var(--brand-100); }
   color: var(--ink);
 }
 
+.round-tables {
+  padding: 16px 18px;
+  border: 1px solid var(--brand-400);
+  border-radius: var(--radius-lg, 18px);
+  background: var(--brand-100);
+}
+.round-tables h2 {
+  margin: 0 0 12px;
+  font: 700 1rem var(--font-display);
+  color: var(--ink);
+}
+.round-tables-seq {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.round-tables-step {
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  border: 1px solid var(--brand-400);
+  color: var(--brand-700);
+  font: 800 1rem var(--font-display);
+}
+.round-tables-arrow {
+  color: var(--ink-faint);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
 .home-scan-cta {
   display: flex;
   align-items: center;
@@ -4346,7 +4392,10 @@ a.contact-row:active { background: var(--brand-100); }
 }
 .feed-page .photo-card > .photo-card-media { border-radius: 0; aspect-ratio: 16 / 10; }
 .post-carousel { position: relative; overflow: hidden; background: var(--surface-2); }
-.post-carousel > .photo-card-media { width: 100%; border-radius: 0; aspect-ratio: 16 / 10; touch-action: pan-y; }
+.post-carousel-track { display: flex; transition: transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1); touch-action: pan-y; }
+.post-carousel-slide { flex: 0 0 100%; width: 100%; }
+.post-carousel .photo-card-media { width: 100%; border-radius: 0; aspect-ratio: 16 / 10; }
+@media (prefers-reduced-motion: reduce) { .post-carousel-track { transition: none; } }
 .carousel-dots { position: absolute; left: 50%; bottom: 10px; display: flex; gap: 5px; transform: translateX(-50%); }.carousel-dots span{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.55)}.carousel-dots span.active{background:#fff;transform:scale(1.25)}
 .post-caption { display: flex; min-width: 0; gap: 5px; margin: 0; padding: 0 16px 7px; color: var(--ink); font-size: .92rem; line-height: 1.4; }.post-caption span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.post-caption.expanded span{white-space:normal}.post-caption button{flex:0 0 auto;border:0;background:transparent;color:var(--ink-muted);font:inherit;font-weight:700;cursor:pointer}
 .feed-page .photo-card > .person-bio { margin: 0; padding: 14px 16px 10px; color: var(--ink); font-size: .94rem; line-height: 1.5; }

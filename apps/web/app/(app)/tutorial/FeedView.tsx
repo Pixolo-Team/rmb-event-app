@@ -816,16 +816,27 @@ function PhotoCard({
       {photo.caption ? <p className={`post-caption${captionExpanded ? " expanded" : ""}`}><span>{photo.caption}</span>{photo.caption.length > 72 && <button type="button" onClick={() => setCaptionExpanded(!captionExpanded)}>{captionExpanded ? "less" : "Read more"}</button>}</p> : null}
 
       <div className="post-carousel">
-      <div className="photo-card-media" onTouchStart={handleMediaTouchStart} onTouchEnd={handleMediaTouchEnd}>
-        {mediaUrls[activeMedia] ? (
-          <img src={mediaUrls[activeMedia]} alt="" loading="lazy" decoding="async" />
-        ) : (
-          <div className="photo-card-placeholder" aria-hidden="true">
-            {getInitials(photo.attendeeName)}
-          </div>
-        )}
-      </div>
-      {mediaUrls.length > 1 && <div className="carousel-dots" aria-label={`Photo ${activeMedia + 1} of ${mediaUrls.length}`}>{mediaUrls.map((_, index) => <span key={index} className={index === activeMedia ? "active" : ""} />)}</div>}
+        <div
+          className="post-carousel-track"
+          style={{ transform: `translateX(-${activeMedia * 100}%)` }}
+          onTouchStart={handleMediaTouchStart}
+          onTouchEnd={handleMediaTouchEnd}
+        >
+          {mediaUrls.length > 0 ? (
+            mediaUrls.map((url, index) => (
+              <div className="photo-card-media post-carousel-slide" key={index}>
+                <img src={url} alt="" loading="lazy" decoding="async" />
+              </div>
+            ))
+          ) : (
+            <div className="photo-card-media post-carousel-slide">
+              <div className="photo-card-placeholder" aria-hidden="true">
+                {getInitials(photo.attendeeName)}
+              </div>
+            </div>
+          )}
+        </div>
+        {mediaUrls.length > 1 && <div className="carousel-dots" aria-label={`Photo ${activeMedia + 1} of ${mediaUrls.length}`}>{mediaUrls.map((_, index) => <span key={index} className={index === activeMedia ? "active" : ""} />)}</div>}
       </div>
 
       <div className="post-action-bar">
