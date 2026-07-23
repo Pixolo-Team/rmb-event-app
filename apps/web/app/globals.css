@@ -3883,7 +3883,7 @@ a.contact-row:active { background: var(--brand-100); }
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 0;
+  padding: 8px;
   border-radius: var(--radius-md);
   text-decoration: none;
   color: inherit;
