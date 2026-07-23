@@ -125,12 +125,34 @@ export default function AdminEventSettingsPage() {
   async function handleChairPhotoUpload(file: File) {
     setChairPhotoUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("photo", file);
-      const res = await fetch("/api/admin/event/chair-photo", withCsrfHeaders({
+      const contentType = file.type as "image/jpeg" | "image/png" | "image/webp";
+
+      const urlRes = await fetch("/api/admin/event/chair-photo/upload-url", withCsrfHeaders({
         method: "POST",
         credentials: "include",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contentType }),
+      }));
+      if (!urlRes.ok) {
+        const body = await urlRes.json().catch(() => null) as { message?: string } | null;
+        throw new Error(body?.message ?? "Could not prepare the upload");
+      }
+      const { upload } = await urlRes.json() as {
+        upload: { uploadUrl: string; objectPath: string; requiredHeaders: Record<string, string> };
+      };
+
+      const putRes = await fetch(upload.uploadUrl, {
+        method: "PUT",
+        headers: upload.requiredHeaders,
+        body: file,
+      });
+      if (!putRes.ok) throw new Error("Upload to storage failed");
+
+      const res = await fetch("/api/admin/event/chair-photo", withCsrfHeaders({
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ objectPath: upload.objectPath }),
       }));
       if (!res.ok) {
         const body = await res.json().catch(() => null) as { message?: string } | null;

@@ -5,7 +5,8 @@ import { AttendeeMe, FeedCommentData, FeedPhotoData } from "./TutorialPage";
 import { CommentIcon } from "./icons";
 import { PoweredByFooter } from "./PoweredByFooter";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { getCsrfToken, withCsrfHeaders } from "../../lib/csrf";
+import { DirectoryAvatar } from "../../components/DirectoryAvatar";
+import { withCsrfHeaders } from "../../lib/csrf";
 import { trackEvent } from "../../lib/gtag";
 import { compressFeedImage } from "../../lib/imageCompression";
 type FeedPageResponse = {
@@ -14,6 +15,7 @@ type FeedPageResponse = {
 };
 
 const MAX_PHOTOS_PER_POST = 6;
+const CAROUSEL_SWIPE_THRESHOLD_PX = 40;
 
 function getInitials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -29,40 +31,78 @@ function formatTimestamp(iso: string) {
   });
 }
 
-function uploadPhotoWithProgress(
+function putWithProgress(url: string, headers: Record<string, string>, file: File, onProgress: (percent: number) => void): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url);
+    Object.entries(headers).forEach(([key, value]) => xhr.setRequestHeader(key, value));
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error(`Upload failed with status ${xhr.status}`));
+    };
+    xhr.onerror = () => reject(new Error("Network error"));
+    xhr.send(file);
+  });
+}
+
+async function uploadPhotoWithProgress(
   files: File[],
   caption: string,
   onProgress: (percent: number) => void,
 ): Promise<FeedPhotoData> {
-  return new Promise((resolve, reject) => {
-    const formData = new FormData();
-    files.forEach((file) => formData.append("photos", file));
-    if (caption.trim()) formData.append("caption", caption.trim());
+  const urlRes = await fetch("/api/uploads/upload-urls", withCsrfHeaders({
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      category: "feed",
+      files: files.map((file) => ({ contentType: file.type })),
+    }),
+  }));
 
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/photos");
-    xhr.withCredentials = true;
-    const csrfToken = getCsrfToken();
-    if (csrfToken) xhr.setRequestHeader("X-CSRF-Token", csrfToken);
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) {
-        onProgress(Math.round((event.loaded / event.total) * 100));
-      }
-    };
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          resolve(JSON.parse(xhr.responseText) as FeedPhotoData);
-        } catch {
-          reject(new Error("Invalid response"));
-        }
-      } else {
-        reject(new Error(`Upload failed with status ${xhr.status}`));
-      }
-    };
-    xhr.onerror = () => reject(new Error("Network error"));
-    xhr.send(formData);
-  });
+  if (!urlRes.ok) {
+    const body = await urlRes.json().catch(() => null) as { message?: string } | null;
+    throw new Error(body?.message ?? "Could not prepare the upload");
+  }
+
+  const { uploads } = await urlRes.json() as {
+    uploads: { uploadUrl: string; objectPath: string; requiredHeaders: Record<string, string> }[];
+  };
+
+  const progressPerFile = new Array(files.length).fill(0);
+  const reportProgress = () => {
+    const total = progressPerFile.reduce((sum, value) => sum + value, 0);
+    onProgress(Math.round(total / files.length));
+  };
+
+  await Promise.all(
+    uploads.map((upload, index) =>
+      putWithProgress(upload.uploadUrl, upload.requiredHeaders, files[index], (percent) => {
+        progressPerFile[index] = percent;
+        reportProgress();
+      }),
+    ),
+  );
+
+  const postRes = await fetch("/api/photos", withCsrfHeaders({
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      objectPaths: uploads.map((upload) => upload.objectPath),
+      ...(caption.trim() ? { caption: caption.trim() } : {}),
+    }),
+  }));
+
+  if (!postRes.ok) {
+    const body = await postRes.json().catch(() => null) as { message?: string } | null;
+    throw new Error(body?.message ?? "Upload failed");
+  }
+
+  return postRes.json() as Promise<FeedPhotoData>;
 }
 
 export function PostComposerModal({
@@ -152,6 +192,7 @@ export function PostComposerModal({
         attendeeId: attendee.id,
         attendeeName: attendee.name,
         attendeeBusinessName: attendee.businessName,
+        attendeePhotoUrl: attendee.photoUrl ?? null,
         likeCount: 0,
         commentCount: 0,
         likedByMe: false,
@@ -213,7 +254,7 @@ export function PostComposerModal({
             <p className="settings-copy">Select up to {MAX_PHOTOS_PER_POST} photos for one carousel post.</p>
           </div>
           <button
-            className="photo-modal-close"
+            className="menu-close photo-modal-close"
             type="button"
             onClick={closeComposer}
             disabled={composerStatus === "compressing" || composerStatus === "uploading"}
@@ -729,17 +770,30 @@ function PhotoCard({
   onEnlarge: () => void;
 }) {
   const visibleComments = photo.comments.slice(-2);
-  const mediaUrls = photo.urls?.length ? photo.urls : photo.url ? [photo.url] : [];
+  const mediaUrls = photo.urls.length > 0 ? photo.urls : photo.url ? [photo.url] : [];
   const [activeMedia, setActiveMedia] = useState(0);
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+
+  function handleMediaTouchStart(event: React.TouchEvent) {
+    touchStartX.current = event.touches[0]?.clientX ?? null;
+  }
+
+  function handleMediaTouchEnd(event: React.TouchEvent) {
+    if (touchStartX.current === null) return;
+    const endX = event.changedTouches[0]?.clientX ?? touchStartX.current;
+    const delta = endX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(delta) < CAROUSEL_SWIPE_THRESHOLD_PX) return;
+    if (delta > 0) setActiveMedia((current) => (current - 1 + mediaUrls.length) % mediaUrls.length);
+    else setActiveMedia((current) => (current + 1) % mediaUrls.length);
+  }
 
   return (
     <article className="photo-card person-card">
       <div className="person-card-head">
-        <div className="hero-avatar person-avatar" aria-hidden="true">
-          {getInitials(photo.attendeeName)}
-        </div>
+        <DirectoryAvatar name={photo.attendeeName} photoUrl={photo.attendeePhotoUrl} />
         <div className="person-meta">
           <h2 className="person-name">{photo.attendeeName}</h2>
           <p className="person-line muted">
@@ -765,7 +819,7 @@ function PhotoCard({
       {photo.caption ? <p className={`post-caption${captionExpanded ? " expanded" : ""}`}><span>{photo.caption}</span>{photo.caption.length > 72 && <button type="button" onClick={() => setCaptionExpanded(!captionExpanded)}>{captionExpanded ? "less" : "Read more"}</button>}</p> : null}
 
       <div className="post-carousel">
-      <div className="photo-card-media">
+      <div className="photo-card-media" onTouchStart={handleMediaTouchStart} onTouchEnd={handleMediaTouchEnd}>
         {mediaUrls[activeMedia] ? (
           <img src={mediaUrls[activeMedia]} alt="" loading="lazy" decoding="async" />
         ) : (
@@ -774,7 +828,7 @@ function PhotoCard({
           </div>
         )}
       </div>
-      {mediaUrls.length > 1 && <><button className="carousel-arrow previous" type="button" aria-label="Previous photo" onClick={() => setActiveMedia((activeMedia - 1 + mediaUrls.length) % mediaUrls.length)}>‹</button><button className="carousel-arrow next" type="button" aria-label="Next photo" onClick={() => setActiveMedia((activeMedia + 1) % mediaUrls.length)}>›</button><div className="carousel-dots" aria-label={`Photo ${activeMedia + 1} of ${mediaUrls.length}`}>{mediaUrls.map((_, index) => <span key={index} className={index === activeMedia ? "active" : ""} />)}</div></>}
+      {mediaUrls.length > 1 && <div className="carousel-dots" aria-label={`Photo ${activeMedia + 1} of ${mediaUrls.length}`}>{mediaUrls.map((_, index) => <span key={index} className={index === activeMedia ? "active" : ""} />)}</div>}
       </div>
 
       <div className="post-action-bar">

@@ -20,20 +20,10 @@ export default function ProfilePage() {
   const [offline, setOffline] = useState(false);
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
-  const [websiteDraft, setWebsiteDraft] = useState("");
-  const [websiteEditing, setWebsiteEditing] = useState(false);
-  const [websiteSaving, setWebsiteSaving] = useState(false);
-  const [websiteError, setWebsiteError] = useState<string | null>(null);
-  const [linkedInDraft, setLinkedInDraft] = useState("");
-  const [linkedInEditing, setLinkedInEditing] = useState(false);
-  const [linkedInSaving, setLinkedInSaving] = useState(false);
-  const [linkedInError, setLinkedInError] = useState<string | null>(null);
 
   function syncProfile(nextProfile: MyProfile) {
     setProfile(nextProfile);
     profileCache.set(nextProfile);
-    setWebsiteDraft(nextProfile.websiteUrl ?? "");
-    setLinkedInDraft(nextProfile.linkedInUrl ?? "");
   }
 
   const updateProfilePhoto = (photoUrl: string | null) => {
@@ -127,16 +117,12 @@ export default function ProfilePage() {
     const cached = profileCache.get();
     if (cached) {
       setProfile(cached);
-      setWebsiteDraft(cached.websiteUrl ?? "");
-      setLinkedInDraft(cached.linkedInUrl ?? "");
       setOffline(!navigator.onLine);
     }
     loadMyProfile()
       .then(({ profile: me }) => {
         if (!me) throw new Error("unavailable");
         setProfile(me);
-        setWebsiteDraft(me.websiteUrl ?? "");
-        setLinkedInDraft(me.linkedInUrl ?? "");
         setOffline(false);
       })
       .catch(() => setOffline(!navigator.onLine));
@@ -166,74 +152,6 @@ export default function ProfilePage() {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [enlarged]);
-
-  async function saveWebsite() {
-    if (!profile) return;
-    const normalizedWebsiteUrl = normalizeWebsiteUrl(websiteDraft);
-    if (websiteDraft.trim() && !normalizedWebsiteUrl) {
-      setWebsiteError("Enter a valid website link.");
-      return;
-    }
-
-    setWebsiteSaving(true);
-    setWebsiteError(null);
-    try {
-      const res = await fetch("/api/attendees/me/links", withCsrfHeaders({
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          websiteUrl: normalizedWebsiteUrl || null,
-        }),
-      }));
-
-      if (!res.ok) {
-        setWebsiteError("Couldn't save your website right now.");
-        return;
-      }
-
-      syncProfile({ ...profile, websiteUrl: normalizedWebsiteUrl || null });
-      setWebsiteEditing(false);
-    } catch {
-      setWebsiteError("Couldn't reach the server. Check your connection and try again.");
-    } finally {
-      setWebsiteSaving(false);
-    }
-  }
-
-  async function saveLinkedIn() {
-    if (!profile) return;
-    const normalizedLinkedInUrl = normalizeLinkedInUrl(linkedInDraft);
-    if (linkedInDraft.trim() && !normalizedLinkedInUrl) {
-      setLinkedInError("Enter a valid LinkedIn profile URL.");
-      return;
-    }
-
-    setLinkedInSaving(true);
-    setLinkedInError(null);
-    try {
-      const res = await fetch("/api/attendees/me/links", withCsrfHeaders({
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          linkedInUrl: normalizedLinkedInUrl || null,
-        }),
-      }));
-
-      if (!res.ok) {
-        setLinkedInError("Couldn't save your LinkedIn right now.");
-        return;
-      }
-
-      syncProfile({ ...profile, linkedInUrl: normalizedLinkedInUrl || null });
-      setLinkedInEditing(false);
-    } catch {
-      setLinkedInError("Couldn't reach the server. Check your connection and try again.");
-    } finally {
-      setLinkedInSaving(false);
-    }
-  }
 
   function toEditProfileAttendee(value: MyProfile): AttendeeMe {
     return {
@@ -329,104 +247,42 @@ export default function ProfilePage() {
 
                 <div className="profile-details-grid">
                   <ProfileSection title="Contact">
-                    <ContactRows phone={profile.phone} email={profile.email} tableNumber={profile.tableNumber} interactive={false} />
-                    <div className="profile-website-panel">
-                      <div className="profile-website-header">
-                        <span className="contact-row-label">Website</span>
-                        {!websiteEditing ? (
-                          <button className="profile-inline-action" type="button" onClick={() => {
-                            setWebsiteDraft(profile.websiteUrl ?? "");
-                            setWebsiteError(null);
-                            setWebsiteEditing(true);
-                          }}>
-                            {profile.websiteUrl ? "Edit link" : "Add link"}
-                          </button>
-                        ) : null}
-                      </div>
-
-                      {!websiteEditing ? (
-                        profile.websiteUrl ? (
-                          <a className="profile-link-row" href={profile.websiteUrl} target="_blank" rel="noreferrer">
-                            <WebsiteIcon />
-                            <span>{formatProfileLinkLabel(profile.websiteUrl, "website")}</span>
-                          </a>
-                        ) : (
-                          <p className="empty-copy">No website added yet</p>
-                        )
+                    <ContactRows phone={profile.phone} email={profile.email} tableNumber={profile.tableNumber} interactive={false}>
+                      {profile.websiteUrl ? (
+                        <a className="contact-row" href={profile.websiteUrl} target="_blank" rel="noreferrer">
+                          <span className="contact-row-icon"><WebsiteIcon /></span>
+                          <span className="contact-row-body">
+                            <span className="contact-row-label">Website</span>
+                            <span className="contact-row-value">{formatProfileLinkLabel(profile.websiteUrl, "website")}</span>
+                          </span>
+                        </a>
                       ) : (
-                        <div className="profile-inline-form">
-                          <input
-                            type="text"
-                            inputMode="url"
-                            value={websiteDraft}
-                            onChange={(event) => setWebsiteDraft(event.target.value)}
-                            placeholder="yourwebsite.com"
-                          />
-                          <div className="profile-inline-form-actions">
-                            <button className="btn-secondary" type="button" disabled={websiteSaving} onClick={() => {
-                              setWebsiteDraft(profile.websiteUrl ?? "");
-                              setWebsiteError(null);
-                              setWebsiteEditing(false);
-                            }}>
-                              Cancel
-                            </button>
-                            <button className="btn-primary" type="button" disabled={websiteSaving} onClick={saveWebsite}>
-                              {websiteSaving ? "Saving..." : "Save link"}
-                            </button>
-                          </div>
-                          {websiteError ? <p className="hint err">{websiteError}</p> : null}
+                        <div className="contact-row contact-row-static">
+                          <span className="contact-row-icon"><WebsiteIcon /></span>
+                          <span className="contact-row-body">
+                            <span className="contact-row-label">Website</span>
+                            <span className="contact-row-value empty-copy">No website added yet</span>
+                          </span>
                         </div>
                       )}
-                    </div>
-
-                    <div className="profile-website-panel">
-                      <div className="profile-website-header">
-                        <span className="contact-row-label">LinkedIn</span>
-                        {!linkedInEditing ? (
-                          <button className="profile-inline-action" type="button" onClick={() => {
-                            setLinkedInDraft(profile.linkedInUrl ?? "");
-                            setLinkedInError(null);
-                            setLinkedInEditing(true);
-                          }}>
-                            {profile.linkedInUrl ? "Edit link" : "Add link"}
-                          </button>
-                        ) : null}
-                      </div>
-
-                      {!linkedInEditing ? (
-                        profile.linkedInUrl ? (
-                          <a className="profile-link-row" href={profile.linkedInUrl} target="_blank" rel="noreferrer">
-                            <LinkedInIcon />
-                            <span>{formatProfileLinkLabel(profile.linkedInUrl, "linkedin")}</span>
-                          </a>
-                        ) : (
-                          <p className="empty-copy">No LinkedIn added yet</p>
-                        )
+                      {profile.linkedInUrl ? (
+                        <a className="contact-row" href={profile.linkedInUrl} target="_blank" rel="noreferrer">
+                          <span className="contact-row-icon"><LinkedInIcon /></span>
+                          <span className="contact-row-body">
+                            <span className="contact-row-label">LinkedIn</span>
+                            <span className="contact-row-value">{formatProfileLinkLabel(profile.linkedInUrl, "linkedin")}</span>
+                          </span>
+                        </a>
                       ) : (
-                        <div className="profile-inline-form">
-                          <input
-                            type="text"
-                            inputMode="url"
-                            value={linkedInDraft}
-                            onChange={(event) => setLinkedInDraft(event.target.value)}
-                            placeholder="linkedin.com/in/you"
-                          />
-                          <div className="profile-inline-form-actions">
-                            <button className="btn-secondary" type="button" disabled={linkedInSaving} onClick={() => {
-                              setLinkedInDraft(profile.linkedInUrl ?? "");
-                              setLinkedInError(null);
-                              setLinkedInEditing(false);
-                            }}>
-                              Cancel
-                            </button>
-                            <button className="btn-primary" type="button" disabled={linkedInSaving} onClick={saveLinkedIn}>
-                              {linkedInSaving ? "Saving..." : "Save link"}
-                            </button>
-                          </div>
-                          {linkedInError ? <p className="hint err">{linkedInError}</p> : null}
+                        <div className="contact-row contact-row-static">
+                          <span className="contact-row-icon"><LinkedInIcon /></span>
+                          <span className="contact-row-body">
+                            <span className="contact-row-label">LinkedIn</span>
+                            <span className="contact-row-value empty-copy">No LinkedIn added yet</span>
+                          </span>
                         </div>
                       )}
-                    </div>
+                    </ContactRows>
                   </ProfileSection>
                   <ProfileSection title="Business">
                     <dl className="profile-contact">
@@ -484,32 +340,6 @@ function getInitials(name: string): string {
   return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("") || "EV";
 }
 
-function normalizeWebsiteUrl(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) return "";
-  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-  try {
-    const url = new URL(withProtocol);
-    if (!["http:", "https:"].includes(url.protocol) || !url.hostname.includes(".")) return null;
-    return url.toString();
-  } catch {
-    return null;
-  }
-}
-
-function normalizeLinkedInUrl(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) return "";
-  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-  try {
-    const url = new URL(withProtocol);
-    if (url.protocol !== "https:" || !url.hostname.includes("linkedin.")) return null;
-    return url.toString();
-  } catch {
-    return null;
-  }
-}
-
 function formatProfileLinkLabel(value: string, kind: "website" | "linkedin") {
   try {
     const url = new URL(value);
@@ -517,8 +347,8 @@ function formatProfileLinkLabel(value: string, kind: "website" | "linkedin") {
     const path = url.pathname.replace(/\/+$/, "");
 
     if (kind === "linkedin") {
-      const compactPath = path.length > 24 ? `${path.slice(0, 24)}...` : path;
-      return compactPath ? `${host}${compactPath}` : host;
+      const segments = path.split("/").filter(Boolean);
+      return segments[segments.length - 1] ?? host;
     }
 
     return path && path !== "/" ? `${host}${path}` : host;

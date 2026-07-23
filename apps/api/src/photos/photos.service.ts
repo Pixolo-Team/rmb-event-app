@@ -1,9 +1,8 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { promises as fs } from "fs";
-import path from "path";
 import { PrismaService } from "../prisma/prisma.service";
-import { PHOTOS_UPLOAD_DIR } from "./photo-upload.config";
+import { UploadsService, ADMIN_UPLOAD_OWNER } from "../uploads/uploads.service";
+import { UploadCategories } from "../uploads/upload.types";
 
 export type FeedCommentData = {
   id: string;
@@ -21,6 +20,7 @@ export type FeedPhotoData = {
   attendeeId: string | null;
   attendeeName: string;
   attendeeBusinessName: string | null;
+  attendeePhotoUrl: string | null;
   likeCount: number;
   commentCount: number;
   likedByMe: boolean;
@@ -55,27 +55,42 @@ export type DeletedPhotoLogData = {
 
 @Injectable()
 export class PhotosService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uploads: UploadsService,
+  ) {}
 
   private readonly adminPhotoLabel = "RMB Event Team";
 
-  async create(attendeeId: string, files: Express.Multer.File[], caption?: string): Promise<FeedPhotoData> {
-    const urls = files.map((file) => `/uploads/photos/${file.filename}`);
-    const url = urls[0];
-    const photo = await this.prisma.photo.create({
-      data: { attendeeId, url, urls, caption },
-      include: { attendee: { select: { name: true, businessName: true } } },
+  /**
+   * Persists a feed post from object paths already uploaded to GCS via the
+   * /uploads/upload-urls flow, after verifying each one server-side.
+   */
+  async create(attendeeId: string, objectPaths: string[], caption?: string): Promise<FeedPhotoData> {
+    await this.uploads.completeUploadsService(attendeeId, {
+      category: UploadCategories.Feed,
+      files: objectPaths.map((objectPath) => ({ objectPath })),
     });
+
+    const url = objectPaths[0];
+    const photo = await this.prisma.photo.create({
+      data: { attendeeId, url, urls: objectPaths, caption },
+      include: { attendee: { select: { name: true, businessName: true, photoUrl: true } } },
+    });
+
+    const allPaths = (photo.urls && photo.urls.length > 0) ? photo.urls : [photo.url];
+    const resolvedUrls = await this.resolveFeedUrls(allPaths);
 
     return {
       id: photo.id,
-      url: photo.url,
-      urls: photo.urls.length ? photo.urls : [photo.url],
+      url: resolvedUrls[0],
+      urls: resolvedUrls,
       caption: photo.caption,
       createdAt: photo.createdAt,
       attendeeId,
       attendeeName: photo.attendee?.name ?? this.adminPhotoLabel,
       attendeeBusinessName: photo.attendee?.businessName ?? null,
+      attendeePhotoUrl: photo.attendee?.photoUrl ?? null,
       likeCount: 0,
       commentCount: 0,
       likedByMe: false,
@@ -83,36 +98,46 @@ export class PhotosService {
     };
   }
 
-  async adminCreate(files: Express.Multer.File[], caption?: string): Promise<FeedPhotoData[]> {
+  async adminCreate(objectPaths: string[], caption?: string): Promise<FeedPhotoData[]> {
+    await this.uploads.completeUploadsService(ADMIN_UPLOAD_OWNER, {
+      category: UploadCategories.Feed,
+      files: objectPaths.map((objectPath) => ({ objectPath })),
+    });
+
     const photos = await this.prisma.$transaction(
-      files.map((file) => {
-        const url = `/uploads/photos/${file.filename}`;
-        return this.prisma.photo.create({
+      objectPaths.map((objectPath) =>
+        this.prisma.photo.create({
           data: {
-            url,
-            urls: [url],
+            url: objectPath,
+            urls: [objectPath],
             caption,
             uploadedByAdmin: true,
             adminLabel: this.adminPhotoLabel,
           },
-        });
-      }),
+        }),
+      ),
     );
 
-    return photos.map((photo) => ({
-      id: photo.id,
-      url: photo.url,
-      urls: photo.urls.length ? photo.urls : [photo.url],
-      caption: photo.caption,
-      createdAt: photo.createdAt,
-      attendeeId: null,
-      attendeeName: photo.adminLabel ?? this.adminPhotoLabel,
-      attendeeBusinessName: null,
-      likeCount: 0,
-      commentCount: 0,
-      likedByMe: false,
-      comments: [],
-    }));
+    return Promise.all(
+      photos.map(async (photo) => {
+        const resolvedUrls = await this.resolveFeedUrls(photo.urls.length ? photo.urls : [photo.url]);
+        return {
+          id: photo.id,
+          url: resolvedUrls[0],
+          urls: resolvedUrls,
+          caption: photo.caption,
+          createdAt: photo.createdAt,
+          attendeeId: null,
+          attendeeName: photo.adminLabel ?? this.adminPhotoLabel,
+          attendeeBusinessName: null,
+          attendeePhotoUrl: null,
+          likeCount: 0,
+          commentCount: 0,
+          likedByMe: false,
+          comments: [],
+        };
+      }),
+    );
   }
 
   async listFeed(currentAttendeeId: string, cursor?: string, limit = 20): Promise<FeedPageData> {
@@ -123,7 +148,7 @@ export class PhotosService {
         ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
         orderBy: { createdAt: "desc" },
         include: {
-          attendee: { select: { name: true, businessName: true } },
+          attendee: { select: { name: true, businessName: true, photoUrl: true } },
           _count: { select: { likes: true, comments: true } },
           comments: {
             orderBy: { createdAt: "asc" },
@@ -143,25 +168,32 @@ export class PhotosService {
     const hasMore = rows.length > limit;
     const page = hasMore ? rows.slice(0, limit) : rows;
 
-    const photos: FeedPhotoData[] = page.map((photo) => ({
-      id: photo.id,
-      url: photo.url,
-      urls: photo.urls.length ? photo.urls : [photo.url],
-      caption: photo.caption,
-      createdAt: photo.createdAt,
-      attendeeId: photo.attendeeId,
-      attendeeName: photo.attendee?.name ?? photo.adminLabel ?? this.adminPhotoLabel,
-      attendeeBusinessName: photo.attendee?.businessName ?? null,
-      likeCount: photo._count.likes,
-      commentCount: photo._count.comments,
-      likedByMe: photo.likes.length > 0,
-      comments: photo.comments.map((comment) => ({
-        id: comment.id,
-        name: comment.attendee.name,
-        message: comment.message,
-        createdAt: comment.createdAt,
-      })),
-    }));
+    const photos: FeedPhotoData[] = await Promise.all(
+      page.map(async (photo) => {
+        const allPaths = (photo.urls && photo.urls.length > 0) ? photo.urls : [photo.url];
+        const resolvedUrls = await this.resolveFeedUrls(allPaths);
+        return {
+          id: photo.id,
+          url: resolvedUrls[0],
+          urls: resolvedUrls,
+          caption: photo.caption,
+          createdAt: photo.createdAt,
+          attendeeId: photo.attendeeId,
+          attendeeName: photo.attendee?.name ?? photo.adminLabel ?? this.adminPhotoLabel,
+          attendeeBusinessName: photo.attendee?.businessName ?? null,
+          attendeePhotoUrl: photo.attendee?.photoUrl ?? null,
+          likeCount: photo._count.likes,
+          commentCount: photo._count.comments,
+          likedByMe: photo.likes.length > 0,
+          comments: photo.comments.map((comment) => ({
+            id: comment.id,
+            name: comment.attendee.name,
+            message: comment.message,
+            createdAt: comment.createdAt,
+          })),
+        };
+      }),
+    );
 
     return {
       photos,
@@ -212,7 +244,7 @@ export class PhotosService {
     }
 
     await this.prisma.photo.delete({ where: { id: photoId } });
-    await Promise.all((photo.urls.length ? photo.urls : [photo.url]).map((url) => this.unlinkPhotoFile(url)));
+    await this.deleteFeedObjects(attendeeId, photo.urls.length ? photo.urls : [photo.url]);
   }
 
   async adminListAll(): Promise<AdminPhotoData[]> {
@@ -224,15 +256,17 @@ export class PhotosService {
       },
     });
 
-    return photos.map((photo) => ({
-      id: photo.id,
-      url: photo.url,
-      caption: photo.caption,
-      createdAt: photo.createdAt,
-      uploadedByAdmin: photo.uploadedByAdmin,
-      attendeeName: photo.attendee?.name ?? photo.adminLabel ?? this.adminPhotoLabel,
-      likeCount: photo._count.likes,
-    }));
+    return Promise.all(
+      photos.map(async (photo) => ({
+        id: photo.id,
+        url: (await this.uploads.resolveFeedPhotoUrl(photo.url)) ?? photo.url,
+        caption: photo.caption,
+        createdAt: photo.createdAt,
+        uploadedByAdmin: photo.uploadedByAdmin,
+        attendeeName: photo.attendee?.name ?? photo.adminLabel ?? this.adminPhotoLabel,
+        likeCount: photo._count.likes,
+      })),
+    );
   }
 
   async adminDelete(photoId: string): Promise<void> {
@@ -256,7 +290,10 @@ export class PhotosService {
       this.prisma.photo.delete({ where: { id: photoId } }),
     ]);
 
-    await Promise.all((photo.urls.length ? photo.urls : [photo.url]).map((url) => this.unlinkPhotoFile(url)));
+    await this.deleteFeedObjects(
+      photo.attendeeId ?? ADMIN_UPLOAD_OWNER,
+      photo.urls.length ? photo.urls : [photo.url],
+    );
   }
 
   async adminListDeletedHistory(): Promise<DeletedPhotoLogData[]> {
@@ -273,12 +310,20 @@ export class PhotosService {
     }));
   }
 
-  private async unlinkPhotoFile(url: string): Promise<void> {
-    const filename = path.basename(url);
-    try {
-      await fs.unlink(path.join(PHOTOS_UPLOAD_DIR, filename));
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    }
+  /**
+   * Resolves stored feed object paths to fresh signed read URLs. Falls back
+   * to the raw stored value for legacy local-disk paths so old posts don't
+   * render as broken images.
+   */
+  private async resolveFeedUrls(objectPaths: string[]): Promise<string[]> {
+    return Promise.all(
+      objectPaths.map(async (objectPath) => (await this.uploads.resolveFeedPhotoUrl(objectPath)) ?? objectPath),
+    );
+  }
+
+  private async deleteFeedObjects(owner: string, objectPaths: string[]): Promise<void> {
+    await Promise.all(
+      objectPaths.map((objectPath) => this.uploads.deleteUploadService(owner, objectPath).catch(() => undefined)),
+    );
   }
 }

@@ -1,25 +1,36 @@
-import { BadRequestException, Body, Controller, Get, Patch, Post, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
-import { FileInterceptor } from "@nestjs/platform-express";
-import type { Express } from "express";
+import { Body, Controller, Get, Patch, Post, UseGuards } from "@nestjs/common";
 import { AdminGuard } from "../admin-auth/admin.guard";
 import { RolesGuard } from "../admin-auth/roles.guard";
 import { Roles } from "../admin-auth/roles.decorator";
 import { avatarUploadOptions } from "../attendees/avatar-upload.config";
 import { EventService } from "./event.service";
 import { UpdateEventDto } from "./dto/update-event.dto";
+import { UpdateChairPhotoDto } from "./dto/update-chair-photo.dto";
+import { UploadsService, ADMIN_UPLOAD_OWNER } from "../uploads/uploads.service";
+import { UploadCategories } from "../uploads/upload.types";
+import { CreateUploadUrlRequestData } from "../uploads/dto/create-upload-url.request";
 
 // Superadmin-only by RolesGuard's default (no @Roles() needed).
 @Controller("admin/event")
 @UseGuards(AdminGuard, RolesGuard)
 export class EventController {
-  constructor(private readonly eventService: EventService) {}
+  constructor(
+    private readonly eventService: EventService,
+    private readonly uploads: UploadsService,
+  ) {}
 
   // Also read by the Live Check-In page (to show the "venue not configured"
   // banner), so registration staff needs read access here too.
   @Get()
   @Roles("SUPERADMIN", "REGISTRATION_STAFF")
   async get() {
-    return this.eventService.getOrCreate();
+    const event = await this.eventService.getOrCreate();
+    return {
+      ...event,
+      chairPhotoUrl: event.chairPhotoUrl
+        ? (await this.uploads.resolveProfilePhotoUrl(event.chairPhotoUrl)) ?? event.chairPhotoUrl
+        : null,
+    };
   }
 
   @Patch()
@@ -27,18 +38,45 @@ export class EventController {
     return this.eventService.updateVenue(dto);
   }
 
-  @Post("chair-photo")
-  @UseInterceptors(FileInterceptor("photo", avatarUploadOptions))
-  async uploadChairPhoto(@UploadedFile() file: Express.Multer.File | undefined) {
-    if (!file) throw new BadRequestException("No photo uploaded");
-    const chairPhotoUrl = `/uploads/avatars/${file.filename}`;
-    await this.eventService.updateVenue({ chairPhotoUrl });
+  /**
+   * Generates a signed GCS upload URL for the chair photo. AdminGuard has no
+   * attendeeId concept, so this is owned by a fixed marker segment instead
+   * of a real attendee, reusing the Profile category (a single image).
+   */
+  @Post("chair-photo/upload-url")
+  async createChairPhotoUploadUrl(@Body() dto: CreateUploadUrlRequestData) {
+    const upload = await this.uploads.createUploadUrlService(ADMIN_UPLOAD_OWNER, {
+      category: UploadCategories.Profile,
+      contentType: dto.contentType,
+    });
+    return { status: "ok", upload };
+  }
+
+  /**
+   * Persists the chair photo objectPath already uploaded directly to GCS via
+   * the endpoint above, after verifying it server-side.
+   */
+  @Patch("chair-photo")
+  async updateChairPhoto(@Body() dto: UpdateChairPhotoDto) {
+    await this.uploads.completeUploadService(ADMIN_UPLOAD_OWNER, UploadCategories.Profile, dto.objectPath);
+
+    const previous = await this.eventService.getOrCreate();
+    await this.eventService.updateVenue({ chairPhotoUrl: dto.objectPath });
+    if (previous.chairPhotoUrl && previous.chairPhotoUrl !== dto.objectPath) {
+      await this.uploads.deleteUploadService(ADMIN_UPLOAD_OWNER, previous.chairPhotoUrl).catch(() => undefined);
+    }
+
+    const chairPhotoUrl = await this.uploads.resolveProfilePhotoUrl(dto.objectPath);
     return { status: "ok", chairPhotoUrl };
   }
 
   @Patch("chair-photo/remove")
   async removeChairPhoto() {
+    const previous = await this.eventService.getOrCreate();
     await this.eventService.updateVenue({ chairPhotoUrl: null });
+    if (previous.chairPhotoUrl) {
+      await this.uploads.deleteUploadService(ADMIN_UPLOAD_OWNER, previous.chairPhotoUrl).catch(() => undefined);
+    }
     return { status: "ok", chairPhotoUrl: null };
   }
 

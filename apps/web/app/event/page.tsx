@@ -119,6 +119,11 @@ export default function EventDetailsPage() {
               {event.startAt && <p className="event-details-date">{formatEventDate(event.startAt)}</p>}
             </section>
 
+            <div className="home-brand-banner">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/images/rotary-rmb-lockup.jpg" alt="Rotary · Rotary Means Business Fellowship" />
+            </div>
+
             {event.chairName && (
               <section className="event-details-section">
                 <h2>Chairperson</h2>
