@@ -1,25 +1,9 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  Query,
-  Req,
-  UploadedFiles,
-  UseGuards,
-  UseInterceptors,
-} from "@nestjs/common";
-import { FilesInterceptor } from "@nestjs/platform-express";
-import type { Express } from "express";
+import { Body, Controller, Delete, Get, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { PhotosService } from "./photos.service";
 import { CreatePhotoDto } from "./dto/create-photo.dto";
 import { AddCommentDto } from "./dto/add-comment.dto";
 import { ListPhotosQueryDto } from "./dto/list-photos-query.dto";
 import { SessionGuard, RequestWithAttendee } from "../session/session.guard";
-import { photoUploadOptions } from "./photo-upload.config";
 import { RateLimit } from "../common/rate-limit/rate-limit.decorator";
 import { RateLimitGuard } from "../common/rate-limit/rate-limit.guard";
 
@@ -28,16 +12,14 @@ import { RateLimitGuard } from "../common/rate-limit/rate-limit.guard";
 export class PhotosController {
   constructor(private readonly photos: PhotosService) {}
 
+  /**
+   * Persists a feed post from images already uploaded directly to GCS via
+   * the /uploads/upload-urls flow.
+   */
   @Post()
   @RateLimit(20)
-  @UseInterceptors(FilesInterceptor("photos", 6, photoUploadOptions))
-  async create(
-    @Req() req: RequestWithAttendee,
-    @UploadedFiles() files: Express.Multer.File[] | undefined,
-    @Body() dto: CreatePhotoDto,
-  ) {
-    if (!files?.length) throw new BadRequestException("No photos uploaded");
-    return this.photos.create(req.attendeeId, files, dto.caption);
+  async create(@Req() req: RequestWithAttendee, @Body() dto: CreatePhotoDto) {
+    return this.photos.create(req.attendeeId, dto.objectPaths, dto.caption);
   }
 
   @Get()

@@ -3,9 +3,10 @@ import { PhotosController } from "./photos.controller";
 import { AdminPhotosController } from "./admin-photos.controller";
 import { PhotosService } from "./photos.service";
 import { RateLimitModule } from "../common/rate-limit/rate-limit.module";
+import { UploadsModule } from "../uploads/uploads.module";
 
 @Module({
-  imports: [RateLimitModule],
+  imports: [RateLimitModule, UploadsModule],
   controllers: [PhotosController, AdminPhotosController],
   providers: [PhotosService],
 })
