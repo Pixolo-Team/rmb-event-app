@@ -9,7 +9,12 @@ import { PersonalStats } from "../components/PersonalStats";
 import { PhotoUploadModal } from "../components/PhotoUploadModal";
 import { PoweredByFooter } from "../components/PoweredByFooter";
 import { withCsrfHeaders } from "../lib/csrf";
-import { loadMyProfile, profileCache, type MyProfile } from "../lib/profileCache";
+import {
+  loadMyProfile,
+  profileCache,
+  type MyProfile,
+} from "../lib/profileCache";
+import { uploadProfilePhoto } from "../lib/profilePhotoUpload";
 import { ProfileSkeleton } from "./ProfileSkeleton";
 
 export default function ProfilePage() {
@@ -36,50 +41,13 @@ export default function ProfilePage() {
   };
 
   const handlePhotoUpload = async (file: File) => {
+    if (photoUploading) return; // guards against a duplicate upload firing mid-flight
     setPhotoUploading(true);
     try {
-      const contentType = file.type as "image/jpeg" | "image/png" | "image/webp";
-
-      const urlRes = await fetch("/api/uploads/upload-url", withCsrfHeaders({
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category: "profile", contentType }),
-      }));
-
-      if (!urlRes.ok) {
-        const body = await urlRes.json().catch(() => null) as { message?: string } | null;
-        throw new Error(body?.message ?? "Could not prepare the upload");
-      }
-
-      const { upload } = await urlRes.json() as {
-        upload: { uploadUrl: string; objectPath: string; requiredHeaders: Record<string, string> };
-      };
-
-      const putRes = await fetch(upload.uploadUrl, {
-        method: "PUT",
-        headers: upload.requiredHeaders,
-        body: file,
-      });
-
-      if (!putRes.ok) {
-        throw new Error("Upload to storage failed");
-      }
-
-      const saveRes = await fetch("/api/attendees/me/photo", withCsrfHeaders({
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ objectPath: upload.objectPath }),
-      }));
-
-      if (!saveRes.ok) {
-        const body = await saveRes.json().catch(() => null) as { message?: string } | null;
-        throw new Error(body?.message ?? "Upload failed");
-      }
-
-      const data = await saveRes.json() as { status: string; photoUrl: string };
-      updateProfilePhoto(data.photoUrl);
+      // Previous photo (profile.photoUrl) is left untouched until this succeeds,
+      // so a failure naturally restores it — nothing to roll back.
+      const { photoUrl } = await uploadProfilePhoto(file);
+      updateProfilePhoto(photoUrl);
     } catch (error) {
       console.error("Photo upload error:", error);
       throw error;
@@ -91,10 +59,13 @@ export default function ProfilePage() {
   const handlePhotoRemove = async () => {
     setPhotoUploading(true);
     try {
-      const res = await fetch("/api/attendees/me/photo/remove", withCsrfHeaders({
-        method: "PATCH",
-        credentials: "include",
-      }));
+      const res = await fetch(
+        "/api/attendees/me/photo/remove",
+        withCsrfHeaders({
+          method: "PATCH",
+          credentials: "include",
+        }),
+      );
 
       if (!res.ok) throw new Error("Remove failed");
 
@@ -134,21 +105,34 @@ export default function ProfilePage() {
     // Dynamically imported: qrcode is a meaningfully-sized library only this
     // effect needs, so it shouldn't sit in Profile's initial JS bundle.
     let cancelled = false;
-    import("qrcode").then(({ default: QRCode }) =>
-      QRCode.toDataURL(qrToken, { margin: 1, width: 512, errorCorrectionLevel: "M" }),
-    )
-      .then((url) => { if (!cancelled) setQrDataUrl(url); })
-      .catch(() => { if (!cancelled) setQrDataUrl(null); });
-    return () => { cancelled = true; };
+    import("qrcode")
+      .then(({ default: QRCode }) =>
+        QRCode.toDataURL(qrToken, {
+          margin: 1,
+          width: 512,
+          errorCorrectionLevel: "M",
+        }),
+      )
+      .then((url) => {
+        if (!cancelled) setQrDataUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setQrDataUrl(null);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [profile?.qrToken]);
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("qr") === "1") setEnlarged(true);
+    if (new URLSearchParams(window.location.search).get("qr") === "1")
+      setEnlarged(true);
   }, []);
 
   useEffect(() => {
     if (!enlarged) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setEnlarged(false);
+    const onKey = (e: KeyboardEvent) =>
+      e.key === "Escape" && setEnlarged(false);
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [enlarged]);
@@ -177,7 +161,10 @@ export default function ProfilePage() {
   }
 
   const hasNetworkingInfo = Boolean(
-    profile && (profile.lookingFor.length > 0 || profile.offering.length > 0 || profile.goals.length > 0),
+    profile &&
+    (profile.lookingFor.length > 0 ||
+      profile.offering.length > 0 ||
+      profile.goals.length > 0),
   );
 
   return (
@@ -197,7 +184,10 @@ export default function ProfilePage() {
               <>
                 {offline && (
                   <div className="banner info">
-                    <div><b>Offline</b>Showing your saved profile. Your QR still works.</div>
+                    <div>
+                      <b>Offline</b>Showing your saved profile. Your QR still
+                      works.
+                    </div>
                   </div>
                 )}
 
@@ -205,23 +195,43 @@ export default function ProfilePage() {
                   <p className="qr-eyebrow">Scan to connect</p>
                   <div className="qr-card-container">
                     {qrDataUrl ? (
-                      <button className="qr-frame" type="button" onClick={() => setEnlarged(true)} aria-label="Enlarge your QR code">
+                      <button
+                        className="qr-frame"
+                        type="button"
+                        onClick={() => setEnlarged(true)}
+                        aria-label="Enlarge your QR code"
+                      >
                         <img src={qrDataUrl} alt="Your personal QR code" />
                       </button>
                     ) : (
-                      <div className="qr-frame qr-frame-placeholder" role="status">Preparing your QR...</div>
+                      <div
+                        className="qr-frame qr-frame-placeholder"
+                        role="status"
+                      >
+                        Preparing your QR...
+                      </div>
                     )}
                   </div>
-                  <p className="qr-hint">Tap the code to enlarge it for scanning</p>
+                  <p className="qr-hint">
+                    Tap the code to enlarge it for scanning
+                  </p>
 
                   <div className="qr-card-divider" aria-hidden="true" />
 
                   <div className="qr-photo-row">
                     <div className="qr-with-photo">
                       {profile.photoUrl && (
-                        <img src={profile.photoUrl} alt={profile.name} className="profile-photo" />
+                        <img
+                          src={profile.photoUrl}
+                          alt={profile.name}
+                          className="profile-photo"
+                        />
                       )}
-                      {!profile.photoUrl && <div className="profile-photo-placeholder">{getInitials(profile.name)}</div>}
+                      {!profile.photoUrl && (
+                        <div className="profile-photo-placeholder">
+                          {getInitials(profile.name)}
+                        </div>
+                      )}
                       <button
                         className="photo-add-button"
                         type="button"
@@ -234,11 +244,19 @@ export default function ProfilePage() {
                     </div>
                     <div className="qr-identity-text">
                       <p className="qr-identity-name">{profile.name}</p>
-                      {profile.businessName && <p className="qr-identity-business">{profile.businessName}</p>}
+                      {profile.businessName && (
+                        <p className="qr-identity-business">
+                          {profile.businessName}
+                        </p>
+                      )}
                     </div>
                   </div>
 
-                  <button className="btn-secondary profile-edit-button" type="button" onClick={() => setEditingProfile(true)}>
+                  <button
+                    className="btn-secondary profile-edit-button"
+                    type="button"
+                    onClick={() => setEditingProfile(true)}
+                  >
                     Edit profile
                   </button>
                 </section>
@@ -247,63 +265,139 @@ export default function ProfilePage() {
 
                 <div className="profile-details-grid">
                   <ProfileSection title="Contact">
-                    <ContactRows phone={profile.phone} email={profile.email} tableNumber={profile.tableNumber} interactive={false} />
+                    <ContactRows
+                      phone={profile.phone}
+                      email={profile.email}
+                      tableNumber={profile.tableNumber}
+                      interactive={false}
+                    />
                     {profile.websiteUrl ? (
-                      <a className="contact-row" href={profile.websiteUrl} target="_blank" rel="noreferrer">
-                        <span className="contact-row-icon"><WebsiteIcon /></span>
+                      <a
+                        className="contact-row"
+                        href={profile.websiteUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <span className="contact-row-icon">
+                          <WebsiteIcon />
+                        </span>
                         <span className="contact-row-body">
                           <span className="contact-row-label">Website</span>
-                          <span className="contact-row-value">{formatProfileLinkLabel(profile.websiteUrl, "website")}</span>
+                          <span className="contact-row-value">
+                            {formatProfileLinkLabel(
+                              profile.websiteUrl,
+                              "website",
+                            )}
+                          </span>
                         </span>
                       </a>
                     ) : (
                       <div className="contact-row contact-row-static">
-                        <span className="contact-row-icon"><WebsiteIcon /></span>
+                        <span className="contact-row-icon">
+                          <WebsiteIcon />
+                        </span>
                         <span className="contact-row-body">
                           <span className="contact-row-label">Website</span>
-                          <span className="contact-row-value empty-copy">No website added yet</span>
+                          <span className="contact-row-value empty-copy">
+                            No website added yet
+                          </span>
                         </span>
                       </div>
                     )}
                     {profile.linkedInUrl ? (
-                      <a className="contact-row" href={profile.linkedInUrl} target="_blank" rel="noreferrer">
-                        <span className="contact-row-icon"><LinkedInIcon /></span>
+                      <a
+                        className="contact-row"
+                        href={profile.linkedInUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <span className="contact-row-icon">
+                          <LinkedInIcon />
+                        </span>
                         <span className="contact-row-body">
                           <span className="contact-row-label">LinkedIn</span>
-                          <span className="contact-row-value">{formatProfileLinkLabel(profile.linkedInUrl, "linkedin")}</span>
+                          <span className="contact-row-value">
+                            {formatProfileLinkLabel(
+                              profile.linkedInUrl,
+                              "linkedin",
+                            )}
+                          </span>
                         </span>
                       </a>
                     ) : (
                       <div className="contact-row contact-row-static">
-                        <span className="contact-row-icon"><LinkedInIcon /></span>
+                        <span className="contact-row-icon">
+                          <LinkedInIcon />
+                        </span>
                         <span className="contact-row-body">
                           <span className="contact-row-label">LinkedIn</span>
-                          <span className="contact-row-value empty-copy">No LinkedIn added yet</span>
+                          <span className="contact-row-value empty-copy">
+                            No LinkedIn added yet
+                          </span>
                         </span>
                       </div>
                     )}
                   </ProfileSection>
                   <ProfileSection title="Business">
                     <dl className="profile-contact">
-                      {profile.businessName && <div><dt>Company</dt><dd>{profile.businessName}</dd></div>}
-                      {profile.businessCategory && <div><dt>Category</dt><dd>{profile.businessCategory}</dd></div>}
-                      {profile.city && <div><dt>City</dt><dd>{profile.city}</dd></div>}
-                      {profile.chapterName && <div><dt>Chapter</dt><dd>{profile.chapterName}</dd></div>}
-                      {!profile.businessName && !profile.businessCategory && !profile.city && !profile.chapterName && (
-                        <p className="empty-copy">No business details on file</p>
+                      {profile.businessName && (
+                        <div>
+                          <dt>Company</dt>
+                          <dd>{profile.businessName}</dd>
+                        </div>
                       )}
+                      {profile.businessCategory && (
+                        <div>
+                          <dt>Category</dt>
+                          <dd>{profile.businessCategory}</dd>
+                        </div>
+                      )}
+                      {profile.city && (
+                        <div>
+                          <dt>City</dt>
+                          <dd>{profile.city}</dd>
+                        </div>
+                      )}
+                      {profile.chapterName && (
+                        <div>
+                          <dt>Chapter</dt>
+                          <dd>{profile.chapterName}</dd>
+                        </div>
+                      )}
+                      {!profile.businessName &&
+                        !profile.businessCategory &&
+                        !profile.city &&
+                        !profile.chapterName && (
+                          <p className="empty-copy">
+                            No business details on file
+                          </p>
+                        )}
                     </dl>
                   </ProfileSection>
                 </div>
 
                 {profile.bio && (
-                  <ProfileSection title="About"><p className="profile-bio">{profile.bio}</p></ProfileSection>
+                  <ProfileSection title="About">
+                    <p className="profile-bio">{profile.bio}</p>
+                  </ProfileSection>
                 )}
                 {hasNetworkingInfo ? (
                   <ProfileSection title="Networking profile">
-                    {profile.lookingFor.length > 0 ? <TagGroup title="Looking for" values={profile.lookingFor} /> : null}
-                    {profile.offering.length > 0 ? <TagGroup title="Offering" values={profile.offering} /> : null}
-                    {profile.goals.length > 0 ? <TagGroup title="Networking goals" values={profile.goals} /> : null}
+                    {profile.lookingFor.length > 0 ? (
+                      <TagGroup
+                        title="Looking for"
+                        values={profile.lookingFor}
+                      />
+                    ) : null}
+                    {profile.offering.length > 0 ? (
+                      <TagGroup title="Offering" values={profile.offering} />
+                    ) : null}
+                    {profile.goals.length > 0 ? (
+                      <TagGroup
+                        title="Networking goals"
+                        values={profile.goals}
+                      />
+                    ) : null}
                   </ProfileSection>
                 ) : null}
 
@@ -313,10 +407,22 @@ export default function ProfilePage() {
           </main>
 
           {enlarged && qrDataUrl && profile && (
-            <div className="qr-fullscreen" role="dialog" aria-modal="true" aria-label="Your QR code" onClick={() => setEnlarged(false)}>
+            <div
+              className="qr-fullscreen"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Your QR code"
+              onClick={() => setEnlarged(false)}
+            >
               <img src={qrDataUrl} alt="Your personal QR code, enlarged" />
               <p className="qr-fullscreen-name">{profile.name}</p>
-              <button className="qr-fullscreen-close" type="button" aria-label="Close">Tap anywhere to close</button>
+              <button
+                className="qr-fullscreen-close"
+                type="button"
+                aria-label="Close"
+              >
+                Tap anywhere to close
+              </button>
             </div>
           )}
 
@@ -336,7 +442,12 @@ export default function ProfilePage() {
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
-  return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("") || "EV";
+  return (
+    parts
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("") || "EV"
+  );
 }
 
 function formatProfileLinkLabel(value: string, kind: "website" | "linkedin") {
@@ -356,39 +467,87 @@ function formatProfileLinkLabel(value: string, kind: "website" | "linkedin") {
   }
 }
 
-function ProfileSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return <section className="profile-section"><h2>{title}</h2>{children}</section>;
+function ProfileSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="profile-section">
+      <h2>{title}</h2>
+      {children}
+    </section>
+  );
 }
 
 function TagList({ values, empty }: { values: string[]; empty: string }) {
-  return values.length
-    ? <div className="profile-tags">{values.map((v) => <span key={v}>{v}</span>)}</div>
-    : <p className="empty-copy">{empty}</p>;
+  return values.length ? (
+    <div className="profile-tags">
+      {values.map((v) => (
+        <span key={v}>{v}</span>
+      ))}
+    </div>
+  ) : (
+    <p className="empty-copy">{empty}</p>
+  );
 }
 
 function TagGroup({ title, values }: { title: string; values: string[] }) {
   return (
     <div className="profile-tag-group">
       <h3>{title}</h3>
-      <div className="profile-tags">{values.map((value) => <span key={`${title}-${value}`}>{value}</span>)}</div>
+      <div className="profile-tags">
+        {values.map((value) => (
+          <span key={`${title}-${value}`}>{value}</span>
+        ))}
+      </div>
     </div>
   );
 }
 
 function PencilIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4Z" /><path d="m12.5 7.5 4 4" /></svg>;
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 20h4l10-10-4-4L4 16v4Z" />
+      <path d="m12.5 7.5 4 4" />
+    </svg>
+  );
 }
 
 function WebsiteIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="12" cy="12" r="8" fill="currentColor" opacity="0.1" />
-      <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M4 12h16M12 4a13 13 0 0 1 0 16M12 4a13 13 0 0 0 0 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <circle
+        cx="12"
+        cy="12"
+        r="8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <path
+        d="M4 12h16M12 4a13 13 0 0 1 0 16M12 4a13 13 0 0 0 0 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
 function LinkedInIcon() {
-  return <svg className="brand-glyph" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5A2.5 2.5 0 1 0 5 8.5a2.5 2.5 0 0 0-.02-5ZM3 9.5h4v11H3v-11Zm6 0h3.8v1.5h.05c.53-.95 1.83-1.95 3.77-1.95C20.3 9.05 21 11 21 14.1v6.4h-4v-5.7c0-1.36-.02-3.1-1.9-3.1-1.9 0-2.2 1.48-2.2 3v5.8H9v-11Z" /></svg>;
+  return (
+    <svg
+      className="brand-glyph"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M4.98 3.5A2.5 2.5 0 1 0 5 8.5a2.5 2.5 0 0 0-.02-5ZM3 9.5h4v11H3v-11Zm6 0h3.8v1.5h.05c.53-.95 1.83-1.95 3.77-1.95C20.3 9.05 21 11 21 14.1v6.4h-4v-5.7c0-1.36-.02-3.1-1.9-3.1-1.9 0-2.2 1.48-2.2 3v5.8H9v-11Z" />
+    </svg>
+  );
 }

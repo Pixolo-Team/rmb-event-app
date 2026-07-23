@@ -81,6 +81,10 @@ model Attendee {
   chapter      Chapter? @relation(fields: [chapterId], references: [id])
   chapterId    String?
   photoUrl     String?
+  // Object path (e.g. "profile/<attendeeId>/<uuid>.jpg") for photos uploaded via the
+  // GCS signed-URL flow (uploads module). When set, photoUrl is a freshly-signed,
+  // temporary read URL resolved on read rather than a permanent value.
+  photoObjectPath String?
 
   // Profile — filled in during onboarding (Screen 1.1), empty until then.
   // city/businessCategory may also arrive pre-filled from the import file.

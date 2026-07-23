@@ -16,7 +16,7 @@ import { AttendeesService } from "./attendees.service";
 import { ResolveOnboardingDto } from "./dto/resolve-onboarding.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { UpdateLinksDto } from "./dto/update-links.dto";
-import { UpdatePhotoDto } from "./dto/update-photo.dto";
+import { AssignPhotoDto } from "./dto/assign-photo.dto";
 import { SessionService } from "../session/session.service";
 import { SessionGuard, RequestWithAttendee } from "../session/session.guard";
 import { UploadsService } from "../uploads/uploads.service";
@@ -60,7 +60,11 @@ export class AttendeesController {
   @UseGuards(SessionGuard)
   async me(@Req() req: RequestWithAttendee) {
     const attendee = await this.attendees.getById(req.attendeeId);
-    const photoUrl = await this.attendees.resolvePhotoUrlPublic(attendee.photoUrl);
+    const photoUrl = await this.attendees.resolvePhotoUrl(
+      attendee.id,
+      attendee.photoObjectPath,
+      attendee.photoUrl,
+    );
     return {
       id: attendee.id,
       name: attendee.name,
@@ -93,7 +97,10 @@ export class AttendeesController {
    */
   @Patch("me/photo")
   @UseGuards(SessionGuard)
-  async updatePhoto(@Req() req: RequestWithAttendee, @Body() dto: UpdatePhotoDto) {
+  async updatePhoto(
+    @Req() req: RequestWithAttendee,
+    @Body() dto: UpdatePhotoDto,
+  ) {
     await this.uploads.completeUploadService(
       req.attendeeId,
       UploadCategories.Profile,
@@ -101,6 +108,21 @@ export class AttendeesController {
     );
     await this.attendees.updatePhoto(req.attendeeId, dto.objectPath);
     const photoUrl = await this.attendees.resolvePhotoUrlPublic(dto.objectPath);
+    return { status: "ok", photoUrl };
+  }
+
+  // Assigns a photo uploaded via the GCS signed-URL flow (uploads module):
+  // POST /uploads/upload-url -> PUT to GCS -> POST /uploads/complete -> here.
+  @Patch("me/photo")
+  @UseGuards(SessionGuard)
+  async assignPhoto(
+    @Req() req: RequestWithAttendee,
+    @Body() dto: AssignPhotoDto,
+  ) {
+    const photoUrl = await this.attendees.assignPhoto(
+      req.attendeeId,
+      dto.objectPath,
+    );
     return { status: "ok", photoUrl };
   }
 
@@ -119,7 +141,10 @@ export class AttendeesController {
 
   @Patch("me/profile")
   @UseGuards(SessionGuard)
-  async updateProfile(@Req() req: RequestWithAttendee, @Body() dto: UpdateProfileDto) {
+  async updateProfile(
+    @Req() req: RequestWithAttendee,
+    @Body() dto: UpdateProfileDto,
+  ) {
     const attendee = await this.attendees.updateProfile(req.attendeeId, dto);
     return { status: "ok", profileCompletedAt: attendee.profileCompletedAt };
   }
@@ -128,7 +153,10 @@ export class AttendeesController {
   // without re-sending the full onboarding profile.
   @Patch("me/links")
   @UseGuards(SessionGuard)
-  async updateLinks(@Req() req: RequestWithAttendee, @Body() dto: UpdateLinksDto) {
+  async updateLinks(
+    @Req() req: RequestWithAttendee,
+    @Body() dto: UpdateLinksDto,
+  ) {
     const links = await this.attendees.updateLinks(req.attendeeId, dto);
     return { status: "ok", ...links };
   }
