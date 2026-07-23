@@ -1437,6 +1437,7 @@ p.copy {
 .menu-close {
   width: 44px;
   height: 44px;
+  padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1444,12 +1445,15 @@ p.copy {
   border-radius: var(--radius-pill);
   background: var(--surface);
   color: var(--ink);
+  line-height: 0;
   cursor: pointer;
 }
 .menu-trigger svg,
 .menu-close svg {
+  display: block;
   width: 24px;
   height: 24px;
+  flex-shrink: 0;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.8;
@@ -4290,8 +4294,7 @@ a.contact-row:active { background: var(--brand-100); }
 }
 .feed-page .photo-card > .photo-card-media { border-radius: 0; aspect-ratio: 16 / 10; }
 .post-carousel { position: relative; overflow: hidden; background: var(--surface-2); }
-.post-carousel > .photo-card-media { width: 100%; border-radius: 0; aspect-ratio: 16 / 10; }
-.carousel-arrow { position: absolute; top: 50%; z-index: 1; width: 38px; height: 38px; transform: translateY(-50%); border: 1px solid rgba(255,255,255,.18); border-radius: 50%; background: rgba(12,25,45,.72); color: transparent; font-size: 0; line-height: 0; text-indent: -9999px; overflow: hidden; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }.carousel-arrow::before{content:"";width:10px;height:10px;border-top:2px solid #fff;border-right:2px solid #fff;display:block;flex-shrink:0}.carousel-arrow.previous::before{transform:rotate(-135deg);margin-left:4px}.carousel-arrow.next::before{transform:rotate(45deg);margin-right:4px}.carousel-arrow.previous{left:10px}.carousel-arrow.next{right:10px}
+.post-carousel > .photo-card-media { width: 100%; border-radius: 0; aspect-ratio: 16 / 10; touch-action: pan-y; }
 .carousel-dots { position: absolute; left: 50%; bottom: 10px; display: flex; gap: 5px; transform: translateX(-50%); }.carousel-dots span{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.55)}.carousel-dots span.active{background:#fff;transform:scale(1.25)}
 .post-caption { display: flex; min-width: 0; gap: 5px; margin: 0; padding: 0 16px 7px; color: var(--ink); font-size: .92rem; line-height: 1.4; }.post-caption span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.post-caption.expanded span{white-space:normal}.post-caption button{flex:0 0 auto;border:0;background:transparent;color:var(--ink-muted);font:inherit;font-weight:700;cursor:pointer}
 .feed-page .photo-card > .person-bio { margin: 0; padding: 14px 16px 10px; color: var(--ink); font-size: .94rem; line-height: 1.5; }
@@ -4855,11 +4858,12 @@ a.contact-row:active { background: var(--brand-100); }
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.photo-modal-close-text {
-  min-height: 38px;
+.photo-modal-close {
+  width: 38px;
+  height: 38px;
   flex-shrink: 0;
 }
-.photo-modal-close-text:disabled {
+.photo-modal-close:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -5029,10 +5033,15 @@ a.contact-row:active { background: var(--brand-100); }
 }
 .photo-picker {
   width: 100%;
-  min-height: 204px;
+  /* A definite height, not min-height — the preview grid inside sizes itself
+     with height: 100%, which only resolves reliably against a definite parent
+     height. With just min-height that percentage was ambiguous and some grid
+     layouts (2 photos in particular) ended up rendering the previews with no
+     height at all. */
+  height: 204px;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: stretch;
   overflow: hidden;
   border-radius: 22px;
   border: 1.5px dashed rgba(107, 154, 238, 0.32);
@@ -5045,9 +5054,24 @@ a.contact-row:active { background: var(--brand-100); }
   border-color: var(--brand-500);
   transform: translateY(-1px);
 }
-.photo-picker .composer-preview-grid { width: 100%; align-self: stretch; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; border-radius: 20px; }
-.photo-picker .composer-preview-grid.count-1 { grid-template-columns: 1fr; }
+.photo-picker .composer-preview-grid {
+  width: 100%;
+  height: 100%;
+  align-self: stretch;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 0;
+  margin: 0;
+  border-radius: 22px;
+}
+.photo-picker .composer-preview-grid.count-1 { grid-template-columns: minmax(0, 1fr); }
 .photo-picker .composer-preview-grid.count-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.photo-picker .composer-preview {
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: auto;
+  height: 100%;
+}
 .photo-picker-placeholder {
   display: flex;
   flex-direction: column;
@@ -5269,8 +5293,9 @@ a.contact-row:active { background: var(--brand-100); }
   .feed-composer-card .photo-modal-header {
     gap: 12px;
   }
-  .feed-composer-card .photo-modal-close-text {
-    min-height: 36px;
+  .feed-composer-card .photo-modal-close {
+    width: 36px;
+    height: 36px;
   }
   .feed-composer-card .photo-picker,
   .feed-composer-card .photo-picker-placeholder {

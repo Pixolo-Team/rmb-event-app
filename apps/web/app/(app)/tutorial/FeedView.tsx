@@ -14,6 +14,7 @@ type FeedPageResponse = {
 };
 
 const MAX_PHOTOS_PER_POST = 6;
+const CAROUSEL_SWIPE_THRESHOLD_PX = 40;
 
 function getInitials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -213,12 +214,13 @@ export function PostComposerModal({
             <p className="settings-copy">Select up to {MAX_PHOTOS_PER_POST} photos for one carousel post.</p>
           </div>
           <button
-            className="icon-action photo-modal-close-text"
+            className="menu-close photo-modal-close"
             type="button"
             onClick={closeComposer}
             disabled={composerStatus === "compressing" || composerStatus === "uploading"}
+            aria-label="Close share photos modal"
           >
-            Close
+            <CloseIcon />
           </button>
         </div>
 
@@ -732,6 +734,21 @@ function PhotoCard({
   const [activeMedia, setActiveMedia] = useState(0);
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+
+  function handleMediaTouchStart(event: React.TouchEvent) {
+    touchStartX.current = event.touches[0]?.clientX ?? null;
+  }
+
+  function handleMediaTouchEnd(event: React.TouchEvent) {
+    if (touchStartX.current === null) return;
+    const endX = event.changedTouches[0]?.clientX ?? touchStartX.current;
+    const delta = endX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(delta) < CAROUSEL_SWIPE_THRESHOLD_PX) return;
+    if (delta > 0) setActiveMedia((current) => (current - 1 + mediaUrls.length) % mediaUrls.length);
+    else setActiveMedia((current) => (current + 1) % mediaUrls.length);
+  }
 
   return (
     <article className="photo-card person-card">
@@ -764,7 +781,7 @@ function PhotoCard({
       {photo.caption ? <p className={`post-caption${captionExpanded ? " expanded" : ""}`}><span>{photo.caption}</span>{photo.caption.length > 72 && <button type="button" onClick={() => setCaptionExpanded(!captionExpanded)}>{captionExpanded ? "less" : "Read more"}</button>}</p> : null}
 
       <div className="post-carousel">
-      <div className="photo-card-media">
+      <div className="photo-card-media" onTouchStart={handleMediaTouchStart} onTouchEnd={handleMediaTouchEnd}>
         {mediaUrls[activeMedia] ? (
           <img src={mediaUrls[activeMedia]} alt="" loading="lazy" decoding="async" />
         ) : (
@@ -773,7 +790,7 @@ function PhotoCard({
           </div>
         )}
       </div>
-      {mediaUrls.length > 1 && <><button className="carousel-arrow previous" type="button" aria-label="Previous photo" onClick={() => setActiveMedia((activeMedia - 1 + mediaUrls.length) % mediaUrls.length)}>‹</button><button className="carousel-arrow next" type="button" aria-label="Next photo" onClick={() => setActiveMedia((activeMedia + 1) % mediaUrls.length)}>›</button><div className="carousel-dots" aria-label={`Photo ${activeMedia + 1} of ${mediaUrls.length}`}>{mediaUrls.map((_, index) => <span key={index} className={index === activeMedia ? "active" : ""} />)}</div></>}
+      {mediaUrls.length > 1 && <div className="carousel-dots" aria-label={`Photo ${activeMedia + 1} of ${mediaUrls.length}`}>{mediaUrls.map((_, index) => <span key={index} className={index === activeMedia ? "active" : ""} />)}</div>}
       </div>
 
       <div className="post-action-bar">
@@ -856,3 +873,5 @@ function HeartIcon({ filled = false }: { filled?: boolean }) {
 }
 
 function SendCommentIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 4 17 8-17 8 3-8-3-8Zm3 8h14" /></svg>; }
+
+function CloseIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>; }
