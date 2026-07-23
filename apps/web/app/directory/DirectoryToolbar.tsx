@@ -25,7 +25,7 @@ export function DirectoryToolbar({
         <input
           value={query}
           onChange={(event) => onQueryChange?.(event.target.value)}
-          placeholder=""
+          placeholder="Search by name or company"
           disabled={disabled}
         />
         {query && !disabled ? <button type="button" aria-label="Clear search" onClick={onClearQuery}>x</button> : null}

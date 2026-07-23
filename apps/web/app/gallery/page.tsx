@@ -152,14 +152,17 @@ export default function GalleryPage() {
       </div>
 
       {openPhoto ? (
-        <div className="gallery-viewer" role="dialog" aria-modal="true">
+        <div className="gallery-viewer" role="dialog" aria-modal="true" onClick={closeViewer}>
           <div className="gallery-viewer-topbar">
-            <button className="gallery-viewer-close" type="button" onClick={closeViewer} aria-label="Close">
-              <CloseIcon />
-            </button>
             <span className="gallery-viewer-name">{openPhoto.attendeeName}</span>
             {openPhoto.url ? (
-              <a className="gallery-viewer-download" href={openPhoto.url} download={downloadFileName(openPhoto)} aria-label="Download photo">
+              <a
+                className="gallery-viewer-download"
+                href={openPhoto.url}
+                download={downloadFileName(openPhoto)}
+                aria-label="Download photo"
+                onClick={(event) => event.stopPropagation()}
+              >
                 <DownloadIcon />
               </a>
             ) : (
@@ -184,8 +187,4 @@ export default function GalleryPage() {
 
 function DownloadIcon() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M12 4v10" /><path d="m8 10 4 4 4-4" /><path d="M5 19h14" /></svg>;
-}
-
-function CloseIcon() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>;
 }
