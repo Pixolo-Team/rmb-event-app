@@ -214,11 +214,11 @@ export default function AdminEventSettingsPage() {
     const lat = Number(venueLat);
     const lng = Number(venueLng);
     if (venueLat.trim() === "" || Number.isNaN(lat) || lat < -90 || lat > 90) {
-      setFieldError("Invalid coordinates — latitude must be between -90 and 90.");
+      setFieldError("Invalid coordinates - latitude must be between -90 and 90.");
       return;
     }
     if (venueLng.trim() === "" || Number.isNaN(lng) || lng < -180 || lng > 180) {
-      setFieldError("Invalid coordinates — longitude must be between -180 and 180.");
+      setFieldError("Invalid coordinates - longitude must be between -180 and 180.");
       return;
     }
     const cleanAgenda = agenda
@@ -270,7 +270,7 @@ export default function AdminEventSettingsPage() {
         const distanceM = distanceMeters(pos.coords.latitude, pos.coords.longitude, lat, lng);
         const inside = distanceM <= checkinRadiusM;
         setTestResult(
-          `You're ${Math.round(distanceM)}m from the venue — ${inside ? "inside" : "outside"} the ${checkinRadiusM}m radius.`,
+          `You're ${Math.round(distanceM)}m from the venue - ${inside ? "inside" : "outside"} the ${checkinRadiusM}m radius.`,
         );
       },
       () => setTestResult("Turn on location to test."),
@@ -293,7 +293,7 @@ export default function AdminEventSettingsPage() {
         <div className="banner warn" style={{ marginBottom: 18 }}>
           <div>
             <b>Geolocation check-in is disabled</b>
-            No venue configured yet — attendees must use manual check-in until you save coordinates below.
+            No venue configured yet - attendees must use manual check-in until you save coordinates below.
           </div>
         </div>
       )}

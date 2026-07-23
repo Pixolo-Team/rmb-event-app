@@ -236,7 +236,7 @@ export function EditProfileForm({
     setError(null);
 
     if (isOffline) {
-      setError("You're offline — reconnect to save.");
+      setError("You're offline - reconnect to save.");
       return;
     }
     if (!businessCategory) {
@@ -323,7 +323,7 @@ export function EditProfileForm({
           <div className="banner warn app-banner">
             <div>
               <b>Offline</b>
-              You&apos;re offline — reconnect to save changes.
+              You&apos;re offline - reconnect to save changes.
             </div>
           </div>
         ) : null}

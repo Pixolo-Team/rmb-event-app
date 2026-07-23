@@ -112,14 +112,6 @@ export function LoginForm() {
   return (
     <>
     <div className="card">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/images/rmb-fellowship-logo.png"
-        alt="Rotary Means Business Fellowship"
-        className="login-brand"
-        width={72}
-        height={72}
-      />
       <div className="wordmark">
         <span className="dot" />
         RMBF Evento

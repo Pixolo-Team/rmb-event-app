@@ -38,7 +38,7 @@ const DRAWER_ITEMS: MenuItem[] = [
 const TAB_ITEMS: MenuItem[] = [
   { href: "/home", label: "Home", icon: HomeIcon, available: true },
   { href: "/directory", label: "People", icon: DirectoryIcon, available: true, activePrefixes: ["/attendees/"] },
-  { href: "/matches", label: "Bookmark", icon: BookmarkTabIcon, available: true },
+  { href: "/matches", label: "Bookmarks", icon: BookmarkTabIcon, available: true },
   { href: "/profile", label: "Profile", icon: ProfileIcon, available: true },
 ];
 

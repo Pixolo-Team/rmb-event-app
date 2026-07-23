@@ -11,7 +11,7 @@ export function getInitials(name: string) {
 export async function shareAttendee(person: Pick<DirectoryAttendee, "id" | "name">) {
   if (typeof window === "undefined") return;
   const url = `${window.location.origin}/p/${person.id}`;
-  const title = `${person.name} — Evento`;
+  const title = `${person.name} - Evento`;
   try {
     if (navigator.share) {
       await navigator.share({ title, url });

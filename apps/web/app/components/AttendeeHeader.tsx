@@ -24,15 +24,9 @@ export function AttendeeHeader({
         <span className="app-header-spacer" aria-hidden="true" />
       )}
       <h1 className="app-header-title">{title}</h1>
-      <Link href="/home" aria-label="Go to Home">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/images/rmb-fellowship-logo.png"
-          alt="Rotary Means Business Fellowship"
-          className="app-topbar-brand"
-          width={50}
-          height={50}
-        />
+      <Link href="/home" aria-label="Go to Home" className="wordmark app-header-wordmark">
+        <span className="dot" aria-hidden="true" />
+        RMBF
       </Link>
     </header>
   );

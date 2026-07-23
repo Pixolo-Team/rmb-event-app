@@ -67,7 +67,7 @@ export function PersonalStats() {
 }
 
 function formatRank(rank: number | null) {
-  return rank ? `#${rank}` : "Not ranked";
+  return rank ? `#${rank}` : "N/A";
 }
 
 function StatTile({

@@ -147,7 +147,10 @@ export function OnboardingFlow() {
       } catch {
         // Storage unavailable — the banner will simply show; not worth failing over.
       }
-      setStep(isInstalled ? "thanks" : "install");
+      // Go straight to the success screen — it already offers an "Install RMBF
+      // Evento" button, so auto-popping the install overlay here just doubled the
+      // same prompt. The overlay is now only reached by pressing that button.
+      setStep("thanks");
     } catch {
       setSubmitError("Couldn't reach the server. Check your connection and try again.");
     } finally {
