@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, UseGuards } from "@nestjs/common";
 import { AdminGuard } from "../admin-auth/admin.guard";
+import { RolesGuard } from "../admin-auth/roles.guard";
 import { PhotosService } from "./photos.service";
 import { RateLimit } from "../common/rate-limit/rate-limit.decorator";
 import { RateLimitGuard } from "../common/rate-limit/rate-limit.guard";
@@ -7,8 +8,9 @@ import { CreatePhotoDto } from "./dto/create-photo.dto";
 import { UploadsService, ADMIN_UPLOAD_OWNER } from "../uploads/uploads.service";
 import { CreateUploadUrlsRequestData } from "../uploads/dto/create-upload-urls.request";
 
+// Superadmin-only by RolesGuard's default (no @Roles() needed).
 @Controller("admin/photos")
-@UseGuards(AdminGuard, RateLimitGuard)
+@UseGuards(AdminGuard, RolesGuard, RateLimitGuard)
 export class AdminPhotosController {
   constructor(
     private readonly photos: PhotosService,

@@ -1110,6 +1110,11 @@ p.copy {
   border: 1px solid var(--warning-700);
   color: var(--warning-700);
 }
+.banner.error {
+  background: var(--danger-100);
+  border: 1px solid var(--danger-500);
+  color: var(--danger-500);
+}
 .banner.ok {
   background: var(--success-100);
   border: 1px solid var(--success-700);

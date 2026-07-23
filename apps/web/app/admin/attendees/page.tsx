@@ -3,6 +3,7 @@
 import { type FormEvent, type KeyboardEvent, type MouseEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { withCsrfHeaders } from "../../lib/csrf";
+import { useAdminRole } from "../../components/AdminRoleContext";
 
 type AdminAttendee = {
   id: string;
@@ -34,6 +35,8 @@ function getAttendeeStatus(attendee: AdminAttendee) {
 
 export default function AdminAttendeesPage() {
   const router = useRouter();
+  const role = useAdminRole();
+  const canDelete = role !== "REGISTRATION_STAFF";
   const [attendees, setAttendees] = useState<AdminAttendee[]>([]);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -265,7 +268,9 @@ export default function AdminAttendeesPage() {
           <p className="eyebrow">Roster</p>
           <h1>Manage attendees</h1>
           <p className="admin-overview-copy">
-            View imported attendees and soft delete records without removing their database history.
+            {canDelete
+              ? "View imported attendees and soft delete records without removing their database history."
+              : "Search attendees, add new ones, and mark them present or absent."}
           </p>
         </div>
         <div className="admin-overview-actions">
@@ -414,7 +419,7 @@ export default function AdminAttendeesPage() {
                   >
                     {attendee.checkedInAt ? "Present" : "Mark as present"}
                   </button>
-                  {confirmingId === attendee.id ? (
+                  {confirmingId === attendee.id && canDelete ? (
                     <div className="admin-attendee-confirm" role="group" aria-label={`Confirm delete ${attendee.name}`}>
                       <span>Soft delete this attendee?</span>
                       <div>
@@ -426,7 +431,7 @@ export default function AdminAttendeesPage() {
                         </button>
                       </div>
                     </div>
-                  ) : (
+                  ) : (Boolean(attendee.checkedInAt) || canDelete) && (
                     <div className="admin-attendee-menu">
                       <button
                         className="admin-attendee-menu-button"
@@ -450,16 +455,18 @@ export default function AdminAttendeesPage() {
                               Mark as absent
                             </button>
                           )}
-                          <button
-                            className="admin-delete-button"
-                            type="button"
-                            onClick={() => {
-                              setConfirmingId(attendee.id);
-                              setActionMenuId(null);
-                            }}
-                          >
-                            Delete
-                          </button>
+                          {canDelete && (
+                            <button
+                              className="admin-delete-button"
+                              type="button"
+                              onClick={() => {
+                                setConfirmingId(attendee.id);
+                                setActionMenuId(null);
+                              }}
+                            >
+                              Delete
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>

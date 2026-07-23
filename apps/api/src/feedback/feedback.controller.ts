@@ -2,6 +2,7 @@ import { Body, Controller, Get, Post, Query, Req, Res, UseGuards } from "@nestjs
 import type { Response } from "express";
 import { SessionGuard, RequestWithAttendee } from "../session/session.guard";
 import { AdminGuard } from "../admin-auth/admin.guard";
+import { RolesGuard } from "../admin-auth/roles.guard";
 import { CreateFeedbackDto } from "./dto/create-feedback.dto";
 import { AdminFeedbackQueryDto } from "./dto/admin-feedback-query.dto";
 import { FeedbackService } from "./feedback.service";
@@ -18,7 +19,8 @@ export class FeedbackController {
     return this.feedback.submit(req.attendeeId,dto.rating,dto.comment);
   } 
 }
-@Controller("admin/feedback") @UseGuards(AdminGuard)
+// Superadmin-only by RolesGuard's default (no @Roles() needed).
+@Controller("admin/feedback") @UseGuards(AdminGuard, RolesGuard)
 export class AdminFeedbackController { 
   constructor(private readonly feedback:FeedbackService){} 
   @Get() 

@@ -5,6 +5,9 @@ import { AdminAuthController } from "./admin-auth.controller";
 import { AdminAuthService } from "./admin-auth.service";
 import { AdminSessionService } from "./admin-session.service";
 import { AdminGuard } from "./admin.guard";
+import { RolesGuard } from "./roles.guard";
+import { AdminUsersController } from "./admin-users.controller";
+import { AdminUsersService } from "./admin-users.service";
 
 // Global so any module with an /admin/* controller can @UseGuards(AdminGuard)
 // without importing this module explicitly (mirrors the @Global SessionModule).
@@ -17,8 +20,8 @@ import { AdminGuard } from "./admin.guard";
       secret: process.env.SESSION_JWT_SECRET ?? "dev-only-insecure-secret-change-me",
     }),
   ],
-  controllers: [AdminAuthController],
-  providers: [AdminAuthService, AdminSessionService, AdminGuard, RateLimiterService],
-  exports: [AdminSessionService, AdminGuard],
+  controllers: [AdminAuthController, AdminUsersController],
+  providers: [AdminAuthService, AdminSessionService, AdminGuard, RolesGuard, RateLimiterService, AdminUsersService],
+  exports: [AdminSessionService, AdminGuard, RolesGuard],
 })
 export class AdminAuthModule {}

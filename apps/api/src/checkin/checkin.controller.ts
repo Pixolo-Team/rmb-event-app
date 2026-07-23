@@ -5,6 +5,8 @@ import { QrScanCheckinDto } from "./dto/qr-scan-checkin.dto";
 import { VenueCheckinDto } from "./dto/venue-checkin.dto";
 import { SessionGuard, RequestWithAttendee } from "../session/session.guard";
 import { AdminGuard } from "../admin-auth/admin.guard";
+import { RolesGuard } from "../admin-auth/roles.guard";
+import { Roles } from "../admin-auth/roles.decorator";
 import { RateLimit } from "../common/rate-limit/rate-limit.decorator";
 import { RateLimitGuard } from "../common/rate-limit/rate-limit.guard";
 
@@ -40,28 +42,32 @@ export class CheckinController {
   }
 
   @Post("admin/checkin/qr-scan")
-  @UseGuards(AdminGuard, RateLimitGuard)
+  @UseGuards(AdminGuard, RolesGuard, RateLimitGuard)
+  @Roles("SUPERADMIN", "REGISTRATION_STAFF")
   @RateLimit(120)
   async qrScan(@Body() dto: QrScanCheckinDto) {
     return this.checkin.checkInByStaffQrScan(dto.qrToken);
   }
 
   @Post("admin/checkin/manual/:attendeeId")
-  @UseGuards(AdminGuard, RateLimitGuard)
+  @UseGuards(AdminGuard, RolesGuard, RateLimitGuard)
+  @Roles("SUPERADMIN", "REGISTRATION_STAFF")
   @RateLimit(120)
   async adminManual(@Param("attendeeId") attendeeId: string) {
     return this.checkin.checkInByAdminManual(attendeeId);
   }
 
   @Delete("admin/checkin/:attendeeId")
-  @UseGuards(AdminGuard, RateLimitGuard)
+  @UseGuards(AdminGuard, RolesGuard, RateLimitGuard)
+  @Roles("SUPERADMIN", "REGISTRATION_STAFF")
   @RateLimit(120)
   async adminAbsent(@Param("attendeeId") attendeeId: string) {
     return this.checkin.markAbsentByAdmin(attendeeId);
   }
 
   @Get("admin/checkin/status")
-  @UseGuards(AdminGuard)
+  @UseGuards(AdminGuard, RolesGuard)
+  @Roles("SUPERADMIN", "REGISTRATION_STAFF")
   async status() {
     return this.checkin.getAdminStatus();
   }

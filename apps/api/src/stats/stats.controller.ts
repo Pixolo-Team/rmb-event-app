@@ -1,6 +1,7 @@
 import { Controller, Get, InternalServerErrorException, Query, Req, Res, UseGuards } from "@nestjs/common";
 import type { Response } from "express";
 import { AdminGuard } from "../admin-auth/admin.guard";
+import { RolesGuard } from "../admin-auth/roles.guard";
 import { SessionGuard, RequestWithAttendee } from "../session/session.guard";
 import { ExportAnalyticsQueryDto } from "./dto/export-analytics-query.dto";
 import { StatsService } from "./stats.service";
@@ -12,8 +13,9 @@ export class StatsController {
   @Get("stats") get(@Req() req: RequestWithAttendee) { return this.stats.get(req.attendeeId); }
 }
 
+// Superadmin-only by RolesGuard's default (no @Roles() needed).
 @Controller("admin/analytics")
-@UseGuards(AdminGuard)
+@UseGuards(AdminGuard, RolesGuard)
 export class AdminStatsController {
   constructor(private readonly stats: StatsService) {}
   @Get() get() { return this.stats.getAdminOverview(); }

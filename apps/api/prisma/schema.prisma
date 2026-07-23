@@ -26,6 +26,25 @@ enum CheckInMethod {
   VENUE_QR
 }
 
+enum AdminRole {
+  SUPERADMIN
+  REGISTRATION_STAFF
+}
+
+// Every row here is a login created from the Admin Users page. The original
+// env-var admin login (ADMIN_USERNAME/ADMIN_PASSWORD) is separate and always
+// acts as SUPERADMIN — it has no row here.
+model AdminUser {
+  id           String    @id @default(uuid())
+  name         String
+  username     String    @unique
+  passwordHash String
+  role         AdminRole
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
+}
+
 model Chapter {
   id        String     @id @default(uuid())
   name      String     @unique

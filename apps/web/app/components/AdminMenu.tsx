@@ -4,22 +4,26 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { withCsrfHeaders } from "../lib/csrf";
+import { useAdminRole } from "./AdminRoleContext";
 
 type AdminMenuItem = {
   label: string;
   href: string;
   icon: () => React.ReactNode;
+  // Omit to show to every role; superadminOnly restricts to SUPERADMIN.
+  superadminOnly?: boolean;
 };
 
 const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
-  { href: "/admin", label: "Analytics", icon: AnalyticsIcon },
-  { href: "/admin/import", label: "Attendee Import", icon: ImportIcon },
+  { href: "/admin", label: "Analytics", icon: AnalyticsIcon, superadminOnly: true },
+  { href: "/admin/import", label: "Attendee Import", icon: ImportIcon, superadminOnly: true },
   { href: "/admin/attendees", label: "Manage Attendees", icon: PeopleIcon },
-  { href: "/admin/event", label: "Event Settings", icon: SettingsIcon },
+  { href: "/admin/event", label: "Event Settings", icon: SettingsIcon, superadminOnly: true },
   { href: "/admin/checkin", label: "Live Check-In", icon: CheckinIcon },
-  { href: "/admin/badges", label: "Print Badges", icon: BadgeIcon },
-  { href: "/admin/feed", label: "Gallery Photos", icon: PhotoIcon },
-  { href: "/admin/feedback", label: "Feedback", icon: FeedbackIcon },
+  { href: "/admin/badges", label: "Print Badges", icon: BadgeIcon, superadminOnly: true },
+  { href: "/admin/feed", label: "Gallery Photos", icon: PhotoIcon, superadminOnly: true },
+  { href: "/admin/feedback", label: "Feedback", icon: FeedbackIcon, superadminOnly: true },
+  { href: "/admin/users", label: "Admin Users", icon: UsersIcon, superadminOnly: true },
 ];
 
 export function AdminMenu({ title }: { title?: string }) {
@@ -28,9 +32,11 @@ export function AdminMenu({ title }: { title?: string }) {
   const [signingOut, setSigningOut] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const role = useAdminRole();
   const titleId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
+  const menuItems = ADMIN_MENU_ITEMS.filter((item) => !item.superadminOnly || role === "SUPERADMIN");
 
   useEffect(() => {
     if (open) {
@@ -93,7 +99,7 @@ export function AdminMenu({ title }: { title?: string }) {
 
   const nav = (
     <nav className="admin-menu-nav" aria-label="Admin navigation">
-      {ADMIN_MENU_ITEMS.map((item) => {
+      {menuItems.map((item) => {
         const Icon = item.icon;
         const active =
             item.href === "/admin"
@@ -222,4 +228,8 @@ function PhotoIcon() {
 
 function FeedbackIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" /></svg>;
+}
+
+function UsersIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="3" /><circle cx="17" cy="9" r="2.5" /><path d="M3 19c.4-3.2 2.3-4.8 6-4.8s5.6 1.6 6 4.8M14.5 14.5c2.6.2 3.9 1.5 4.2 3.8" /></svg>;
 }
