@@ -46,15 +46,7 @@ export class CheckinService {
   }
 
   async checkInManual(attendeeId: string): Promise<CheckinOutcome> {
-    const outcome = await this.recordCheckIn(attendeeId, "MANUAL");
-    if (outcome.status === "checked_in") {
-      const attendee = await this.prisma.attendee.findUnique({
-        where: { id: attendeeId },
-        select: { name: true, phone: true },
-      });
-      if (attendee) this.notifyCheckin(attendeeId, attendee.phone, attendee.name);
-    }
-    return outcome;
+    return this.recordCheckIn(attendeeId, "MANUAL");
   }
 
   async checkInByAdminManual(attendeeId: string): Promise<CheckinOutcome & { attendeeName: string }> {
@@ -65,9 +57,6 @@ export class CheckinService {
     if (!attendee || attendee.deletedAt) throw new NotFoundException("Attendee not found");
 
     const outcome = await this.recordCheckIn(attendee.id, "MANUAL");
-    if (outcome.status === "checked_in") {
-      this.notifyCheckin(attendee.id, attendee.phone, attendee.name);
-    }
     return { ...outcome, attendeeName: attendee.name };
   }
 
@@ -127,6 +116,11 @@ export class CheckinService {
 
     try {
       const checkIn = await this.prisma.checkIn.create({ data: { attendeeId, method } });
+      const attendee = await this.prisma.attendee.findUnique({
+        where: { id: attendeeId },
+        select: { name: true, phone: true },
+      });
+      if (attendee) this.notifyCheckin(attendeeId, attendee.phone, attendee.name);
       return { status: "checked_in", method: checkIn.method, checkedInAt: checkIn.createdAt };
     } catch {
       // Unique-constraint race: another request (e.g. a concurrent staff scan)
