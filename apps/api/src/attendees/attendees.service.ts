@@ -57,6 +57,7 @@ export type PublicProfileData = {
   businessCategory: string | null;
   bio: string | null;
   phone: string;
+  email: string;
   photoUrl: string | null;
   linkedInUrl: string | null;
   websiteUrl: string | null;
@@ -193,6 +194,7 @@ export class AttendeesService {
       businessCategory: attendee.businessCategory,
       bio: attendee.bio,
       phone: attendee.phone,
+      email: attendee.email,
       photoUrl: await this.resolvePhotoUrlPublic(attendee.photoUrl),
       linkedInUrl: attendee.linkedInUrl,
       websiteUrl: attendee.websiteUrl,

@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { UploadsService } from "../uploads/uploads.service";
 
 export type LeaderboardEntry = {
   id: string;
@@ -16,17 +17,36 @@ type LeaderboardSnapshot = { entries: LeaderboardEntry[]; totalAttendees: number
 export class LeaderboardService {
   private cached: { expiresAt: number; value: LeaderboardSnapshot } | null = null;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uploads: UploadsService,
+  ) {}
 
   async getForAttendee(attendeeId: string) {
     const snapshot = await this.snapshot();
     const ownEntry = snapshot.entries.find((entry) => entry.id === attendeeId) ?? await this.uncheckedInEntry(attendeeId, snapshot.entries);
-    return { top: snapshot.entries.slice(0, 20), me: ownEntry, totalAttendees: snapshot.totalAttendees, updatedAt: snapshot.updatedAt };
+    const [top, me] = await Promise.all([
+      this.withPhotoUrls(snapshot.entries.slice(0, 20)),
+      ownEntry ? this.withPhotoUrl(ownEntry) : Promise.resolve(null),
+    ]);
+    return { top, me, totalAttendees: snapshot.totalAttendees, updatedAt: snapshot.updatedAt };
   }
 
   async getVenueDisplay() {
     const snapshot = await this.snapshot();
-    return { top: snapshot.entries.slice(0, 20), totalAttendees: snapshot.totalAttendees, updatedAt: snapshot.updatedAt };
+    return { top: await this.withPhotoUrls(snapshot.entries.slice(0, 20)), totalAttendees: snapshot.totalAttendees, updatedAt: snapshot.updatedAt };
+  }
+
+  // Snapshot entries carry the raw GCS object path; the client needs a signed,
+  // temporary download URL. Resolved only for the entries actually returned
+  // (top 20 + me) rather than every checked-in attendee.
+  private async withPhotoUrls(entries: LeaderboardEntry[]): Promise<LeaderboardEntry[]> {
+    return Promise.all(entries.map((entry) => this.withPhotoUrl(entry)));
+  }
+
+  private async withPhotoUrl(entry: LeaderboardEntry): Promise<LeaderboardEntry> {
+    if (!entry.photoUrl) return entry;
+    return { ...entry, photoUrl: await this.uploads.resolveProfilePhotoUrl(entry.photoUrl) };
   }
 
   private async snapshot(): Promise<LeaderboardSnapshot> {

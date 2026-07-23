@@ -231,11 +231,6 @@ function ConnectionCard({
                 timeStyle: "short",
               }).format(new Date(connection.metAt))}
             </span>
-            {connection.tableNumber && (
-              <span className="connection-table">
-                <TableIcon /> Table {connection.tableNumber}
-              </span>
-            )}
           </div>
         </div>
       </Link>
@@ -345,10 +340,6 @@ function ConnectionState({
       )}
     </div>
   );
-}
-
-function TableIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9h14M7 9l-2 10M17 9l2 10M4 5h16v4H4z" /></svg>;
 }
 
 function CallIcon() {
