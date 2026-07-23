@@ -90,7 +90,9 @@ export class PhotosService {
       attendeeId,
       attendeeName: photo.attendee?.name ?? this.adminPhotoLabel,
       attendeeBusinessName: photo.attendee?.businessName ?? null,
-      attendeePhotoUrl: photo.attendee?.photoUrl ?? null,
+      attendeePhotoUrl: photo.attendee?.photoUrl
+        ? await this.uploads.resolveProfilePhotoUrl(photo.attendee.photoUrl)
+        : null,
       likeCount: 0,
       commentCount: 0,
       likedByMe: false,
@@ -181,7 +183,9 @@ export class PhotosService {
           attendeeId: photo.attendeeId,
           attendeeName: photo.attendee?.name ?? photo.adminLabel ?? this.adminPhotoLabel,
           attendeeBusinessName: photo.attendee?.businessName ?? null,
-          attendeePhotoUrl: photo.attendee?.photoUrl ?? null,
+          attendeePhotoUrl: photo.attendee?.photoUrl
+            ? await this.uploads.resolveProfilePhotoUrl(photo.attendee.photoUrl)
+            : null,
           likeCount: photo._count.likes,
           commentCount: photo._count.comments,
           likedByMe: photo.likes.length > 0,

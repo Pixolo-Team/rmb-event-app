@@ -1,13 +1,18 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { MatchingService } from "./matching.service";
+import { UploadsService } from "../uploads/uploads.service";
 import type { MatchProfile } from "./matching.types";
 
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class MatchCacheService {
-  constructor(private readonly prisma: PrismaService, private readonly matching: MatchingService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly matching: MatchingService,
+    private readonly uploads: UploadsService,
+  ) {}
 
   async recomputeFor(viewerId: string) {
     const rows = await this.prisma.attendee.findMany({
@@ -58,18 +63,19 @@ export class MatchCacheService {
     return {
       profileComplete: Boolean(viewer.profileCompletedAt), totalAttendees,
       computedAt: matches[0]?.computedAt ?? null,
-      matches: matches.map(({ candidate, ...match }) => ({
+      matches: await Promise.all(matches.map(async ({ candidate, ...match }) => ({
         id: candidate.id, name: candidate.name, businessName: candidate.businessName,
         businessCategory: candidate.businessCategory, city: candidate.city,
         chapterName: candidate.chapter?.name ?? null, tableNumber: candidate.tableNumber,
-        photoUrl: candidate.photoUrl, checkedIn: Boolean(candidate.checkIn),
+        photoUrl: candidate.photoUrl ? await this.uploads.resolveProfilePhotoUrl(candidate.photoUrl) : null,
+        checkedIn: Boolean(candidate.checkIn),
         phone: candidate.phone, linkedInUrl: candidate.linkedInUrl,
         websiteUrl: candidate.websiteUrl,
         bookmarked: candidate.bookmarksOnMe.length > 0,
         met: metIds.has(candidate.id),
         score: match.score, reasons: match.reasons, headline: match.headline,
         chapterRelation: match.chapterRelation, computedAt: match.computedAt,
-      })),
+      }))),
     };
   }
 }

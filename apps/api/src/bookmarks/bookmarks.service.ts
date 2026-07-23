@@ -1,9 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { UploadsService } from "../uploads/uploads.service";
 
 @Injectable()
 export class BookmarksService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uploads: UploadsService,
+  ) {}
 
   async listForAttendee(attendeeId: string) {
     const [bookmarks, meetings] = await Promise.all([
@@ -26,24 +30,26 @@ export class BookmarksService {
       meetings.map((meeting) => (meeting.attendeeAId === attendeeId ? meeting.attendeeBId : meeting.attendeeAId)),
     );
 
-    return bookmarks.map(({ createdAt, target }) => ({
-      id: target.id,
-      name: target.name,
-      businessName: target.businessName,
-      chapterName: target.chapter?.name ?? null,
-      city: target.city,
-      businessCategory: target.businessCategory,
-      bio: target.bio,
-      phone: target.phone,
-      email: target.email,
-      tableNumber: target.tableNumber,
-      photoUrl: target.photoUrl,
-      linkedInUrl: target.linkedInUrl,
-      websiteUrl: target.websiteUrl,
-      met: metIds.has(target.id),
-      bookmarkedAt: createdAt,
-      bookmarked: true,
-    }));
+    return Promise.all(
+      bookmarks.map(async ({ createdAt, target }) => ({
+        id: target.id,
+        name: target.name,
+        businessName: target.businessName,
+        chapterName: target.chapter?.name ?? null,
+        city: target.city,
+        businessCategory: target.businessCategory,
+        bio: target.bio,
+        phone: target.phone,
+        email: target.email,
+        tableNumber: target.tableNumber,
+        photoUrl: target.photoUrl ? await this.uploads.resolveProfilePhotoUrl(target.photoUrl) : null,
+        linkedInUrl: target.linkedInUrl,
+        websiteUrl: target.websiteUrl,
+        met: metIds.has(target.id),
+        bookmarkedAt: createdAt,
+        bookmarked: true,
+      })),
+    );
   }
 
   async toggle(attendeeId: string, targetId: string) {
