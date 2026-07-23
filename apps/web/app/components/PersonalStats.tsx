@@ -84,8 +84,7 @@ function StatTile({
   return (
     <div className={`stat-tile${wide ? " stat-tile-wide" : ""}`}>
       <strong>{value}</strong>
-      {sub && <em>{sub}</em>}
-      <span>{label}</span>
+      <span>{label}{sub && <em> {sub}</em>}</span>
     </div>
   );
 }

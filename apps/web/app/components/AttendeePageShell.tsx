@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
-import { AttendeeBottomTabs, AttendeeMenu, type MenuAttendee } from "./AttendeeMenu";
+import { AttendeeBottomTabs, type MenuAttendee } from "./AttendeeMenu";
+import { AttendeeHeader } from "./AttendeeHeader";
 import { InstallBanner } from "./InstallBanner";
 import { PoweredByFooter } from "./PoweredByFooter";
 import { RotaryLoader } from "./RotaryLoader";
@@ -130,20 +130,7 @@ export function AttendeePageShell({
 
   return (
     <div className="attendee-shell">
-      <header className={`full-page-header attendee-app-header${pathname === "/matches" ? " no-divider" : ""}`}>
-        <AttendeeMenu attendee={attendee} />
-        <h1 className="app-header-title">{pageTitle(pathname)}</h1>
-        <Link href="/home" aria-label="Go to Home">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/images/rmb-fellowship-logo.png"
-            alt="Rotary Means Business Fellowship"
-            className="app-topbar-brand"
-            width={50}
-            height={50}
-          />
-        </Link>
-      </header>
+      <AttendeeHeader title={pageTitle(pathname)} attendee={attendee} noDivider={pathname === "/matches"} />
       <InstallBanner />
       <div className="attendee-shell-content">
         {children}
