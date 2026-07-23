@@ -20,6 +20,7 @@ import { AttendeesService } from "./attendees.service";
 import { ResolveOnboardingDto } from "./dto/resolve-onboarding.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { UpdateLinksDto } from "./dto/update-links.dto";
+import { AssignPhotoDto } from "./dto/assign-photo.dto";
 import { SessionService } from "../session/session.service";
 import { SessionGuard, RequestWithAttendee } from "../session/session.guard";
 import { avatarUploadOptions } from "./avatar-upload.config";
@@ -61,6 +62,11 @@ export class AttendeesController {
   @UseGuards(SessionGuard)
   async me(@Req() req: RequestWithAttendee) {
     const attendee = await this.attendees.getById(req.attendeeId);
+    const photoUrl = await this.attendees.resolvePhotoUrl(
+      attendee.id,
+      attendee.photoObjectPath,
+      attendee.photoUrl,
+    );
     return {
       id: attendee.id,
       name: attendee.name,
@@ -68,7 +74,7 @@ export class AttendeesController {
       phone: attendee.phone,
       businessName: attendee.businessName,
       chapterName: attendee.chapter?.name ?? null,
-      photoUrl: attendee.photoUrl,
+      photoUrl,
       city: attendee.city,
       businessCategory: attendee.businessCategory,
       tableNumber: attendee.tableNumber,
@@ -93,6 +99,15 @@ export class AttendeesController {
     if (!file) throw new BadRequestException("No photo uploaded");
     const photoUrl = `/uploads/avatars/${file.filename}`;
     await this.attendees.updatePhoto(req.attendeeId, photoUrl);
+    return { status: "ok", photoUrl };
+  }
+
+  // Assigns a photo uploaded via the GCS signed-URL flow (uploads module):
+  // POST /uploads/upload-url -> PUT to GCS -> POST /uploads/complete -> here.
+  @Patch("me/photo")
+  @UseGuards(SessionGuard)
+  async assignPhoto(@Req() req: RequestWithAttendee, @Body() dto: AssignPhotoDto) {
+    const photoUrl = await this.attendees.assignPhoto(req.attendeeId, dto.objectPath);
     return { status: "ok", photoUrl };
   }
 

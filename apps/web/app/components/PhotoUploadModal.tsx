@@ -3,7 +3,7 @@
 import { useRef, useState, useCallback } from "react";
 import Cropper from "react-easy-crop";
 import type { Area } from "react-easy-crop";
-import { compressProfileImage } from "../lib/imageCompression";
+import { compressProfilePhotoForUpload } from "../lib/imageCompression";
 
 interface PhotoUploadModalProps {
   isOpen: boolean;
@@ -31,6 +31,7 @@ export function PhotoUploadModal({
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [phase, setPhase] = useState<"idle" | "compressing" | "uploading">("idle");
 
   const resetSelection = () => {
     setSelectedFile(null);
@@ -72,15 +73,17 @@ export function PhotoUploadModal({
   }, []);
 
   const handleUpload = async () => {
-    if (!selectedFile || !previewUrl || !croppedAreaPixels) return;
+    if (!selectedFile || !previewUrl || !croppedAreaPixels || uploading) return;
 
     setUploading(true);
     setError(null);
 
     try {
-      // Get the cropped image
+      setPhase("compressing");
       const croppedFile = await cropImageFile(previewUrl, croppedAreaPixels);
-      const compressedFile = await compressProfileImage(croppedFile);
+      const compressedFile = await compressProfilePhotoForUpload(croppedFile);
+
+      setPhase("uploading");
       await onPhotoUpload(compressedFile);
 
       resetSelection();
@@ -89,6 +92,7 @@ export function PhotoUploadModal({
       setError(err instanceof Error ? err.message : "Upload failed. Try again.");
     } finally {
       setUploading(false);
+      setPhase("idle");
     }
   };
 
@@ -211,7 +215,11 @@ export function PhotoUploadModal({
               disabled={uploading || removing || isLoading || !croppedAreaPixels}
               className="btn-primary"
             >
-              {uploading || isLoading ? "Uploading..." : "Upload Photo"}
+              {phase === "compressing"
+                ? "Compressing..."
+                : uploading || isLoading
+                  ? "Uploading..."
+                  : "Upload Photo"}
             </button>
           )}
         </div>

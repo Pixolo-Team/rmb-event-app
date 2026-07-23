@@ -13,6 +13,7 @@ import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { UpdateLinksDto } from "./dto/update-links.dto";
 import { GOALS_TAGS, OFFERING_TAGS } from "./profile-options";
 import { CreateAdminAttendeeDto } from "./dto/create-admin-attendee.dto";
+import { UploadsService } from "../uploads/uploads.service";
 
 export type ResolveOnboardingResult =
   | {
@@ -79,6 +80,7 @@ export class AttendeesService {
     private readonly prisma: PrismaService,
     private readonly session: SessionService,
     private readonly matching: MatchingService,
+    private readonly uploads: UploadsService,
   ) {}
 
   private async cachedReference<T>(key: string, load: () => Promise<T>): Promise<T> {
@@ -353,6 +355,43 @@ export class AttendeesService {
     },
   });
 }
+
+  // Assigns a photo uploaded through the GCS signed-URL flow (uploads module).
+  // objectPath is the permanent value we store; the returned photoUrl is a
+  // freshly-signed, temporary read URL for immediate display only.
+  async assignPhoto(attendeeId: string, objectPath: string): Promise<string> {
+    const { downloadUrl } = await this.uploads.createDownloadUrlService(attendeeId, objectPath);
+
+    const attendee = await this.prisma.attendee.findUnique({
+      where: { id: attendeeId },
+      select: { photoObjectPath: true },
+    });
+
+    if (attendee?.photoObjectPath && attendee.photoObjectPath !== objectPath) {
+      await this.uploads.deleteUploadService(attendeeId, attendee.photoObjectPath).catch(() => undefined);
+    }
+
+    await this.prisma.attendee.update({
+      where: { id: attendeeId },
+      data: { photoObjectPath: objectPath },
+    });
+
+    return downloadUrl;
+  }
+
+  // Resolves a fresh signed photoUrl for GCS-based photos (photoObjectPath set),
+  // falling back to the legacy stored photoUrl for the older local-disk flow.
+  async resolvePhotoUrl(attendeeId: string, photoObjectPath: string | null, photoUrl: string | null): Promise<string | null> {
+    if (!photoObjectPath) return photoUrl;
+
+    try {
+      const { downloadUrl } = await this.uploads.createDownloadUrlService(attendeeId, photoObjectPath);
+      return downloadUrl;
+    } catch (error) {
+      console.error("Failed to resolve profile photo URL", error);
+      return photoUrl;
+    }
+  }
 
   private cityValue(city: { name: string; stateOrUt: string }) {
     return city.stateOrUt === "Legacy / Imported" ? city.name : `${city.name}, ${city.stateOrUt}`;

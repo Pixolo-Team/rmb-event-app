@@ -10,6 +10,7 @@ import { PhotoUploadModal } from "../components/PhotoUploadModal";
 import { PoweredByFooter } from "../components/PoweredByFooter";
 import { withCsrfHeaders } from "../lib/csrf";
 import { loadMyProfile, profileCache, type MyProfile } from "../lib/profileCache";
+import { uploadProfilePhoto } from "../lib/profilePhotoUpload";
 import { ProfileSkeleton } from "./ProfileSkeleton";
 
 export default function ProfilePage() {
@@ -46,24 +47,13 @@ export default function ProfilePage() {
   };
 
   const handlePhotoUpload = async (file: File) => {
+    if (photoUploading) return; // guards against a duplicate upload firing mid-flight
     setPhotoUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("photo", file);
-
-      const res = await fetch("/api/attendees/me/photo", withCsrfHeaders({
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      }));
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => null) as { message?: string } | null;
-        throw new Error(body?.message ?? "Upload failed");
-      }
-
-      const data = await res.json() as { status: string; photoUrl: string };
-      updateProfilePhoto(data.photoUrl);
+      // Previous photo (profile.photoUrl) is left untouched until this succeeds,
+      // so a failure naturally restores it — nothing to roll back.
+      const { photoUrl } = await uploadProfilePhoto(file);
+      updateProfilePhoto(photoUrl);
     } catch (error) {
       console.error("Photo upload error:", error);
       throw error;
