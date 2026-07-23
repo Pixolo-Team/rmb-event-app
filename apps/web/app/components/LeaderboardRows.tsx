@@ -14,4 +14,4 @@ export function LeaderboardRows({ entries, currentId, publicDisplay = false }: {
 }
 
 function medal(rank: number) { return rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉"; }
-function formatRank(rank: number | null) { return rank ? `#${rank}` : "—"; }
+function formatRank(rank: number | null) { return rank ? `#${rank}` : "-"; }

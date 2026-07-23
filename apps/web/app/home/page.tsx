@@ -529,7 +529,7 @@ function CheckInCard({
         <span className="home-checkin-icon" aria-hidden="true">📍</span>
         <div>
           <b>You&rsquo;re not checked in yet</b>
-          <em>We&rsquo;ll use your location — or scan the venue QR at the entrance.</em>
+          <em>We&rsquo;ll use your location - or scan the venue QR at the entrance.</em>
         </div>
       </div>
 
@@ -572,7 +572,7 @@ function CheckInCard({
       )}
 
       {!online && phase === "idle" && (
-        <p className="home-checkin-hint">You&rsquo;re offline — checking in will confirm once you reconnect.</p>
+        <p className="home-checkin-hint">You&rsquo;re offline - checking in will confirm once you reconnect.</p>
       )}
     </section>
   );
@@ -663,8 +663,8 @@ function ProgressSection({ stats }: { stats: PersonalStats | null }) {
     <section className="profile-section home-progress-section" aria-label="Your progress">
       <h2>Your progress</h2>
       <div className="stats-grid home-stats-grid">
-        <StatTile value={stats?.peopleMet ?? "—"} label="People met" />
-        <StatTile value={stats ? formatRank(stats.rank) : "—"} sub={stats?.rank && totalRanked > 0 ? `of (${totalRanked})` : undefined} label="Rank" />
+        <StatTile value={stats?.peopleMet ?? "-"} label="People met" />
+        <StatTile value={stats ? formatRank(stats.rank) : "-"} sub={stats?.rank && totalRanked > 0 ? `of (${totalRanked})` : undefined} label="Rank" />
         <Link className="stat-tile home-stat-link" href="/matches" aria-label={`${stats?.bookmarks ?? 0} bookmarks. Open Want to Meet`}>
           <strong>{stats?.bookmarks ?? "-"}</strong>
           <span>Bookmarks</span>
@@ -676,7 +676,7 @@ function ProgressSection({ stats }: { stats: PersonalStats | null }) {
 }
 
 function formatRank(rank: number | null) {
-  return rank ? `#${rank}` : "Not ranked";
+  return rank ? `#${rank}` : "N/A";
 }
 
 function PeopleToMeet({ matches, loading }: { matches: MatchSuggestion[]; loading: boolean }) {
@@ -726,7 +726,7 @@ function PeopleToMeet({ matches, loading }: { matches: MatchSuggestion[]; loadin
           ))}
         </ul>
       ) : (
-        <p className="empty-copy">No strong matches yet — complete your profile and check back as more people arrive.</p>
+        <p className="empty-copy">No strong matches yet - complete your profile and check back as more people arrive.</p>
       )}
     </section>
   );

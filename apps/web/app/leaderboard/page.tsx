@@ -73,5 +73,5 @@ function formatTime(value: string) {
 }
 
 function formatRank(rank: number | null) {
-  return rank ? `#${rank}` : "Not ranked";
+  return rank ? `#${rank}` : "N/A";
 }

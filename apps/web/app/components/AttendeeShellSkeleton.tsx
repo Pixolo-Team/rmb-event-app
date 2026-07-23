@@ -14,14 +14,10 @@ export function AttendeeShellSkeleton({ title, children }: { title: string; chil
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
         </button>
         <h1 className="app-header-title">{title}</h1>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/images/rmb-fellowship-logo.png"
-          alt="Rotary Means Business Fellowship"
-          className="app-topbar-brand"
-          width={50}
-          height={50}
-        />
+        <span className="wordmark app-header-wordmark" aria-hidden="true">
+          <span className="dot" />
+          RMBF
+        </span>
       </header>
       <div className="attendee-shell-content">{children}</div>
       <AttendeeBottomTabs />

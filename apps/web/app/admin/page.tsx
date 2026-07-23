@@ -186,26 +186,26 @@ export default function AdminHome() {
       <section className="admin-analytics-grid">
         <MetricCard
           label="Checked in"
-          value={`${data?.totals.checkedIn ?? "—"} / ${data?.totals.attendees ?? "—"}`}
+          value={`${data?.totals.checkedIn ?? "-"} / ${data?.totals.attendees ?? "-"}`}
           detail={data ? `${formatPercent(data.totals.checkInPercent)} of expected attendees` : "Loading attendance"}
           href="/admin/checkin"
           loading={loading}
         />
         <MetricCard
           label="Meetings logged"
-          value={data?.totals.meetings ?? "—"}
+          value={data?.totals.meetings ?? "-"}
           detail={data ? `${data.totals.engagedCheckedIn} attendees have met someone` : "Loading meetings"}
           loading={loading}
         />
         <MetricCard
           label="Avg per attendee"
-          value={data ? data.totals.averageMeetingsPerCheckedIn.toFixed(1) : "—"}
+          value={data ? data.totals.averageMeetingsPerCheckedIn.toFixed(1) : "-"}
           detail="Confirmed meetings per checked-in attendee"
           loading={loading}
         />
         <MetricCard
           label="Engagement"
-          value={data ? formatPercent(data.totals.engagementPercent) : "—"}
+          value={data ? formatPercent(data.totals.engagementPercent) : "-"}
           detail="Checked-in attendees with at least one meeting"
           loading={loading}
         />
@@ -291,9 +291,9 @@ export default function AdminHome() {
             <Link href="/admin/checkin">Open check-in desk</Link>
           </div>
           <div className="admin-method-grid">
-            <SmallStat label="Via location" value={data?.breakdown.GEOLOCATION ?? "—"} />
-            <SmallStat label="Venue scan" value={data?.breakdown.VENUE_QR ?? "—"} />
-            <SmallStat label="Desk check-in" value={data?.breakdown.MANUAL ?? "—"} />
+            <SmallStat label="Via location" value={data?.breakdown.GEOLOCATION ?? "-"} />
+            <SmallStat label="Venue scan" value={data?.breakdown.VENUE_QR ?? "-"} />
+            <SmallStat label="Desk check-in" value={data?.breakdown.MANUAL ?? "-"} />
           </div>
         </article>
 
@@ -306,10 +306,10 @@ export default function AdminHome() {
             <Link href="/admin/feedback">Open feedback</Link>
           </div>
           <div className="admin-method-grid">
-            <SmallStat label="Avg rating" value={data ? data.totals.feedbackAverage.toFixed(1) : "—"} />
-            <SmallStat label="Responses" value={data?.totals.feedbackResponses ?? "—"} />
-            <SmallStat label="Photos" value={data?.totals.photos ?? "—"} />
-            <SmallStat label="Likes" value={data?.totals.likes ?? "—"} />
+            <SmallStat label="Avg rating" value={data ? data.totals.feedbackAverage.toFixed(1) : "-"} />
+            <SmallStat label="Responses" value={data?.totals.feedbackResponses ?? "-"} />
+            <SmallStat label="Photos" value={data?.totals.photos ?? "-"} />
+            <SmallStat label="Likes" value={data?.totals.likes ?? "-"} />
           </div>
         </article>
       </section>

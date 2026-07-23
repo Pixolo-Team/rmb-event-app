@@ -68,7 +68,7 @@ export default function AdminBadgesPage() {
     return (
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }}>
         <h1 className="title">Print badges</h1>
-        <p className="copy">No attendees to print badges for yet — import attendees first.</p>
+        <p className="copy">No attendees to print badges for yet - import attendees first.</p>
       </div>
     );
   }

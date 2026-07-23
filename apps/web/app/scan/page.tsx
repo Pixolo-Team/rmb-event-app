@@ -173,7 +173,7 @@ function ResultCard({ outcome, onScanNext }: { outcome: Outcome; onScanNext: () 
         <span className={`ring ${outcome.kind === "met" ? "ok" : "warn"} lg`}>{outcome.kind === "met" ? "✓" : "↻"}</span>
         <h2>{outcome.kind === "met" ? `You met ${outcome.name}!` : `You already met ${outcome.name}`}</h2>
         <p className="copy">
-          {outcome.kind === "met" ? `${outcome.name}${company} is now in your connections.` : "No worries — go find someone new to meet."}
+          {outcome.kind === "met" ? `${outcome.name}${company} is now in your connections.` : "No worries - go find someone new to meet."}
         </p>
         <div className="scan-actions">
           <Link className="btn-primary" href={`/attendees/${outcome.id}`}>View profile</Link>
@@ -187,7 +187,7 @@ function ResultCard({ outcome, onScanNext }: { outcome: Outcome; onScanNext: () 
     self: { icon: "🙂", tone: "tone-warning", title: "That's your own code", body: "Scan someone else's QR to connect with them." },
     not_found: { icon: "!", tone: "tone-warning", title: "Couldn't read that code", body: "It isn't a valid attendee code. Try again, or ask staff for help." },
     error: { icon: "!", tone: "tone-warning", title: "Something went wrong", body: "Please try scanning again." },
-    offline: { icon: "✓", tone: "tone-success", title: "Saved offline", body: "You're offline — this meeting will sync automatically once you're back online." },
+    offline: { icon: "✓", tone: "tone-success", title: "Saved offline", body: "You're offline - this meeting will sync automatically once you're back online." },
   };
   const c = copy[outcome.kind];
   return (
