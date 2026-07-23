@@ -7,7 +7,8 @@ import { useRouter } from "next/navigation";
 // COMPONENTS //
 import Link from "next/link";
 import type { Html5Qrcode } from "html5-qrcode";
-import { AttendeeBottomTabs, AttendeeMenu, type MenuAttendee } from "../components/AttendeeMenu";
+import { AttendeeBottomTabs, type MenuAttendee } from "../components/AttendeeMenu";
+import { AttendeeHeader } from "../components/AttendeeHeader";
 import { InstallBanner } from "../components/InstallBanner";
 import { PoweredByFooter } from "../components/PoweredByFooter";
 
@@ -474,6 +475,11 @@ export default function HomePage() {
           </button>
         )}
 
+        <div className="home-brand-banner">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/images/rotary-rmb-lockup.jpg" alt="Rotary · Rotary Means Business Fellowship" />
+        </div>
+
         {/* ---- your progress: once you have an attendance record ---- */}
         {(liveCheckedIn || mode === "ended") && <ProgressSection stats={stats} />}
 
@@ -658,7 +664,7 @@ function ProgressSection({ stats }: { stats: PersonalStats | null }) {
       <h2>Your progress</h2>
       <div className="stats-grid home-stats-grid">
         <StatTile value={stats?.peopleMet ?? "—"} label="People met" />
-        <StatTile value={stats ? formatRank(stats.rank) : "—"} sub={stats?.rank && totalRanked > 0 ? `of ${totalRanked}` : undefined} label="Rank" />
+        <StatTile value={stats ? formatRank(stats.rank) : "—"} sub={stats?.rank && totalRanked > 0 ? `of (${totalRanked})` : undefined} label="Rank" />
         <Link className="stat-tile home-stat-link" href="/matches" aria-label={`${stats?.bookmarks ?? 0} bookmarks. Open Want to Meet`}>
           <strong>{stats?.bookmarks ?? "-"}</strong>
           <span>Bookmarks</span>
@@ -761,26 +767,11 @@ function StatTile({ value, label, sub }: { value: React.ReactNode; label: string
   return (
     <div className="stat-tile">
       <strong>{value}</strong>
-      {sub && <em>{sub}</em>}
-      <span>{label}</span>
+      <span>{label}{sub && <em> {sub}</em>}</span>
     </div>
   );
 }
 
 function PageHeader({ attendee }: { attendee: Attendee | null }) {
-  return (
-    <div className="full-page-header attendee-app-header">
-      {attendee && <AttendeeMenu attendee={attendee} />}
-      {!attendee && <span className="app-header-spacer" aria-hidden="true" />}
-      <h1 className="app-header-title">Home</h1>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/images/rmb-fellowship-logo.png"
-        alt="Rotary Means Business Fellowship"
-        className="app-topbar-brand"
-        width={50}
-        height={50}
-      />
-    </div>
-  );
+  return <AttendeeHeader title="Home" attendee={attendee} />;
 }

@@ -114,7 +114,13 @@ function ProfileContent({ profile }: { profile: AttendeeProfile }) {
   const hasNetworkingInfo =
     profile.goals.length > 0 || profile.lookingFor.length > 0 || profile.offering.length > 0;
   const whatsappText = encodeURIComponent(
-    eventName ? `Hi ${profile.name}, we met at the ${eventName}.` : `Hi ${profile.name}, we met at the event.`,
+    profile.met
+      ? eventName
+        ? `Hi ${profile.name}, we met at the ${eventName}.`
+        : `Hi ${profile.name}, we met at the event.`
+      : eventName
+        ? `Hi ${profile.name}, I'd like to connect with you at the ${eventName}.`
+        : `Hi ${profile.name}, I'd like to connect with you at the event.`,
   );
 
   useEffect(() => setCanShare(typeof navigator.share === "function"), []);

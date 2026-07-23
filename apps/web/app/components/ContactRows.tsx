@@ -47,7 +47,7 @@ export function ContactRows({
           <span className="contact-row-icon"><MailIcon /></span>
           <span className="contact-row-body">
             <span className="contact-row-label">Email</span>
-            <span className="contact-row-value">{email}</span>
+            <span className="contact-row-value contact-row-value-truncate">{email}</span>
           </span>
           {showChevron ? <span className="contact-row-chevron" aria-hidden="true"><ChevronIcon /></span> : null}
         </a>
@@ -56,7 +56,7 @@ export function ContactRows({
           <span className="contact-row-icon"><MailIcon /></span>
           <span className="contact-row-body">
             <span className="contact-row-label">Email</span>
-            <span className="contact-row-value">{email}</span>
+            <span className="contact-row-value contact-row-value-truncate">{email}</span>
           </span>
         </div>
       )}
