@@ -20,6 +20,7 @@ export type FeedPhotoData = {
   attendeeId: string | null;
   attendeeName: string;
   attendeeBusinessName: string | null;
+  attendeePhotoUrl: string | null;
   likeCount: number;
   commentCount: number;
   likedByMe: boolean;
@@ -74,10 +75,11 @@ export class PhotosService {
     const url = objectPaths[0];
     const photo = await this.prisma.photo.create({
       data: { attendeeId, url, urls: objectPaths, caption },
-      include: { attendee: { select: { name: true, businessName: true } } },
+      include: { attendee: { select: { name: true, businessName: true, photoUrl: true } } },
     });
 
-    const resolvedUrls = await this.resolveFeedUrls(photo.urls.length ? photo.urls : [photo.url]);
+    const allPaths = (photo.urls && photo.urls.length > 0) ? photo.urls : [photo.url];
+    const resolvedUrls = await this.resolveFeedUrls(allPaths);
 
     return {
       id: photo.id,
@@ -88,6 +90,7 @@ export class PhotosService {
       attendeeId,
       attendeeName: photo.attendee?.name ?? this.adminPhotoLabel,
       attendeeBusinessName: photo.attendee?.businessName ?? null,
+      attendeePhotoUrl: photo.attendee?.photoUrl ?? null,
       likeCount: 0,
       commentCount: 0,
       likedByMe: false,
@@ -127,6 +130,7 @@ export class PhotosService {
           attendeeId: null,
           attendeeName: photo.adminLabel ?? this.adminPhotoLabel,
           attendeeBusinessName: null,
+          attendeePhotoUrl: null,
           likeCount: 0,
           commentCount: 0,
           likedByMe: false,
@@ -144,7 +148,7 @@ export class PhotosService {
         ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
         orderBy: { createdAt: "desc" },
         include: {
-          attendee: { select: { name: true, businessName: true } },
+          attendee: { select: { name: true, businessName: true, photoUrl: true } },
           _count: { select: { likes: true, comments: true } },
           comments: {
             orderBy: { createdAt: "asc" },
@@ -166,7 +170,8 @@ export class PhotosService {
 
     const photos: FeedPhotoData[] = await Promise.all(
       page.map(async (photo) => {
-        const resolvedUrls = await this.resolveFeedUrls(photo.urls.length ? photo.urls : [photo.url]);
+        const allPaths = (photo.urls && photo.urls.length > 0) ? photo.urls : [photo.url];
+        const resolvedUrls = await this.resolveFeedUrls(allPaths);
         return {
           id: photo.id,
           url: resolvedUrls[0],
@@ -176,6 +181,7 @@ export class PhotosService {
           attendeeId: photo.attendeeId,
           attendeeName: photo.attendee?.name ?? photo.adminLabel ?? this.adminPhotoLabel,
           attendeeBusinessName: photo.attendee?.businessName ?? null,
+          attendeePhotoUrl: photo.attendee?.photoUrl ?? null,
           likeCount: photo._count.likes,
           commentCount: photo._count.comments,
           likedByMe: photo.likes.length > 0,
