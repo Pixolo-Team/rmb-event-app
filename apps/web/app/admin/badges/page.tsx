@@ -8,6 +8,7 @@ interface Attendee {
   name: string;
   businessName: string | null;
   chapterName: string | null;
+  tableNumbers: string[];
   qrToken: string;
 }
 
@@ -102,6 +103,11 @@ export default function AdminBadgesPage() {
                   <input type="checkbox" checked={selected.has(a.id)} onChange={() => toggle(a.id)} />
                   {a.name}
                   <span style={{ color: "var(--ink-faint)" }}>{a.businessName ?? ""}</span>
+                  {a.tableNumbers.length > 0 && (
+                    <span style={{ color: "var(--ink-faint)", fontSize: ".8rem" }}>
+                      Tables: {a.tableNumbers.join(", ")}
+                    </span>
+                  )}
                 </label>
               ))}
             </div>
@@ -136,6 +142,15 @@ export default function AdminBadgesPage() {
               <div className="badge-name">{a.name}</div>
               {a.businessName && <div className="badge-sub">{a.businessName}</div>}
               {a.chapterName && <div className="badge-chapter">{a.chapterName}</div>}
+              {a.tableNumbers.length > 0 && (
+                <div className="badge-tables">
+                  {a.tableNumbers.slice(0, 6).map((table, idx) => (
+                    <div key={idx} className="badge-table-chip">
+                      {table}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>

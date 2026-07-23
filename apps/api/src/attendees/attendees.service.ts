@@ -541,7 +541,7 @@ export class AttendeesService {
   async listForBadges() {
     const attendees = await this.prisma.attendee.findMany({
       where: { deletedAt: null },
-      select: { id: true, name: true, businessName: true, qrToken: true, chapter: { select: { name: true } } },
+      select: { id: true, name: true, businessName: true, qrToken: true, tableNumber: true, chapter: { select: { name: true } } },
       orderBy: { name: "asc" },
     });
     return attendees.map((a) => ({
@@ -549,6 +549,7 @@ export class AttendeesService {
       name: a.name,
       businessName: a.businessName,
       chapterName: a.chapter?.name ?? null,
+      tableNumbers: a.tableNumber ? a.tableNumber.split(",").map((t) => t.trim()).filter(Boolean) : [],
       qrToken: a.qrToken,
     }));
   }
