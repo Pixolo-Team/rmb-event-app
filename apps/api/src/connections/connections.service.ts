@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { QRSigningService } from "../qr/qr-signing.service";
+import { UploadsService } from "../uploads/uploads.service";
 
 export type ConnectionAttendeeData = {
   id: string;
@@ -24,6 +25,7 @@ export class ConnectionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly qrSigning: QRSigningService,
+    private readonly uploads: UploadsService,
   ) {}
 
   /** Records a mutual meeting between the scanner and the owner of the scanned QR token. */
@@ -73,7 +75,7 @@ export class ConnectionsService {
         businessCategory: target.businessCategory,
         bio: target.bio,
         phone: target.phone,
-        photoUrl: target.photoUrl,
+        photoUrl: target.photoUrl ? await this.uploads.resolveProfilePhotoUrl(target.photoUrl) : null,
         linkedInUrl: target.linkedInUrl,
         websiteUrl: target.websiteUrl,
         metAt: meeting.createdAt,
@@ -92,22 +94,24 @@ export class ConnectionsService {
       },
     });
 
-    return meetings.map((meeting) => {
-      const other = meeting.attendeeAId === attendeeId ? meeting.attendeeB : meeting.attendeeA;
-      return {
-        id: other.id,
-        name: other.name,
-        businessName: other.businessName,
-        chapterName: other.chapter?.name ?? null,
-        city: other.city,
-        businessCategory: other.businessCategory,
-        bio: other.bio,
-        phone: other.phone,
-        photoUrl: other.photoUrl,
-        linkedInUrl: other.linkedInUrl,
-        websiteUrl: other.websiteUrl,
-        metAt: meeting.createdAt,
-      };
-    });
+    return Promise.all(
+      meetings.map(async (meeting) => {
+        const other = meeting.attendeeAId === attendeeId ? meeting.attendeeB : meeting.attendeeA;
+        return {
+          id: other.id,
+          name: other.name,
+          businessName: other.businessName,
+          chapterName: other.chapter?.name ?? null,
+          city: other.city,
+          businessCategory: other.businessCategory,
+          bio: other.bio,
+          phone: other.phone,
+          photoUrl: other.photoUrl ? await this.uploads.resolveProfilePhotoUrl(other.photoUrl) : null,
+          linkedInUrl: other.linkedInUrl,
+          websiteUrl: other.websiteUrl,
+          metAt: meeting.createdAt,
+        };
+      }),
+    );
   }
 }

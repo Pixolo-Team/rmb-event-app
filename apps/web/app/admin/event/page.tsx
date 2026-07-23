@@ -131,7 +131,7 @@ export default function AdminEventSettingsPage() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contentType }),
+        body: JSON.stringify({ category: "profile", contentType }),
       }));
       if (!urlRes.ok) {
         const body = await urlRes.json().catch(() => null) as { message?: string } | null;
