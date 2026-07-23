@@ -114,7 +114,13 @@ function ProfileContent({ profile }: { profile: AttendeeProfile }) {
   const hasNetworkingInfo =
     profile.goals.length > 0 || profile.lookingFor.length > 0 || profile.offering.length > 0;
   const whatsappText = encodeURIComponent(
-    eventName ? `Hi ${profile.name}, we met at the ${eventName}.` : `Hi ${profile.name}, we met at the event.`,
+    profile.met
+      ? eventName
+        ? `Hi ${profile.name}, we met at the ${eventName}.`
+        : `Hi ${profile.name}, we met at the event.`
+      : eventName
+        ? `Hi ${profile.name}, I'd like to connect with you at the ${eventName}.`
+        : `Hi ${profile.name}, I'd like to connect with you at the event.`,
   );
 
   useEffect(() => setCanShare(typeof navigator.share === "function"), []);
@@ -251,9 +257,13 @@ function ProfileContent({ profile }: { profile: AttendeeProfile }) {
         <ProfileSection title="Contact">
           <ContactRows phone={profile.phone} email={profile.email} tableNumber={profile.tableNumber} showChevron />
           {profile.websiteUrl ? (
-            <a className="profile-link-row" href={profile.websiteUrl} target="_blank" rel="noreferrer">
-              <WebsiteIcon />
-              <span>{profile.websiteUrl}</span>
+            <a className="contact-row" href={profile.websiteUrl} target="_blank" rel="noreferrer">
+              <span className="contact-row-icon"><WebsiteIcon /></span>
+              <span className="contact-row-body">
+                <span className="contact-row-label">Website</span>
+                <span className="contact-row-value">{formatWebsiteLabel(profile.websiteUrl)}</span>
+              </span>
+              <span className="contact-row-chevron" aria-hidden="true"><ChevronIcon /></span>
             </a>
           ) : null}
           <SaveContactButton
@@ -313,11 +323,32 @@ function WhatsAppIcon() {
 }
 
 function WebsiteIcon() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M4 12h16M12 4a13 13 0 0 1 0 16M12 4a13 13 0 0 0 0 16" /></svg>;
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="8" fill="currentColor" opacity="0.1" />
+      <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M4 12h16M12 4a13 13 0 0 1 0 16M12 4a13 13 0 0 0 0 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
 }
 
 function LinkedInIcon() {
   return <svg className="brand-glyph" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5A2.5 2.5 0 1 0 5 8.5a2.5 2.5 0 0 0-.02-5ZM3 9.5h4v11H3v-11Zm6 0h3.8v1.5h.05c.53-.95 1.83-1.95 3.77-1.95C20.3 9.05 21 11 21 14.1v6.4h-4v-5.7c0-1.36-.02-3.1-1.9-3.1-1.9 0-2.2 1.48-2.2 3v5.8H9v-11Z" /></svg>;
+}
+
+function ChevronIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>;
+}
+
+function formatWebsiteLabel(value: string) {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./i, "");
+    const path = url.pathname.replace(/\/+$/, "");
+    return path && path !== "/" ? `${host}${path}` : host;
+  } catch {
+    return value;
+  }
 }
 
 function ShareIcon() {

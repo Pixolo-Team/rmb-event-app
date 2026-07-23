@@ -102,7 +102,7 @@ export default function SummaryPage() {
               {data.topConnections.length ? (
                 <div className="summary-connections">
                   {data.topConnections.map((person) => {
-                    // Real identifiers, same pattern as the directory card — no
+                    // Real identifiers, same pattern as the directory card - no
                     // generic "Evento attendee" filler. Falls back to when you
                     // met them (always available) only if there's truly no
                     // business info to show.

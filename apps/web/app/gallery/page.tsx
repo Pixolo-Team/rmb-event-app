@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type TouchEvent } from "react";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { GallerySkeleton } from "./GallerySkeleton";
 import type { FeedPhotoData } from "../lib/feedTypes";
@@ -15,26 +15,23 @@ function getInitials(name: string) {
   return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("") || "EV";
 }
 
-function formatTimestamp(iso: string) {
-  return new Date(iso).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
 function downloadFileName(photo: FeedPhotoData) {
   const safeName = photo.attendeeName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "evento-photo";
   return `${safeName}-${photo.id}.jpg`;
 }
+
+type GalleryFilter = "all" | "organizer" | "attendees";
+
+const SWIPE_THRESHOLD_PX = 50;
 
 export default function GalleryPage() {
   const [photos, setPhotos] = useState<FeedPhotoData[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [state, setState] = useState<"loading" | "ready">("loading");
   const [loadingMore, setLoadingMore] = useState(false);
-  const [openPhotoId, setOpenPhotoId] = useState<string | null>(null);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [filter, setFilter] = useState<GalleryFilter>("all");
+  const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
     fetch("/api/photos", { credentials: "include" })
@@ -65,11 +62,50 @@ export default function GalleryPage() {
     }
   }
 
-  const openPhoto = photos.find((photo) => photo.id === openPhotoId) ?? null;
+  const visiblePhotos = photos.filter((photo) => {
+    if (filter === "organizer") return photo.attendeeId === null;
+    if (filter === "attendees") return photo.attendeeId !== null;
+    return true;
+  });
+  const openPhoto = openIndex !== null ? visiblePhotos[openIndex] ?? null : null;
+
+  function closeViewer() {
+    setOpenIndex(null);
+  }
+
+  function showPrevious() {
+    setOpenIndex((current) => (current === null ? current : Math.max(0, current - 1)));
+  }
+
+  function showNext() {
+    setOpenIndex((current) => (current === null ? current : Math.min(visiblePhotos.length - 1, current + 1)));
+  }
+
+  function handleTouchStart(event: TouchEvent) {
+    touchStartX.current = event.touches[0]?.clientX ?? null;
+  }
+
+  function handleTouchEnd(event: TouchEvent) {
+    if (touchStartX.current === null) return;
+    const endX = event.changedTouches[0]?.clientX ?? touchStartX.current;
+    const delta = endX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(delta) < SWIPE_THRESHOLD_PX) return;
+    if (delta > 0) showPrevious();
+    else showNext();
+  }
 
   return (
     <AttendeePageShell>
       <div className="attendee-page gallery-page">
+        {state === "ready" && photos.length > 0 ? (
+          <div className="gallery-filter-row" role="group" aria-label="Filter photos">
+            <button type="button" className={`gallery-filter-chip${filter === "all" ? " active" : ""}`} onClick={() => setFilter("all")}>All</button>
+            <button type="button" className={`gallery-filter-chip${filter === "organizer" ? " active" : ""}`} onClick={() => setFilter("organizer")}>Organizer</button>
+            <button type="button" className={`gallery-filter-chip${filter === "attendees" ? " active" : ""}`} onClick={() => setFilter("attendees")}>Attendees</button>
+          </div>
+        ) : null}
+
         {state === "loading" ? <GallerySkeleton /> : null}
 
         {state === "ready" && photos.length === 0 ? (
@@ -79,14 +115,21 @@ export default function GalleryPage() {
           </section>
         ) : null}
 
-        {state === "ready" && photos.length > 0 ? (
+        {state === "ready" && photos.length > 0 && visiblePhotos.length === 0 ? (
+          <section className="gallery-empty">
+            <h2>No photos here</h2>
+            <p>Try a different filter.</p>
+          </section>
+        ) : null}
+
+        {state === "ready" && visiblePhotos.length > 0 ? (
           <div className="gallery-grid">
-            {photos.map((photo) => (
+            {visiblePhotos.map((photo, index) => (
               <button
                 key={photo.id}
                 type="button"
                 className="gallery-grid-item"
-                onClick={() => setOpenPhotoId(photo.id)}
+                onClick={() => setOpenIndex(index)}
                 aria-label={`Open photo from ${photo.attendeeName}`}
               >
                 {photo.url ? (
@@ -109,31 +152,32 @@ export default function GalleryPage() {
       </div>
 
       {openPhoto ? (
-        <div className="photo-modal-overlay" role="dialog" aria-modal="true" onClick={() => setOpenPhotoId(null)}>
-          <div className="photo-modal-card" onClick={(event) => event.stopPropagation()}>
-            <div className="photo-card-media">
-              {openPhoto.url ? (
-                <img src={openPhoto.url} alt="" />
-              ) : (
-                <div className="photo-card-placeholder" aria-hidden="true">
-                  {getInitials(openPhoto.attendeeName)}
-                </div>
-              )}
-            </div>
+        <div className="gallery-viewer" role="dialog" aria-modal="true" onClick={closeViewer}>
+          <div className="gallery-viewer-topbar">
+            <span className="gallery-viewer-name">{openPhoto.attendeeName}</span>
+            {openPhoto.url ? (
+              <a
+                className="gallery-viewer-download"
+                href={openPhoto.url}
+                download={downloadFileName(openPhoto)}
+                aria-label="Download photo"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <DownloadIcon />
+              </a>
+            ) : (
+              <span className="gallery-viewer-download-spacer" aria-hidden="true" />
+            )}
+          </div>
 
-            <div className="gallery-photo-meta">
-              <div className="gallery-photo-meta-copy">
-                <p className="person-name">
-                  {openPhoto.attendeeName}
-                </p>
-                <p className="person-line muted">{formatTimestamp(openPhoto.createdAt)}</p>
+          <div className="gallery-viewer-media" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+            {openPhoto.url ? (
+              <img src={openPhoto.url} alt="" />
+            ) : (
+              <div className="photo-card-placeholder" aria-hidden="true">
+                {getInitials(openPhoto.attendeeName)}
               </div>
-              {openPhoto.url ? (
-                <a className="gallery-download-inline" href={openPhoto.url} download={downloadFileName(openPhoto)} aria-label="Download photo">
-                  <DownloadIcon />
-                </a>
-              ) : null}
-            </div>
+            )}
           </div>
         </div>
       ) : null}

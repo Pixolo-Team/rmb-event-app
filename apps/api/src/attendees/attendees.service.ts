@@ -3,9 +3,6 @@ import { randomUUID } from "crypto";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { SessionService } from "../session/session.service";
-import { promises as fs } from "fs";
-import path from "path";
-import { AVATARS_UPLOAD_DIR } from "./avatar-upload.config";
 import { MatchingService } from "../matching/matching.service";
 import type { MatchProfile } from "../matching/matching.types";
 import { hashToken } from "../common/tokens";
@@ -83,6 +80,17 @@ export class AttendeesService {
     private readonly uploads: UploadsService,
   ) {}
 
+  /**
+   * Resolves a stored photoUrl (a GCS objectPath like "profile/<id>/<uuid>.jpg")
+   * to a fresh signed, time-limited read URL for the client to render.
+   * Returns null for empty/legacy values so the frontend falls back to the
+   * initials placeholder instead of a broken <img>.
+   */
+  resolvePhotoUrlPublic(photoUrl: string | null): Promise<string | null> {
+    if (!photoUrl) return Promise.resolve(null);
+    return this.uploads.resolveProfilePhotoUrl(photoUrl);
+  }
+
   private async cachedReference<T>(key: string, load: () => Promise<T>): Promise<T> {
     const hit = this.referenceCache.get(key);
     if (hit && hit.expiresAt > Date.now()) return hit.value as T;
@@ -132,6 +140,7 @@ export class AttendeesService {
     }
 
     const sessionToken = await this.session.issueSessionToken(record.attendee.id);
+    const photoUrl = await this.resolvePhotoUrlPublic(record.attendee.photoUrl);
 
     return {
       kind: "ok",
@@ -143,7 +152,7 @@ export class AttendeesService {
         phone: record.attendee.phone,
         businessName: record.attendee.businessName,
         chapterName: record.attendee.chapter?.name ?? null,
-        photoUrl: record.attendee.photoUrl,
+        photoUrl,
         city: record.attendee.city,
         businessCategory: record.attendee.businessCategory,
         profileCompletedAt: record.attendee.profileCompletedAt,
@@ -184,7 +193,7 @@ export class AttendeesService {
       businessCategory: attendee.businessCategory,
       bio: attendee.bio,
       phone: attendee.phone,
-      photoUrl: attendee.photoUrl,
+      photoUrl: await this.resolvePhotoUrlPublic(attendee.photoUrl),
       linkedInUrl: attendee.linkedInUrl,
       websiteUrl: attendee.websiteUrl,
     };
@@ -216,21 +225,23 @@ export class AttendeesService {
       meetings.map((meeting) => (meeting.attendeeAId === attendeeId ? meeting.attendeeBId : meeting.attendeeAId)),
     );
 
-    return attendees.map((attendee) => ({
-      id: attendee.id,
-      name: attendee.name,
-      businessName: attendee.businessName,
-      chapterName: attendee.chapter?.name ?? null,
-      city: attendee.city,
-      businessCategory: attendee.businessCategory,
-      bio: attendee.bio,
-      phone: attendee.phone,
-      photoUrl: attendee.photoUrl,
-      linkedInUrl: attendee.linkedInUrl,
-      websiteUrl: attendee.websiteUrl,
-      bookmarked: bookmarkedIds.has(attendee.id),
-      met: metIds.has(attendee.id),
-    }));
+    return Promise.all(
+      attendees.map(async (attendee) => ({
+        id: attendee.id,
+        name: attendee.name,
+        businessName: attendee.businessName,
+        chapterName: attendee.chapter?.name ?? null,
+        city: attendee.city,
+        businessCategory: attendee.businessCategory,
+        bio: attendee.bio,
+        phone: attendee.phone,
+        photoUrl: await this.resolvePhotoUrlPublic(attendee.photoUrl),
+        linkedInUrl: attendee.linkedInUrl,
+        websiteUrl: attendee.websiteUrl,
+        bookmarked: bookmarkedIds.has(attendee.id),
+        met: metIds.has(attendee.id),
+      })),
+    );
   }
 
   // Partial update of just the optional profile links (the /profile website editor).
@@ -325,36 +336,30 @@ export class AttendeesService {
     });
   }
 
-  async updatePhoto(attendeeId: string, photoUrl: string | null) {
-  const attendee = await this.prisma.attendee.findUnique({
-    where: { id: attendeeId },
-    select: { photoUrl: true },
-  });
+  /**
+   * Persists a new profile photo objectPath (already verified via
+   * UploadsService.completeUploadService) and cleans up the previously
+   * stored GCS object, if any.
+   */
+  async updatePhoto(attendeeId: string, photoObjectPath: string | null) {
+    const attendee = await this.prisma.attendee.findUnique({
+      where: { id: attendeeId },
+      select: { photoUrl: true },
+    });
 
-  if (attendee?.photoUrl && attendee.photoUrl !== photoUrl) {
-    try {
-      await fs.unlink(
-        path.join(
-          AVATARS_UPLOAD_DIR,
-          path.basename(attendee.photoUrl),
-        ),
-      );
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-        throw error;
-      }
+    if (attendee?.photoUrl && attendee.photoUrl !== photoObjectPath) {
+      await this.uploads.deleteUploadService(attendeeId, attendee.photoUrl).catch(() => undefined);
     }
-  }
 
-  return this.prisma.attendee.update({
-    where: { id: attendeeId },
-    data: { photoUrl },
-    select: {
-      id: true,
-      photoUrl: true,
-    },
-  });
-}
+    return this.prisma.attendee.update({
+      where: { id: attendeeId },
+      data: { photoUrl: photoObjectPath },
+      select: {
+        id: true,
+        photoUrl: true,
+      },
+    });
+  }
 
   // Assigns a photo uploaded through the GCS signed-URL flow (uploads module).
   // objectPath is the permanent value we store; the returned photoUrl is a
@@ -470,22 +475,24 @@ export class AttendeesService {
       meetings.map((meeting) => (meeting.attendeeAId === currentAttendeeId ? meeting.attendeeBId : meeting.attendeeAId)),
     );
 
-    const directory = attendees.map((attendee) => ({
-      id: attendee.id,
-      name: attendee.name,
-      phone: attendee.phone,
-      businessName: attendee.businessName,
-      businessCategory: attendee.businessCategory,
-      city: attendee.city,
-      photoUrl: attendee.photoUrl,
-      tableNumber: attendee.tableNumber,
-      linkedInUrl: attendee.linkedInUrl,
-      websiteUrl: attendee.websiteUrl,
-      chapterName: attendee.chapter?.name ?? null,
-      checkedIn: Boolean(attendee.checkIn),
-      bookmarked: bookmarkedIds.has(attendee.id),
-      met: metIds.has(attendee.id),
-    }));
+    const directory = await Promise.all(
+      attendees.map(async (attendee) => ({
+        id: attendee.id,
+        name: attendee.name,
+        phone: attendee.phone,
+        businessName: attendee.businessName,
+        businessCategory: attendee.businessCategory,
+        city: attendee.city,
+        photoUrl: await this.resolvePhotoUrlPublic(attendee.photoUrl),
+        tableNumber: attendee.tableNumber,
+        linkedInUrl: attendee.linkedInUrl,
+        websiteUrl: attendee.websiteUrl,
+        chapterName: attendee.chapter?.name ?? null,
+        checkedIn: Boolean(attendee.checkIn),
+        bookmarked: bookmarkedIds.has(attendee.id),
+        met: metIds.has(attendee.id),
+      })),
+    );
 
     const unique = (values: Array<string | null>) =>
       [...new Set(values.filter((value): value is string => Boolean(value)))].sort((a, b) => a.localeCompare(b));
@@ -557,6 +564,7 @@ export class AttendeesService {
       ...attendee,
       chapterName: attendee.chapter?.name ?? null,
       chapter: undefined,
+      photoUrl: await this.resolvePhotoUrlPublic(attendee.photoUrl),
       checkedIn: Boolean(attendee.checkIn),
       checkIn: undefined,
       deletedAt: undefined,
@@ -654,7 +662,7 @@ export class AttendeesService {
       businessCategory: attendee.businessCategory,
       city: attendee.city,
       tableNumber: attendee.tableNumber,
-      photoUrl: attendee.photoUrl,
+      photoUrl: await this.resolvePhotoUrlPublic(attendee.photoUrl),
       lookingFor: attendee.lookingFor,
       offering: attendee.offering,
       goals: attendee.goals,

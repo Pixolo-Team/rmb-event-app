@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { DirectoryAvatar } from "../components/DirectoryAvatar";
 import { SaveContactButton } from "../components/SaveContactButton";
-import { Connection, ConnectionsResponse, connectionsCache } from "../lib/connectionsCache";
+import { type Connection, type ConnectionsResponse, connectionsCache } from "../lib/connectionsCache";
 import { withCsrfHeaders } from "../lib/csrf";
 import { getCachedVenueConfig } from "../lib/offlineQueue";
 
@@ -75,16 +75,6 @@ export default function ConnectionsPage() {
     connectionsCache.set(next);
   }
 
-  function removeConnection(id: string) {
-    if (!data) return;
-    const next = {
-      ...data,
-      connections: data.connections.filter((item) => item.id !== id),
-    };
-    setData(next);
-    connectionsCache.set(next);
-  }
-
   return (
     <AttendeePageShell>
       <main className="attendee-page connections-page">
@@ -103,7 +93,7 @@ export default function ConnectionsPage() {
           <div className="banner info">
             <div>
               <b>Showing saved connections</b>
-              You&apos;re offline. Notes and removals need a connection.
+              You're offline. Notes need a connection.
             </div>
           </div>
         )}
@@ -120,12 +110,12 @@ export default function ConnectionsPage() {
 
         {loading && connections.length === 0 && <ConnectionsSkeleton />}
         {!loading && error && !data && (
-          <ConnectionState title="Can&apos;t load connections" body="Check your connection and try again." />
+          <ConnectionState title="Can't load connections" body="Check your connection and try again." />
         )}
         {!loading && data && connections.length === 0 && (
           <ConnectionState
-            title="You haven&apos;t met anyone yet"
-            body="Scan someone&apos;s QR code to exchange details and they&apos;ll appear here."
+            title="You haven't met anyone yet"
+            body="Scan someone's QR code to exchange details and they'll appear here."
             action
           />
         )}
@@ -138,7 +128,6 @@ export default function ConnectionsPage() {
                 offline={offline}
                 eventName={eventName}
                 onNote={(note) => updateConnection(connection.id, { note })}
-                onRemove={() => removeConnection(connection.id)}
               />
             ))}
           </div>
@@ -172,7 +161,7 @@ function ConnectionsSkeleton() {
           </div>
         </article>
       ))}
-      <span className="sr-only">Loading connections…</span>
+      <span className="sr-only">Loading connections...</span>
     </div>
   );
 }
@@ -182,13 +171,11 @@ function ConnectionCard({
   offline,
   eventName,
   onNote,
-  onRemove,
 }: {
   connection: Connection;
   offline: boolean;
   eventName: string | null;
   onNote: (note: string) => void;
-  onRemove: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [note, setNote] = useState(connection.note);
@@ -226,32 +213,8 @@ function ConnectionCard({
     }
   }
 
-  async function remove() {
-    if (!window.confirm(`Remove ${connection.name} from My Connections? Your confirmed meeting will remain in event statistics.`)) return;
-    setMessage("");
-    try {
-      const response = await fetch(
-        `/api/attendees/me/connections/${connection.id}`,
-        withCsrfHeaders({ method: "DELETE", credentials: "include" }),
-      );
-      if (!response.ok) throw new Error();
-      onRemove();
-    } catch {
-      setMessage("Couldn't remove this connection. Try again when online.");
-    }
-  }
-
   return (
     <article className="connection-card">
-      <button
-        className="connection-remove"
-        type="button"
-        disabled={offline}
-        onClick={remove}
-        aria-label={`Remove ${connection.name}`}
-      >
-        Remove <span aria-hidden="true">×</span>
-      </button>
       <Link className="connection-person" href={`/attendees/${connection.id}`}>
         <DirectoryAvatar name={connection.name} photoUrl={connection.photoUrl} />
         <div>
@@ -319,7 +282,7 @@ function ConnectionCard({
               Cancel
             </button>
             <button type="button" className="btn-primary" disabled={saving || offline} onClick={saveNote}>
-              {saving ? "Saving…" : "Save note"}
+              {saving ? "Saving..." : "Save note"}
             </button>
           </div>
         </div>

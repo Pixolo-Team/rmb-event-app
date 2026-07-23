@@ -1,16 +1,23 @@
 import { Controller, Get } from "@nestjs/common";
 import { EventService } from "./event.service";
+import { UploadsService } from "../uploads/uploads.service";
 
 // Venue coordinates aren't sensitive (attendees are physically at the venue) —
 // this lets the attendee PWA cache them client-side (PF4) to keep computing
 // "am I in radius" offline when /checkin/geolocation can't be reached.
 @Controller("event")
 export class EventPublicController {
-  constructor(private readonly eventService: EventService) {}
+  constructor(
+    private readonly eventService: EventService,
+    private readonly uploads: UploadsService,
+  ) {}
 
   @Get()
   async get() {
     const event = await this.eventService.getOrCreate();
+    const chairPhotoUrl = event.chairPhotoUrl
+      ? (await this.uploads.resolveProfilePhotoUrl(event.chairPhotoUrl)) ?? event.chairPhotoUrl
+      : null;
     return {
       name: event.name,
       venueLat: event.venueLat,
@@ -28,7 +35,7 @@ export class EventPublicController {
       subtitle: event.subtitle,
       chairName: event.chairName,
       chairTitle: event.chairTitle,
-      chairPhotoUrl: event.chairPhotoUrl,
+      chairPhotoUrl,
       registrationUrl: event.registrationUrl,
       registrationPricing: event.registrationPricing,
       agenda: event.agenda,

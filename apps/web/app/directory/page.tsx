@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { DirectoryAvatar } from "../components/DirectoryAvatar";
-import { PageIntro } from "../components/PageIntro";
 import { directoryCache, type DirectoryAttendee, type DirectoryResponse } from "../lib/directoryCache";
 import { BookmarkButton } from "../components/BookmarkButton";
 import { DirectorySkeleton } from "./DirectorySkeleton";
@@ -123,8 +122,6 @@ export default function DirectoryPage() {
   return (
     <AttendeePageShell>
       <main className="attendee-page directory-page">
-        <PageIntro>Find the right people before and during the event.</PageIntro>
-
         {offlineResult && <div className="banner info"><div><b>Showing saved directory</b>You are offline. Results may be slightly out of date.</div></div>}
 
         <DirectoryToolbar
@@ -226,7 +223,7 @@ function AttendeeCard({ attendee, onBookmark }: { attendee: DirectoryAttendee; o
           <div className="directory-name-row">
             <h2>{attendee.name}</h2>
             {attendee.met && <span className="met-badge">Met</span>}
-            {attendee.checkedIn && <span className="presence-pill" title="Checked in">Present</span>}
+            {attendee.checkedIn && !attendee.met && <span className="presence-pill" title="Checked in">Present</span>}
           </div>
           {primaryLine ? <p className="attendee-meta primary">{primaryLine}</p> : null}
           {secondaryLine ? <p className="attendee-meta secondary">{secondaryLine}</p> : null}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { withCsrfHeaders } from "../lib/csrf";
 import { PoweredByFooter } from "./PoweredByFooter";
 import { usePwaInstall } from "./PwaInstallProvider";
@@ -37,7 +38,7 @@ const DRAWER_ITEMS: MenuItem[] = [
 const TAB_ITEMS: MenuItem[] = [
   { href: "/home", label: "Home", icon: HomeIcon, available: true },
   { href: "/directory", label: "People", icon: DirectoryIcon, available: true, activePrefixes: ["/attendees/"] },
-  { href: "/matches", label: "Want to Meet", icon: SparkIcon, available: true },
+  { href: "/matches", label: "Bookmark", icon: BookmarkTabIcon, available: true },
   { href: "/profile", label: "Profile", icon: ProfileIcon, available: true },
 ];
 
@@ -183,7 +184,7 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
         <MenuIcon />
       </button>
 
-      {mounted && (
+      {mounted && createPortal(
         <div className={`menu-layer${open ? "" : " closing"}`}>
           <button className="menu-backdrop" type="button" aria-label="Close menu" onClick={closeMenu} />
           <aside
@@ -283,7 +284,8 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
               </div>
             </div>
           </aside>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
@@ -377,8 +379,8 @@ function ScanIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16" /></svg>;
 }
 
-function SparkIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.3 4.2L17 9l-3.7 1.8L12 15l-1.3-4.2L7 9l3.7-1.8L12 3ZM18.5 15l.7 2.1L21 18l-1.8.9-.7 2.1-.7-2.1L16 18l1.8-.9.7-2.1Z" /></svg>;
+function BookmarkTabIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.8A1.8 1.8 0 0 1 7.8 3h8.4A1.8 1.8 0 0 1 18 4.8V21l-6-3.8L6 21V4.8Z" /></svg>;
 }
 
 function DirectoryIcon() {

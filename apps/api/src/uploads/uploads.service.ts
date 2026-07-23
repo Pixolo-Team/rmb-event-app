@@ -28,6 +28,10 @@ interface CompleteUploadsResponseData {
   uploads: CompletedUploadData[];
 }
 
+// Owner-path segment used for uploads that aren't tied to an attendee
+// (admin-authored feed posts, the event chair photo).
+export const ADMIN_UPLOAD_OWNER = "admin";
+
 @Injectable()
 export class UploadsService {
   private readonly storage = new Storage();
@@ -239,8 +243,8 @@ export class UploadsService {
   /**
    * Creates a temporary signed URL for reading a private object.
    *
-   * For feed images, replace the attendee ownership check with your
-   * feed-post visibility and permission rules.
+   * Feed images are visible to every authenticated attendee (the feed is a
+   * shared social wall), so only profile images are owner-restricted.
    */
   async createDownloadUrlService(
     attendeeId: string,
@@ -256,10 +260,6 @@ export class UploadsService {
       // display profile photos through signed URLs.
       this.assertObjectBelongsToAttendee(attendeeId, objectPath);
     }
-
-    // For feed images, add a database check here to confirm that:
-    // 1. The object is attached to a published feed post.
-    // 2. The requesting attendee is allowed to view that post.
 
     const file = this.storage.bucket(this.bucketName).file(objectPath);
 
@@ -303,6 +303,68 @@ export class UploadsService {
     await this.storage.bucket(this.bucketName).file(objectPath).delete({
       ignoreNotFound: true,
     });
+  }
+
+  /**
+   * Resolves a stored profile object path to a signed, time-limited read URL
+   * for embedding directly in an API response (e.g. Attendee.photoUrl).
+   *
+   * Returns null if the path isn't a recognised GCS object path (e.g. a
+   * legacy local-disk avatar path) or the object no longer exists.
+   */
+  async resolveProfilePhotoUrl(objectPath: string): Promise<string | null> {
+    return this.resolveObjectDownloadUrl(objectPath, /^profile\//);
+  }
+
+  /**
+   * Resolves a stored feed object path (attendee or admin-authored) to a
+   * signed, time-limited read URL. Feed posts are visible to every
+   * authenticated attendee, so this performs no ownership check — any
+   * caller who can reach the feed can resolve any feed image.
+   *
+   * Returns null for legacy local-disk paths (e.g. "/uploads/photos/...")
+   * or objects that no longer exist, so callers can fall back gracefully.
+   */
+  async resolveFeedPhotoUrl(objectPath: string): Promise<string | null> {
+    return this.resolveObjectDownloadUrl(objectPath, /^feed\//);
+  }
+
+  private async resolveObjectDownloadUrl(
+    objectPath: string,
+    categoryPrefix: RegExp,
+  ): Promise<string | null> {
+    if (
+      !categoryPrefix.test(objectPath) ||
+      !/^(profile|feed)\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9-]+\.(jpg|jpeg|png|webp)$/.test(
+        objectPath,
+      )
+    ) {
+      return null;
+    }
+
+    const file = this.storage.bucket(this.bucketName).file(objectPath);
+
+    const [doesFileExist] = await file.exists();
+    if (!doesFileExist) {
+      return null;
+    }
+
+    const expiresAtDate = new Date(
+      Date.now() + this.downloadUrlTtlSeconds * 1_000,
+    );
+
+    try {
+      const [downloadUrl] = await file.getSignedUrl({
+        version: "v4",
+        action: "read",
+        expires: expiresAtDate,
+      });
+
+      return downloadUrl;
+    } catch (error: unknown) {
+      console.error("Failed to create signed download URL", error);
+      return null;
+    }
   }
 
   private createObjectPath(

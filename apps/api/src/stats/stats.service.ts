@@ -114,7 +114,7 @@ export class StatsService {
       orderBy: { createdAt: "asc" },
       select: { attendeeAId: true, attendeeBId: true, createdAt: true },
     });
-    const photosCount = await this.prisma.photo.count();
+    const photosCount = await this.prisma.photo.count({ where: { uploadedByAdmin: false } });
     const likesCount = await this.prisma.like.count();
     const feedback = await this.prisma.feedback.findMany({ select: { rating: true, createdAt: true } });
     const checkedInAttendees = await this.prisma.attendee.findMany({

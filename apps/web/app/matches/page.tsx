@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { BookmarkButton } from "../components/BookmarkButton";
 import { DirectoryAvatar } from "../components/DirectoryAvatar";
-import { PageIntro } from "../components/PageIntro";
 import { type BookmarkConnection, connectionsCache } from "../lib/connectionsCache";
 import { trackEvent } from "../lib/gtag";
 import { matchesCache, type MatchesResponse, type MatchSuggestion } from "../lib/matchesCache";
@@ -116,7 +115,6 @@ export default function MatchesPage() {
   return (
     <AttendeePageShell>
       <main className="attendee-page matches-page">
-        <PageIntro>Your saved list, plus smart-match suggestions you can add to it.</PageIntro>
         <div className="matches-top-actions" aria-label="Recommendation actions"><Link className="matches-browse-top" href="/directory"><DirectoryListIcon /><span>Browse directory</span></Link><button className={`matches-refresh${refreshing ? " is-refreshing" : ""}`} type="button" disabled={refreshing} onClick={() => load(true)} aria-label={refreshing ? "Refreshing attendees" : "Refresh attendees"}><RefreshIcon /><span>{refreshing ? "Refreshing..." : "Refresh"}</span></button></div>
         {offline && <div className="banner info"><div><b>Showing saved attendees</b>You are offline. Your Want to Meet list will refresh when you reconnect.</div></div>}
         {loading && <MatchesSkeleton />}
@@ -172,7 +170,7 @@ function PersonRow({
             <span className="wtm-row-name">
               {name}
               {met && <span className="met-badge">Met</span>}
-              {checkedIn && <span className="wtm-here">Present</span>}
+              {checkedIn && !met && <span className="wtm-here">Present</span>}
             </span>
             {sub && <span className="wtm-row-sub">{sub}</span>}
           </span>

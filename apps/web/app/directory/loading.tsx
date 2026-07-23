@@ -1,5 +1,4 @@
 import { AttendeeShellSkeleton } from "../components/AttendeeShellSkeleton";
-import { PageIntro } from "../components/PageIntro";
 import { DirectorySkeleton } from "./DirectorySkeleton";
 import { DirectoryToolbar } from "./DirectoryToolbar";
 
@@ -9,7 +8,6 @@ export default function DirectoryLoading() {
   return (
     <AttendeeShellSkeleton title="People">
       <main className="attendee-page directory-page">
-        <PageIntro>Find the right people before and during the event.</PageIntro>
         <DirectoryToolbar query="" activeFilterCount={0} disabled />
         <DirectorySkeleton />
       </main>

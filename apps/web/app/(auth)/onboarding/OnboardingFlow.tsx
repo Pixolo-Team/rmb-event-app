@@ -186,8 +186,8 @@ export function OnboardingFlow() {
           <div className="onboarding-install-icon" aria-hidden="true">📲</div>
           <div className="onboarding-install-copy">
             <span className="onboarding-install-kicker">Profile complete</span>
-            <h2 id="install-evento-title">Install Evento</h2>
-            <p>Keep Evento one tap away and access essential event information even when connectivity is unreliable.</p>
+            <h2 id="install-evento-title">Install RMBF Evento</h2>
+            <p>Keep RMBF Evento one tap away and access essential event information even when connectivity is unreliable.</p>
           </div>
           {canInstall ? (
             <button className="btn-primary" onClick={() => promptInstall().finally(() => setStep("thanks"))}>
@@ -195,7 +195,7 @@ export function OnboardingFlow() {
             </button>
           ) : (
             <div className="onboarding-install-help">
-              Open your browser menu and choose <strong>Add to Home Screen</strong> to install Evento.
+              Open your browser menu and choose <strong>Add to Home Screen</strong> to install RMBF Evento.
             </div>
           )}
           <button className="onboarding-install-later" onClick={() => setStep("thanks")}>
@@ -211,7 +211,7 @@ export function OnboardingFlow() {
       <div className="card onboarding-card onboarding-success-card">
         <div className="wordmark">
           <span className="dot" />
-          Evento
+          RMBF Evento
         </div>
         <div className="onboarding-success-content">
           <div className="onboarding-success-tick" aria-hidden="true">
@@ -232,7 +232,7 @@ export function OnboardingFlow() {
             ) : (
               <>
                 <button className="btn-primary" onClick={() => setStep("install")}>
-                  Install Evento
+                  Install RMBF Evento
                 </button>
                 <button className="onboarding-success-browser" onClick={() => router.push("/home")}>
                   Continue in browser
@@ -249,7 +249,7 @@ export function OnboardingFlow() {
     <div className="card onboarding-card" style={{ maxWidth: 440 }}>
       <div className="wordmark">
         <span className="dot" />
-        Evento
+        RMBF Evento
       </div>
       <h1 className="title">Complete your profile</h1>
       <p className="copy">A few quick questions so we can suggest people worth meeting.</p>

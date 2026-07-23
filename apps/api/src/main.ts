@@ -5,26 +5,10 @@ import { NestExpressApplication } from "@nestjs/platform-express";
 import { ValidationPipe } from "@nestjs/common";
 import cookieParser from "cookie-parser";
 import { csrfCookieMiddleware } from "./common/csrf/csrf-cookie.middleware";
-import fs from "fs";
-import path from "path";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-
-  const uploadsRoot = path.join(process.cwd(), "uploads");
-  try {
-    fs.mkdirSync(path.join(uploadsRoot, "photos"), { recursive: true });
-    fs.mkdirSync(path.join(uploadsRoot, "avatars"), { recursive: true });
-  } catch (error) {
-    // A read-only filesystem must not crash boot. Uploads then need object
-    // storage or a mounted writable volume (see docs/DEPLOYMENT.md).
-    // eslint-disable-next-line no-console
-    console.warn(
-      `[api] could not create uploads dir at ${uploadsRoot} (read-only filesystem?): ${error}`,
-    );
-  }
-  app.useStaticAssets(uploadsRoot, { prefix: "/uploads" });
 
   app.use(cookieParser());
   app.use(csrfCookieMiddleware);

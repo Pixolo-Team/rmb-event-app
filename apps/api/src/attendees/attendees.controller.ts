@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
@@ -10,12 +9,9 @@ import {
   Post,
   Req,
   Res,
-  UploadedFile,
   UseGuards,
-  UseInterceptors,
 } from "@nestjs/common";
-import { FileInterceptor } from "@nestjs/platform-express";
-import type { Express, Response } from "express";
+import type { Response } from "express";
 import { AttendeesService } from "./attendees.service";
 import { ResolveOnboardingDto } from "./dto/resolve-onboarding.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
@@ -23,13 +19,15 @@ import { UpdateLinksDto } from "./dto/update-links.dto";
 import { AssignPhotoDto } from "./dto/assign-photo.dto";
 import { SessionService } from "../session/session.service";
 import { SessionGuard, RequestWithAttendee } from "../session/session.guard";
-import { avatarUploadOptions } from "./avatar-upload.config";
+import { UploadsService } from "../uploads/uploads.service";
+import { UploadCategories } from "../uploads/upload.types";
 
 @Controller("attendees")
 export class AttendeesController {
   constructor(
     private readonly attendees: AttendeesService,
     private readonly session: SessionService,
+    private readonly uploads: UploadsService,
   ) {}
 
   @Get("public/:id")
@@ -92,13 +90,24 @@ export class AttendeesController {
     };
   }
 
-  @Post("me/photo")
+  /**
+   * Persists a profile photo already uploaded directly to GCS via the
+   * /uploads/upload-url flow. Verifies the object (content type + size)
+   * before saving its path, then returns a fresh signed URL to display it.
+   */
+  @Patch("me/photo")
   @UseGuards(SessionGuard)
-  @UseInterceptors(FileInterceptor("photo", avatarUploadOptions))
-  async uploadPhoto(@Req() req: RequestWithAttendee, @UploadedFile() file: Express.Multer.File | undefined) {
-    if (!file) throw new BadRequestException("No photo uploaded");
-    const photoUrl = `/uploads/avatars/${file.filename}`;
-    await this.attendees.updatePhoto(req.attendeeId, photoUrl);
+  async updatePhoto(
+    @Req() req: RequestWithAttendee,
+    @Body() dto: UpdatePhotoDto,
+  ) {
+    await this.uploads.completeUploadService(
+      req.attendeeId,
+      UploadCategories.Profile,
+      dto.objectPath,
+    );
+    await this.attendees.updatePhoto(req.attendeeId, dto.objectPath);
+    const photoUrl = await this.attendees.resolvePhotoUrlPublic(dto.objectPath);
     return { status: "ok", photoUrl };
   }
 
@@ -106,8 +115,14 @@ export class AttendeesController {
   // POST /uploads/upload-url -> PUT to GCS -> POST /uploads/complete -> here.
   @Patch("me/photo")
   @UseGuards(SessionGuard)
-  async assignPhoto(@Req() req: RequestWithAttendee, @Body() dto: AssignPhotoDto) {
-    const photoUrl = await this.attendees.assignPhoto(req.attendeeId, dto.objectPath);
+  async assignPhoto(
+    @Req() req: RequestWithAttendee,
+    @Body() dto: AssignPhotoDto,
+  ) {
+    const photoUrl = await this.attendees.assignPhoto(
+      req.attendeeId,
+      dto.objectPath,
+    );
     return { status: "ok", photoUrl };
   }
 
@@ -126,7 +141,10 @@ export class AttendeesController {
 
   @Patch("me/profile")
   @UseGuards(SessionGuard)
-  async updateProfile(@Req() req: RequestWithAttendee, @Body() dto: UpdateProfileDto) {
+  async updateProfile(
+    @Req() req: RequestWithAttendee,
+    @Body() dto: UpdateProfileDto,
+  ) {
     const attendee = await this.attendees.updateProfile(req.attendeeId, dto);
     return { status: "ok", profileCompletedAt: attendee.profileCompletedAt };
   }
@@ -135,7 +153,10 @@ export class AttendeesController {
   // without re-sending the full onboarding profile.
   @Patch("me/links")
   @UseGuards(SessionGuard)
-  async updateLinks(@Req() req: RequestWithAttendee, @Body() dto: UpdateLinksDto) {
+  async updateLinks(
+    @Req() req: RequestWithAttendee,
+    @Body() dto: UpdateLinksDto,
+  ) {
     const links = await this.attendees.updateLinks(req.attendeeId, dto);
     return { status: "ok", ...links };
   }
