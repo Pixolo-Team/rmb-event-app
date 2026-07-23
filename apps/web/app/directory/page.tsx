@@ -13,15 +13,11 @@ import { SingleSelectDropdown } from "../components/SingleSelectDropdown";
 type CheckinFilter = "all" | "checked-in" | "not-checked-in";
 
 const EMPTY_FILTERS = { category: "", company: "", chapter: "", city: "", checkin: "all" as CheckinFilter };
-const DIRECTORY_REVALIDATE_MS = 60_000;
-
-let lastDirectoryRevalidatedAt = 0;
 let directoryRequest: Promise<DirectoryResponse> | null = null;
 
 function loadDirectory() {
   if (!directoryRequest) {
-    lastDirectoryRevalidatedAt = Date.now();
-    directoryRequest = fetch("/api/attendees", { credentials: "include" })
+    directoryRequest = fetch("/api/attendees", { credentials: "include", cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error("directory unavailable");
         return (await response.json()) as DirectoryResponse;
@@ -63,10 +59,7 @@ export default function DirectoryPage() {
       setLoading(false);
     }
 
-    const recentlyChecked = cached && Date.now() - lastDirectoryRevalidatedAt < DIRECTORY_REVALIDATE_MS;
-    if (recentlyChecked) return;
-
-    loadDirectory()
+    const refresh = () => loadDirectory()
       .then((result) => {
         if (cancelled) return;
         directoryCache.set(result);
@@ -81,8 +74,21 @@ export default function DirectoryPage() {
         if (!cancelled) setLoading(false);
       });
 
+    void refresh();
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible" && navigator.onLine) void refresh();
+    }, 15_000);
+    const refreshOnFocus = () => {
+      if (navigator.onLine) void refresh();
+    };
+    window.addEventListener("focus", refreshOnFocus);
+    window.addEventListener("online", refreshOnFocus);
+
     return () => {
       cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshOnFocus);
+      window.removeEventListener("online", refreshOnFocus);
     };
   }, []);
 

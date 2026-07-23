@@ -5,10 +5,10 @@ import { AttendeePageShell } from "../components/AttendeePageShell";
 import { LeaderboardRows } from "../components/LeaderboardRows";
 import { PageIntro } from "../components/PageIntro";
 import { PoweredByFooter } from "../components/PoweredByFooter";
-import { leaderboardCache, type LeaderboardResponse } from "../lib/leaderboardCache";
+import { type LeaderboardResponse } from "../lib/leaderboardCache";
 import { LeaderboardSkeleton } from "./LeaderboardSkeleton";
 
-const REFRESH_MS = 30_000;
+const REFRESH_MS = 10_000;
 
 export default function LeaderboardPage() {
   const [data, setData] = useState<LeaderboardResponse | null>(null);
@@ -19,21 +19,15 @@ export default function LeaderboardPage() {
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
     try {
-      const response = await fetch("/api/leaderboard", { credentials: "include" });
+      const response = await fetch("/api/leaderboard", { credentials: "include", cache: "no-store" });
       if (!response.ok) throw new Error();
       const result = await response.json() as LeaderboardResponse;
-      leaderboardCache.set(result);
       setData(result);
       setOffline(false);
       setError(false);
     } catch {
-      const cached = leaderboardCache.get();
-      if (cached) {
-        setData(cached);
-        setOffline(true);
-      } else {
-        setError(true);
-      }
+      setOffline(!navigator.onLine);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -41,8 +35,17 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     load();
-    const timer = window.setInterval(() => load(true), REFRESH_MS);
-    return () => window.clearInterval(timer);
+    const refresh = () => {
+      if (document.visibilityState === "visible" && navigator.onLine) void load(true);
+    };
+    const timer = window.setInterval(refresh, REFRESH_MS);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refresh);
+    };
   }, [load]);
 
   const visibleTop = data?.top.filter((entry) => entry.metCount > 0) ?? [];
@@ -56,7 +59,7 @@ export default function LeaderboardPage() {
             Refresh
           </button>
         </div>
-        {offline && data && <div className="banner info"><div><b>Showing saved leaderboard</b>Last updated {formatTime(data.updatedAt)}.</div></div>}
+        {offline && data && <div className="banner info"><div><b>Leaderboard temporarily unavailable</b>Last live update {formatTime(data.updatedAt)}.</div></div>}
         {data?.me && <section className="leaderboard-my-stat"><div><span>Your rank</span><strong>{formatRank(data.me.rank)}</strong></div><div><span>People met</span><strong>{data.me.metCount}</strong></div><div><span>Present</span><strong>{data.totalAttendees}</strong></div></section>}
         {loading && !data && <LeaderboardSkeleton />}
         {error && !data && <div className="directory-state"><h2>Can&apos;t load leaderboard</h2><p>Check your connection and try refreshing.</p></div>}

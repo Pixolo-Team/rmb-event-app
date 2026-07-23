@@ -343,11 +343,10 @@ export class UploadsService {
     }
 
     const file = this.storage.bucket(this.bucketName).file(objectPath);
-
-    const [doesFileExist] = await file.exists();
-    if (!doesFileExist) {
-      return null;
-    }
+    // A signed URL is created locally and does not need a Storage round-trip.
+    // The upload-completion flow already verifies every persisted object, so
+    // checking existence again for each avatar makes directory responses wait
+    // on one remote request per attendee.
 
     const expiresAtDate = new Date(
       Date.now() + this.downloadUrlTtlSeconds * 1_000,

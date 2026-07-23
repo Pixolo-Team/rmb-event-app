@@ -3,7 +3,9 @@ import { PrismaService } from "../prisma/prisma.service";
 import { MatchingService } from "./matching.service";
 import type { MatchProfile } from "./matching.types";
 
-const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+// Suggestions are expensive to rank, but should follow profile edits and new
+// attendees during an event without requiring a manual refresh.
+const CACHE_MAX_AGE_MS = 30 * 1000;
 
 @Injectable()
 export class MatchCacheService {

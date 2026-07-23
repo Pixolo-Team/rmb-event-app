@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { DirectoryAvatar } from "../components/DirectoryAvatar";
 import { SaveContactButton } from "../components/SaveContactButton";
-import { type Connection, type ConnectionsResponse, connectionsCache } from "../lib/connectionsCache";
+import { type Connection, type ConnectionsResponse } from "../lib/connectionsCache";
 import { withCsrfHeaders } from "../lib/csrf";
 import { getCachedVenueConfig } from "../lib/offlineQueue";
 
@@ -23,7 +23,7 @@ export default function ConnectionsPage() {
     getCachedVenueConfig().then((cached) => {
       if (cached?.name) setEventName(cached.name);
     });
-    fetch("/api/event")
+    fetch("/api/event", { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : null))
       .then((next: { name?: string } | null) => {
         if (next?.name) setEventName(next.name);
@@ -32,29 +32,37 @@ export default function ConnectionsPage() {
   }, []);
 
   useEffect(() => {
-    const cached = connectionsCache.get();
-    if (cached) {
-      setData(cached);
-      setOffline(!navigator.onLine);
-      if (cached.connections.length > 0) setLoading(false);
-    }
-
-    fetch("/api/attendees/me/connections", { credentials: "include" })
+    let active = true;
+    const load = () => fetch("/api/attendees/me/connections", { credentials: "include", cache: "no-store" })
       .then(async (connectionsResponse) => {
         if (!connectionsResponse.ok) throw new Error("connections unavailable");
-        const result = {
-          ...(await connectionsResponse.json()),
-          bookmarks: cached?.bookmarks ?? [],
-        } as ConnectionsResponse;
-        connectionsCache.set(result);
+        const result = (await connectionsResponse.json()) as ConnectionsResponse;
+        if (!active) return;
         setData(result);
         setOffline(false);
         setError(false);
       })
       .catch(() => {
-        if (!cached) setError(true);
+        if (active) {
+          setOffline(!navigator.onLine);
+          setError(true);
+        }
       })
-      .finally(() => setLoading(false));
+      .finally(() => { if (active) setLoading(false); });
+
+    void load();
+    const refresh = () => {
+      if (document.visibilityState === "visible" && navigator.onLine) void load();
+    };
+    const timer = window.setInterval(refresh, 10_000);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refresh);
+    };
   }, []);
 
   const connections = useMemo(
@@ -72,7 +80,6 @@ export default function ConnectionsPage() {
       connections: data.connections.map((item) => (item.id === id ? { ...item, ...update } : item)),
     };
     setData(next);
-    connectionsCache.set(next);
   }
 
   return (

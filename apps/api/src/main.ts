@@ -3,6 +3,7 @@ import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { ValidationPipe } from "@nestjs/common";
+import type { NextFunction, Request, Response } from "express";
 import cookieParser from "cookie-parser";
 import { csrfCookieMiddleware } from "./common/csrf/csrf-cookie.middleware";
 import { AppModule } from "./app.module";
@@ -11,6 +12,14 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.use(cookieParser());
+  // API responses contain live event state. Prevent browsers, proxies, and the
+  // Next.js rewrite from reusing an old JSON response after a meeting, bookmark,
+  // check-in, or admin update.
+  app.use((_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+    res.setHeader("Pragma", "no-cache");
+    next();
+  });
   app.use(csrfCookieMiddleware);
   app.useGlobalPipes(
     new ValidationPipe({

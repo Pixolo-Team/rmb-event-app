@@ -25,7 +25,7 @@ export default function AttendeeProfilePage({ params }: { params: { id: string }
       setLoading(false);
     }
 
-    fetch(`/api/attendees/${params.id}`, { credentials: "include" })
+    fetch(`/api/attendees/${params.id}`, { credentials: "include", cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error("profile unavailable");
         const result = (await response.json()) as AttendeeProfile;
@@ -129,7 +129,7 @@ function ProfileContent({ profile }: { profile: AttendeeProfile }) {
     getCachedVenueConfig().then((cached) => {
       if (cached?.name) setEventName(cached.name);
     });
-    fetch("/api/event")
+    fetch("/api/event", { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : null))
       .then((data: { name?: string } | null) => {
         if (data?.name) setEventName(data.name);

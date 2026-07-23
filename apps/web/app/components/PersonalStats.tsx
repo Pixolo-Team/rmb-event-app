@@ -12,24 +12,27 @@ function formatDuration(ms: number): string {
 }
 
 // F11.1 — the attendee's own stats, surfaced on the Settings/Profile screen.
-// Cache-first and offline-tolerant: renders from localStorage instantly, refreshes
-// from the network when reachable, and keeps the time-at-event timer ticking either way.
+// These values are live event state, so refresh while the screen is visible.
 export function PersonalStats() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    const cached = statsCache.get();
-    if (cached) setStats(cached);
     const unsubscribe = statsCache.subscribe((nextStats) => {
       if (nextStats) setStats(nextStats);
     });
-    refreshPersonalStats()
-      .catch(() => {
-        /* offline / unreachable — keep the cached value */
-      });
+    const refresh = () => {
+      if (document.visibilityState === "visible" && navigator.onLine) void refreshPersonalStats().catch(() => undefined);
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 10_000);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
     return () => {
       unsubscribe();
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refresh);
     };
   }, []);
 

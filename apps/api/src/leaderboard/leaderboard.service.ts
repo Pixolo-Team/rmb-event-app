@@ -14,8 +14,6 @@ type LeaderboardSnapshot = { entries: LeaderboardEntry[]; totalAttendees: number
 
 @Injectable()
 export class LeaderboardService {
-  private cached: { expiresAt: number; value: LeaderboardSnapshot } | null = null;
-
   constructor(private readonly prisma: PrismaService) {}
 
   async getForAttendee(attendeeId: string) {
@@ -30,8 +28,6 @@ export class LeaderboardService {
   }
 
   private async snapshot(): Promise<LeaderboardSnapshot> {
-    if (this.cached && this.cached.expiresAt > Date.now()) return this.cached.value;
-
     const [attendees, meetings] = await Promise.all([
       this.prisma.attendee.findMany({
         where: { checkIn: { isNot: null }, deletedAt: null },
@@ -57,9 +53,7 @@ export class LeaderboardService {
         return { ...attendee, rank: currentRank };
       });
 
-    const value = { entries, totalAttendees: attendees.length, updatedAt: new Date().toISOString() };
-    this.cached = { expiresAt: Date.now() + 5000, value };
-    return value;
+    return { entries, totalAttendees: attendees.length, updatedAt: new Date().toISOString() };
   }
 
   private async uncheckedInEntry(attendeeId: string, ranked: LeaderboardEntry[]): Promise<LeaderboardEntry | null> {

@@ -10,27 +10,13 @@ export type PersonalStats = {
   generatedAt: string;
 };
 
-const KEY = "evento:stats:v1";
 const listeners = new Set<(value: PersonalStats | null) => void>();
 
-// Cache-first so the "Your stats" section renders instantly and survives offline,
-// matching profileCache/summaryCache. The live time-at-event timer keeps ticking
-// from the cached checkedInAt even without a network refresh.
+// A tiny in-memory store keeps already-mounted widgets in sync. It deliberately
+// does not persist stats: ranks, bookmarks, and check-in counts are live data.
 export const statsCache = {
-  get(): PersonalStats | null {
-    try {
-      const value = localStorage.getItem(KEY);
-      return value ? (JSON.parse(value) as PersonalStats) : null;
-    } catch {
-      return null;
-    }
-  },
+  get(): PersonalStats | null { return null; },
   set(value: PersonalStats) {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(value));
-    } catch {
-      /* best effort */
-    }
     listeners.forEach((listener) => listener(value));
   },
   subscribe(listener: (value: PersonalStats | null) => void) {
@@ -40,7 +26,7 @@ export const statsCache = {
 };
 
 export async function refreshPersonalStats() {
-  const res = await fetch("/api/attendees/me/stats", { credentials: "include" });
+  const res = await fetch("/api/attendees/me/stats", { credentials: "include", cache: "no-store" });
   if (!res.ok) throw new Error("stats unavailable");
   const data = (await res.json()) as PersonalStats;
   statsCache.set(data);

@@ -24,8 +24,7 @@ import {
 } from "../lib/offlineQueue";
 import { resolveHomeMode, type HomeMode } from "../lib/homeMode";
 import { refreshPersonalStats, statsCache, type PersonalStats } from "../lib/statsCache";
-import { matchesCache, type MatchSuggestion } from "../lib/matchesCache";
-import { homeCache } from "../lib/homeCache";
+import { type MatchSuggestion } from "../lib/matchesCache";
 import { profileCache, type MyProfile } from "../lib/profileCache";
 import { withCsrfHeaders } from "../lib/csrf";
 import { stopAndClearScanner } from "../lib/html5QrCode";
@@ -97,7 +96,6 @@ export default function HomePage() {
       if (outcome?.checkedInAt && outcome.method) {
         const syncedCheckin: CheckinStatus = { checkedIn: true, checkedInAt: outcome.checkedInAt, method: outcome.method };
         setCheckin(syncedCheckin);
-        if (attendee) homeCache.set({ attendee, checkin: syncedCheckin, event });
       }
       setPendingSync(false);
     }
@@ -106,17 +104,9 @@ export default function HomePage() {
     }
   });
 
-  // Cache first, then refresh — sequentially. Both are heavy aggregates and firing
-  // them together starves the API's Prisma pool. Home renders from cache and fills in.
+  // These are live aggregates, so they are always requested from the API rather
+  // than restored from local storage.
   const loadDashboardData = useCallback(async () => {
-    const cachedStats = statsCache.get();
-    if (cachedStats) setStats(cachedStats);
-    const cachedMatches = matchesCache.get();
-    if (cachedMatches) {
-      setMatches(cachedMatches.matches.slice(0, 3));
-      setMatchesLoading(false);
-    }
-
     try {
       await refreshPersonalStats();
     } catch {
@@ -124,10 +114,9 @@ export default function HomePage() {
     }
 
     try {
-      const res = await fetch("/api/matches", { credentials: "include" });
+      const res = await fetch("/api/matches", { credentials: "include", cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        matchesCache.set(data);
         setMatches(data.matches.slice(0, 3));
       }
     } catch {
@@ -144,25 +133,12 @@ export default function HomePage() {
       if (nextStats) setStats(nextStats);
     });
 
-    const cachedHome = homeCache.get();
-    let renderedFromCache = false;
-
-    if (cachedHome) {
-      renderedFromCache = true;
-      setAttendee(cachedHome.attendee);
-      setCheckin(cachedHome.checkin);
-      setEvent(cachedHome.event);
-      venueConfig.current = cachedHome.event;
-      setReady(true);
-      void loadDashboardData();
-    }
-
     const deadline = AbortSignal.timeout(12_000);
 
     Promise.all([
-      fetch("/api/attendees/me", { credentials: "include", signal: deadline }),
-      fetch("/api/checkin/me", { credentials: "include", signal: deadline }),
-      fetch("/api/event", { signal: deadline })
+      fetch("/api/attendees/me", { credentials: "include", cache: "no-store", signal: deadline }),
+      fetch("/api/checkin/me", { credentials: "include", cache: "no-store", signal: deadline }),
+      fetch("/api/event", { cache: "no-store", signal: deadline })
         .then((res) => (res.ok ? res.json() : null))
         .catch(() => null),
     ])
@@ -170,13 +146,12 @@ export default function HomePage() {
         // Only a real auth rejection signs the attendee out; a 5xx is a sick server,
         // not a logout.
         if (meRes.status === 401 || meRes.status === 403) {
-          homeCache.clear();
           profileCache.clear();
           router.replace("/login");
           return;
         }
         if (!meRes.ok || !checkinRes.ok) {
-          if (!renderedFromCache) setLoadFailed(true);
+          setLoadFailed(true);
           return;
         }
         const me = await meRes.json();
@@ -202,11 +177,10 @@ export default function HomePage() {
         const status: CheckinStatus = await checkinRes.json();
         setCheckin(status);
         setReady(true);
-        homeCache.set({ attendee: nextAttendee, checkin: status, event: config });
-        if (!renderedFromCache) void loadDashboardData();
+        void loadDashboardData();
       })
       .catch(() => {
-        if (!renderedFromCache) setLoadFailed(true);
+        setLoadFailed(true);
       });
     return () => {
       unsubscribe();
@@ -249,10 +223,6 @@ export default function HomePage() {
         setPendingSync(true);
         setConfirmOffline(true);
         setCheckinPhase("idle");
-        setAttendee((current) => {
-          if (current) homeCache.set({ attendee: current, checkin: offlineCheckin, event });
-          return current;
-        });
       };
 
       if (!navigator.onLine) {
@@ -275,10 +245,6 @@ export default function HomePage() {
           const next: CheckinStatus = { checkedIn: true, checkedInAt: outcome.checkedInAt, method: outcome.method };
           setCheckin(next);
           setCheckinPhase("idle");
-          setAttendee((current) => {
-            if (current) homeCache.set({ attendee: current, checkin: next, event });
-            return current;
-          });
           loadDashboardData();
         } else if (outcome.status === "invalid_venue_token") {
           setCheckinError("That QR isn't valid for this event. Ask a staff member for help.");

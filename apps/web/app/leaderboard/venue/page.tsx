@@ -11,7 +11,7 @@ export default function VenueLeaderboardPage() {
   const [error, setError] = useState(false);
   useEffect(() => {
     let active = true;
-    async function load() { try { const response = await fetch("/api/leaderboard/venue"); if (!response.ok) throw new Error(); const result = await response.json() as VenueResponse; if (active) { setData(result); setError(false); } } catch { if (active) setError(true); } }
+    async function load() { try { const response = await fetch("/api/leaderboard/venue", { cache: "no-store" }); if (!response.ok) throw new Error(); const result = await response.json() as VenueResponse; if (active) { setData(result); setError(false); } } catch { if (active) setError(true); } }
     load(); const timer = window.setInterval(load, 10000); return () => { active = false; window.clearInterval(timer); };
   }, []);
   return <main className="venue-leaderboard"><header><div className="wordmark"><span className="dot" />Evento</div><div><p>Live networking challenge</p><h1>Who’s making connections?</h1></div><span>{data?.totalAttendees ?? 0} checked in</span></header>

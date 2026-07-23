@@ -89,7 +89,7 @@ export default function EventDetailsPage() {
       }
     });
 
-    fetch("/api/event")
+    fetch("/api/event", { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : null))
       .then((data: CachedVenueConfig | null) => {
         if (data) {

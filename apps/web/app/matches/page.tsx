@@ -5,9 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { BookmarkButton } from "../components/BookmarkButton";
 import { DirectoryAvatar } from "../components/DirectoryAvatar";
-import { type BookmarkConnection, connectionsCache } from "../lib/connectionsCache";
+import { type BookmarkConnection } from "../lib/connectionsCache";
 import { trackEvent } from "../lib/gtag";
-import { matchesCache, type MatchesResponse, type MatchSuggestion } from "../lib/matchesCache";
+import { type MatchesResponse, type MatchSuggestion } from "../lib/matchesCache";
 import { MatchesSkeleton } from "./MatchesSkeleton";
 
 // How many suggestions to show before the "Show more" reveal, so the first paint
@@ -18,7 +18,6 @@ export default function MatchesPage() {
   const [data, setData] = useState<MatchesResponse | null>(null);
   const [bookmarks, setBookmarks] = useState<BookmarkConnection[]>([]);
   const [loading, setLoading] = useState(true);
-  const [offline, setOffline] = useState(false);
   const [error, setError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showAllSuggestions, setShowAllSuggestions] = useState(false);
@@ -26,12 +25,10 @@ export default function MatchesPage() {
   async function load(refresh = false) {
     if (refresh) setRefreshing(true);
 
-    const cachedBookmarks = connectionsCache.get()?.bookmarks ?? [];
-
     try {
       const [matchesResult, bookmarksResult] = await Promise.allSettled([
-        fetch(`/api/matches${refresh ? "?refresh=1" : ""}`, { credentials: "include" }),
-        fetch("/api/bookmarks", { credentials: "include" }),
+        fetch("/api/matches", { credentials: "include", cache: "no-store" }),
+        fetch("/api/bookmarks", { credentials: "include", cache: "no-store" }),
       ]);
 
       let nextMatches = data;
@@ -40,14 +37,11 @@ export default function MatchesPage() {
 
       if (matchesResult.status === "fulfilled" && matchesResult.value.ok) {
         nextMatches = await matchesResult.value.json() as MatchesResponse;
-        matchesCache.set(nextMatches);
         hasFreshData = true;
       }
 
       if (bookmarksResult.status === "fulfilled" && bookmarksResult.value.ok) {
         nextBookmarks = await bookmarksResult.value.json() as BookmarkConnection[];
-        const existingConnections = connectionsCache.get()?.connections ?? [];
-        connectionsCache.set({ connections: existingConnections, bookmarks: nextBookmarks });
         hasFreshData = true;
       }
 
@@ -55,10 +49,9 @@ export default function MatchesPage() {
 
       setData(nextMatches);
       setBookmarks(nextBookmarks);
-      setOffline(false);
       setError(false);
     } catch {
-      if (!data && !matchesCache.get() && cachedBookmarks.length === 0) setError(true);
+      if (!data && bookmarks.length === 0) setError(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -66,20 +59,11 @@ export default function MatchesPage() {
   }
 
   useEffect(() => {
-    const cachedMatches = matchesCache.get();
-    const cachedBookmarks = connectionsCache.get()?.bookmarks ?? [];
-    if (cachedMatches) {
-      setData(cachedMatches);
-      setOffline(!navigator.onLine);
-      setLoading(false);
-    }
-    if (cachedBookmarks.length > 0) {
-      setBookmarks(cachedBookmarks);
-      setOffline(!navigator.onLine);
-      setLoading(false);
-    }
-
     load();
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible" && navigator.onLine) void load();
+    }, 10_000);
+    return () => window.clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -90,15 +74,12 @@ export default function MatchesPage() {
 
   function syncBookmarks(next: BookmarkConnection[]) {
     setBookmarks(next);
-    const existingConnections = connectionsCache.get()?.connections ?? [];
-    connectionsCache.set({ connections: existingConnections, bookmarks: next });
   }
 
   function updateBookmark(id: string, bookmarked: boolean) {
     if (data) {
       const next = { ...data, matches: data.matches.map((item) => item.id === id ? { ...item, bookmarked } : item) };
       setData(next);
-      matchesCache.set(next);
 
       const match = next.matches.find((item) => item.id === id);
       if (bookmarked && match) {
@@ -116,7 +97,6 @@ export default function MatchesPage() {
     <AttendeePageShell>
       <main className="attendee-page matches-page">
         <div className="matches-top-actions" aria-label="Recommendation actions"><Link className="matches-browse-top" href="/directory"><DirectoryListIcon /><span>Browse directory</span></Link><button className={`matches-refresh${refreshing ? " is-refreshing" : ""}`} type="button" disabled={refreshing} onClick={() => load(true)} aria-label={refreshing ? "Refreshing attendees" : "Refresh attendees"}><RefreshIcon /><span>{refreshing ? "Refreshing..." : "Refresh"}</span></button></div>
-        {offline && <div className="banner info"><div><b>Showing saved attendees</b>You are offline. Your Want to Meet list will refresh when you reconnect.</div></div>}
         {loading && <MatchesSkeleton />}
         {!loading && error && !data && bookmarks.length === 0 && <MatchState title="Can't load attendees" body="Check your connection and try again." />}
         {!loading && bookmarks.length === 0 && visibleRecommendations.length === 0 && !data?.profileComplete && <MatchState title="Complete your profile" body="Add what you're looking for and offering to receive useful recommendations." profileAction />}
