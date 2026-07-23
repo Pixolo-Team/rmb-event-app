@@ -22,8 +22,8 @@ const PREVIEW_ATTENDEE: AttendeeMe = {
 };
 
 const PREVIEW_PHOTOS: FeedPhotoData[] = [
-  { id: "preview-photo-own", url: "/images/preview/business-card-exchange.jpg", caption: "Sharing details with new connections.", createdAt: new Date().toISOString(), attendeeId: "preview-me", attendeeName: "Radha Sharma", attendeeBusinessName: "Radha Textiles", likeCount: 5, commentCount: 0, likedByMe: false, comments: [] },
-  { id: "preview-photo-1", url: "/images/preview/networking-conversation.jpg", caption: "Great conversations tonight!", createdAt: new Date().toISOString(), attendeeId: "preview-1", attendeeName: "Aarav Mehta", attendeeBusinessName: "Mehta Packaging Solutions", likeCount: 18, commentCount: 2, likedByMe: true, comments: [] },
+  { id: "preview-photo-own", url: "/images/preview/business-card-exchange.jpg", urls: ["/images/preview/business-card-exchange.jpg"], caption: "Sharing details with new connections.", createdAt: new Date().toISOString(), attendeeId: "preview-me", attendeeName: "Radha Sharma", attendeeBusinessName: "Radha Textiles", attendeePhotoUrl: null, likeCount: 5, commentCount: 0, likedByMe: false, comments: [] },
+  { id: "preview-photo-1", url: "/images/preview/networking-conversation.jpg", urls: ["/images/preview/networking-conversation.jpg"], caption: "Great conversations tonight!", createdAt: new Date().toISOString(), attendeeId: "preview-1", attendeeName: "Aarav Mehta", attendeeBusinessName: "Mehta Packaging Solutions", attendeePhotoUrl: null, likeCount: 18, commentCount: 2, likedByMe: true, comments: [] },
 ];
 
 export default function FeedPage() {

@@ -65,12 +65,13 @@ export type FeedCommentData = {
 export type FeedPhotoData = {
   id: string;
   url: string | null;
-  urls?: string[];
+  urls: string[];
   caption: string | null;
   createdAt: string;
   attendeeId: string | null;
   attendeeName: string;
   attendeeBusinessName: string | null;
+  attendeePhotoUrl: string | null;
   likeCount: number;
   commentCount: number;
   likedByMe: boolean;

@@ -5,6 +5,7 @@ import { AttendeeMe, FeedCommentData, FeedPhotoData } from "./TutorialPage";
 import { CommentIcon } from "./icons";
 import { PoweredByFooter } from "./PoweredByFooter";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { DirectoryAvatar } from "../../components/DirectoryAvatar";
 import { withCsrfHeaders } from "../../lib/csrf";
 import { trackEvent } from "../../lib/gtag";
 import { compressFeedImage } from "../../lib/imageCompression";
@@ -191,6 +192,7 @@ export function PostComposerModal({
         attendeeId: attendee.id,
         attendeeName: attendee.name,
         attendeeBusinessName: attendee.businessName,
+        attendeePhotoUrl: attendee.photoUrl ?? null,
         likeCount: 0,
         commentCount: 0,
         likedByMe: false,
@@ -768,7 +770,7 @@ function PhotoCard({
   onEnlarge: () => void;
 }) {
   const visibleComments = photo.comments.slice(-2);
-  const mediaUrls = photo.urls?.length ? photo.urls : photo.url ? [photo.url] : [];
+  const mediaUrls = photo.urls.length > 0 ? photo.urls : photo.url ? [photo.url] : [];
   const [activeMedia, setActiveMedia] = useState(0);
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -791,9 +793,7 @@ function PhotoCard({
   return (
     <article className="photo-card person-card">
       <div className="person-card-head">
-        <div className="hero-avatar person-avatar" aria-hidden="true">
-          {getInitials(photo.attendeeName)}
-        </div>
+        <DirectoryAvatar name={photo.attendeeName} photoUrl={photo.attendeePhotoUrl} />
         <div className="person-meta">
           <h2 className="person-name">{photo.attendeeName}</h2>
           <p className="person-line muted">
