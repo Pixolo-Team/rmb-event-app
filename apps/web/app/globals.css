@@ -2981,12 +2981,6 @@ p.copy {
 
 /* Contact rows — tappable phone/email/table with an icon badge (F2.5 + F4.1) */
 .contact-rows { display: flex; flex-direction: column; gap: 10px; }
-/* A standalone .contact-row (e.g. Website on the attendee profile page) rendered
-   as a sibling after .contact-rows had no gap of its own — it butted straight up
-   against the last row, especially cramped when Email wraps to two lines. */
-.contact-rows + .contact-row {
-  margin-top: 10px;
-}
 .contact-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); text-decoration: none; color: inherit; transition: background 0.15s ease, border-color 0.15s ease; min-width: 0; }
 a.contact-row:hover { background: var(--brand-100); border-color: var(--brand-500); }
 a.contact-row:active { background: var(--brand-100); }
@@ -5019,6 +5013,16 @@ a.contact-row:active { background: var(--brand-100); }
 }
 .confirm-dialog-card {
   max-width: 360px;
+  /* .photo-modal-card has no padding of its own — other users of that class
+     (feed composer, feed preview) each set their own. This one didn't, so the
+     title sat flush against the card's rounded top edge, reading as clipped. */
+  padding: 24px 22px;
+}
+.confirm-dialog-card .settings-copy {
+  margin-top: 6px;
+}
+.confirm-dialog-card .photo-modal-actions {
+  margin: 20px 0 0;
 }
 .confirm-dialog-danger {
   background: var(--danger-500);

@@ -15,12 +15,14 @@ export function ContactRows({
   tableNumber,
   interactive = true,
   showChevron = false,
+  children,
 }: {
   phone: string;
   email: string;
   tableNumber?: string | null;
   interactive?: boolean;
   showChevron?: boolean;
+  children?: React.ReactNode;
 }) {
   return (
     <div className="contact-rows">
@@ -69,6 +71,7 @@ export function ContactRows({
           </span>
         </div>
       )}
+      {children}
     </div>
   );
 }

@@ -247,41 +247,42 @@ export default function ProfilePage() {
 
                 <div className="profile-details-grid">
                   <ProfileSection title="Contact">
-                    <ContactRows phone={profile.phone} email={profile.email} tableNumber={profile.tableNumber} interactive={false} />
-                    {profile.websiteUrl ? (
-                      <a className="contact-row" href={profile.websiteUrl} target="_blank" rel="noreferrer">
-                        <span className="contact-row-icon"><WebsiteIcon /></span>
-                        <span className="contact-row-body">
-                          <span className="contact-row-label">Website</span>
-                          <span className="contact-row-value">{formatProfileLinkLabel(profile.websiteUrl, "website")}</span>
-                        </span>
-                      </a>
-                    ) : (
-                      <div className="contact-row contact-row-static">
-                        <span className="contact-row-icon"><WebsiteIcon /></span>
-                        <span className="contact-row-body">
-                          <span className="contact-row-label">Website</span>
-                          <span className="contact-row-value empty-copy">No website added yet</span>
-                        </span>
-                      </div>
-                    )}
-                    {profile.linkedInUrl ? (
-                      <a className="contact-row" href={profile.linkedInUrl} target="_blank" rel="noreferrer">
-                        <span className="contact-row-icon"><LinkedInIcon /></span>
-                        <span className="contact-row-body">
-                          <span className="contact-row-label">LinkedIn</span>
-                          <span className="contact-row-value">{formatProfileLinkLabel(profile.linkedInUrl, "linkedin")}</span>
-                        </span>
-                      </a>
-                    ) : (
-                      <div className="contact-row contact-row-static">
-                        <span className="contact-row-icon"><LinkedInIcon /></span>
-                        <span className="contact-row-body">
-                          <span className="contact-row-label">LinkedIn</span>
-                          <span className="contact-row-value empty-copy">No LinkedIn added yet</span>
-                        </span>
-                      </div>
-                    )}
+                    <ContactRows phone={profile.phone} email={profile.email} tableNumber={profile.tableNumber} interactive={false}>
+                      {profile.websiteUrl ? (
+                        <a className="contact-row" href={profile.websiteUrl} target="_blank" rel="noreferrer">
+                          <span className="contact-row-icon"><WebsiteIcon /></span>
+                          <span className="contact-row-body">
+                            <span className="contact-row-label">Website</span>
+                            <span className="contact-row-value">{formatProfileLinkLabel(profile.websiteUrl, "website")}</span>
+                          </span>
+                        </a>
+                      ) : (
+                        <div className="contact-row contact-row-static">
+                          <span className="contact-row-icon"><WebsiteIcon /></span>
+                          <span className="contact-row-body">
+                            <span className="contact-row-label">Website</span>
+                            <span className="contact-row-value empty-copy">No website added yet</span>
+                          </span>
+                        </div>
+                      )}
+                      {profile.linkedInUrl ? (
+                        <a className="contact-row" href={profile.linkedInUrl} target="_blank" rel="noreferrer">
+                          <span className="contact-row-icon"><LinkedInIcon /></span>
+                          <span className="contact-row-body">
+                            <span className="contact-row-label">LinkedIn</span>
+                            <span className="contact-row-value">{formatProfileLinkLabel(profile.linkedInUrl, "linkedin")}</span>
+                          </span>
+                        </a>
+                      ) : (
+                        <div className="contact-row contact-row-static">
+                          <span className="contact-row-icon"><LinkedInIcon /></span>
+                          <span className="contact-row-body">
+                            <span className="contact-row-label">LinkedIn</span>
+                            <span className="contact-row-value empty-copy">No LinkedIn added yet</span>
+                          </span>
+                        </div>
+                      )}
+                    </ContactRows>
                   </ProfileSection>
                   <ProfileSection title="Business">
                     <dl className="profile-contact">

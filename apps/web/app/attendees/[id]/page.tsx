@@ -255,17 +255,18 @@ function ProfileContent({ profile }: { profile: AttendeeProfile }) {
       )}
       <div className="profile-details-grid">
         <ProfileSection title="Contact">
-          <ContactRows phone={profile.phone} email={profile.email} tableNumber={profile.tableNumber} showChevron />
-          {profile.websiteUrl ? (
-            <a className="contact-row" href={profile.websiteUrl} target="_blank" rel="noreferrer">
-              <span className="contact-row-icon"><WebsiteIcon /></span>
-              <span className="contact-row-body">
-                <span className="contact-row-label">Website</span>
-                <span className="contact-row-value">{formatWebsiteLabel(profile.websiteUrl)}</span>
-              </span>
-              <span className="contact-row-chevron" aria-hidden="true"><ChevronIcon /></span>
-            </a>
-          ) : null}
+          <ContactRows phone={profile.phone} email={profile.email} tableNumber={profile.tableNumber} showChevron>
+            {profile.websiteUrl ? (
+              <a className="contact-row" href={profile.websiteUrl} target="_blank" rel="noreferrer">
+                <span className="contact-row-icon"><WebsiteIcon /></span>
+                <span className="contact-row-body">
+                  <span className="contact-row-label">Website</span>
+                  <span className="contact-row-value">{formatWebsiteLabel(profile.websiteUrl)}</span>
+                </span>
+                <span className="contact-row-chevron" aria-hidden="true"><ChevronIcon /></span>
+              </a>
+            ) : null}
+          </ContactRows>
           <SaveContactButton
             contact={{
               name: profile.name,
