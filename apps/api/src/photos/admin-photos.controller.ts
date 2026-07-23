@@ -13,14 +13,16 @@ import {
 import { FilesInterceptor } from "@nestjs/platform-express";
 import type { Express } from "express";
 import { AdminGuard } from "../admin-auth/admin.guard";
+import { RolesGuard } from "../admin-auth/roles.guard";
 import { PhotosService } from "./photos.service";
 import { RateLimit } from "../common/rate-limit/rate-limit.decorator";
 import { RateLimitGuard } from "../common/rate-limit/rate-limit.guard";
 import { photoUploadOptions } from "./photo-upload.config";
 import { CreatePhotoDto } from "./dto/create-photo.dto";
 
+// Superadmin-only by RolesGuard's default (no @Roles() needed).
 @Controller("admin/photos")
-@UseGuards(AdminGuard, RateLimitGuard)
+@UseGuards(AdminGuard, RolesGuard, RateLimitGuard)
 export class AdminPhotosController {
   constructor(private readonly photos: PhotosService) {}
 

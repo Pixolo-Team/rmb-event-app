@@ -9,13 +9,15 @@ import {
 import { FileInterceptor } from "@nestjs/platform-express";
 import type { Express } from "express";
 import { AdminGuard } from "../admin-auth/admin.guard";
+import { RolesGuard } from "../admin-auth/roles.guard";
 import { AdminImportService } from "./admin-import.service";
 import { ColumnMappingError } from "./column-mapper";
 import { RateLimit } from "../common/rate-limit/rate-limit.decorator";
 import { RateLimitGuard } from "../common/rate-limit/rate-limit.guard";
 
+// Superadmin-only by RolesGuard's default (no @Roles() needed).
 @Controller("admin/import")
-@UseGuards(AdminGuard, RateLimitGuard)
+@UseGuards(AdminGuard, RolesGuard, RateLimitGuard)
 export class AdminImportController {
   constructor(private readonly adminImport: AdminImportService) {}
 

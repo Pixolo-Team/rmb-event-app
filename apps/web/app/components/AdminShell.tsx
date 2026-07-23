@@ -14,6 +14,7 @@ const TITLES: Record<string, string> = {
   "/admin/badges": "Print badges",
   "/admin/feed": "Gallery photos",
   "/admin/feedback": "Feedback",
+  "/admin/users": "Admin users",
 };
 
 export function AdminShell({ children }: { children: React.ReactNode }) {

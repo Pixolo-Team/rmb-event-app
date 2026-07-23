@@ -2,16 +2,22 @@ import { BadRequestException, Body, Controller, Get, Patch, Post, UploadedFile, 
 import { FileInterceptor } from "@nestjs/platform-express";
 import type { Express } from "express";
 import { AdminGuard } from "../admin-auth/admin.guard";
+import { RolesGuard } from "../admin-auth/roles.guard";
+import { Roles } from "../admin-auth/roles.decorator";
 import { avatarUploadOptions } from "../attendees/avatar-upload.config";
 import { EventService } from "./event.service";
 import { UpdateEventDto } from "./dto/update-event.dto";
 
+// Superadmin-only by RolesGuard's default (no @Roles() needed).
 @Controller("admin/event")
-@UseGuards(AdminGuard)
+@UseGuards(AdminGuard, RolesGuard)
 export class EventController {
   constructor(private readonly eventService: EventService) {}
 
+  // Also read by the Live Check-In page (to show the "venue not configured"
+  // banner), so registration staff needs read access here too.
   @Get()
+  @Roles("SUPERADMIN", "REGISTRATION_STAFF")
   async get() {
     return this.eventService.getOrCreate();
   }
@@ -38,7 +44,9 @@ export class EventController {
 
   // F3.7 — the token behind the printable venue attendance QR (generated on first
   // read). The admin renders/downloads the QR client-side from this token.
+  // Registration staff needs this too — it's what the Live Check-In page renders.
   @Get("venue-qr")
+  @Roles("SUPERADMIN", "REGISTRATION_STAFF")
   async venueQr() {
     return { token: await this.eventService.getVenueCheckinToken() };
   }
