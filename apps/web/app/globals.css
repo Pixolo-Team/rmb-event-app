@@ -4778,29 +4778,11 @@ a.contact-row:active { background: var(--brand-100); }
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.photo-modal-close {
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  border: 1px solid rgba(107, 154, 238, 0.24);
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--ink-muted);
-  cursor: pointer;
+.photo-modal-close-text {
+  min-height: 38px;
   flex-shrink: 0;
 }
-.photo-modal-close svg {
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-}
-.photo-modal-close:disabled {
+.photo-modal-close-text:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -5200,9 +5182,8 @@ a.contact-row:active { background: var(--brand-100); }
   .feed-composer-card .photo-modal-header {
     gap: 12px;
   }
-  .feed-composer-card .photo-modal-close {
-    width: 36px;
-    height: 36px;
+  .feed-composer-card .photo-modal-close-text {
+    min-height: 36px;
   }
   .feed-composer-card .photo-picker,
   .feed-composer-card .photo-picker-placeholder {
