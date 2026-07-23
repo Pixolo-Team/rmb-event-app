@@ -2190,6 +2190,12 @@ p.copy {
   padding-left: 0;
   padding-right: 0;
 }
+/* The page zeroes its side padding so the photo grid can go edge-to-edge; the
+   back control isn't part of that grid, so give it back the standard inset
+   (matching the filter row / empty state) instead of hugging the screen edge. */
+.gallery-page .back-link-row {
+  padding: 0 16px;
+}
 .gallery-filter-row {
   display: flex;
   gap: 8px;
