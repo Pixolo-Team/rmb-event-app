@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { UploadsService } from "../uploads/uploads.service";
 
-type ExportConnection = { name: string; phone: string; email: string; businessName: string | null; businessCategory: string | null; chapterName: string | null; tableNumber: string | null; metAt: Date; note: string };
+type ExportConnection = { name: string; phone: string; email: string; businessName: string | null; businessCategory: string | null; chapterName: string | null; tableNumber: string | null; photoUrl: string | null; metAt: Date; note: string };
 
 @Injectable()
 export class SummaryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uploads: UploadsService,
+  ) {}
 
   async get(attendeeId: string) {
     const [attendee, event, meetings, allMeetings, checkedIn] = await Promise.all([
@@ -23,7 +27,7 @@ export class SummaryService {
     const ownCount = counts.get(attendeeId) ?? 0;
     const rankIndex = ranked.findIndex((person) => person.id === attendeeId);
     const rank = rankIndex < 0 ? null : 1 + ranked.slice(0, rankIndex).filter((person) => person.count > ownCount).length;
-    const connections = this.mapConnections(attendeeId, meetings);
+    const connections = await this.mapConnections(attendeeId, meetings);
 
     return {
       attendeeName: attendee.name,
@@ -38,7 +42,7 @@ export class SummaryService {
   }
 
   async export(attendeeId: string, format: "csv" | "vcf") {
-    const rows = this.mapConnections(attendeeId, await this.connectionRows(attendeeId));
+    const rows = await this.mapConnections(attendeeId, await this.connectionRows(attendeeId));
     return format === "vcf" ? rows.map(toVCard).join("") : toCsv(rows);
   }
 
@@ -47,18 +51,24 @@ export class SummaryService {
       where: { OR: [{ attendeeAId: attendeeId, attendeeAHidden: false }, { attendeeBId: attendeeId, attendeeBHidden: false }] },
       orderBy: { createdAt: "desc" },
       include: {
-        attendeeA: { select: { id: true, name: true, phone: true, email: true, businessName: true, businessCategory: true, tableNumber: true, chapter: { select: { name: true } } } },
-        attendeeB: { select: { id: true, name: true, phone: true, email: true, businessName: true, businessCategory: true, tableNumber: true, chapter: { select: { name: true } } } },
+        attendeeA: { select: { id: true, name: true, phone: true, email: true, businessName: true, businessCategory: true, tableNumber: true, photoUrl: true, chapter: { select: { name: true } } } },
+        attendeeB: { select: { id: true, name: true, phone: true, email: true, businessName: true, businessCategory: true, tableNumber: true, photoUrl: true, chapter: { select: { name: true } } } },
       },
     });
   }
 
-  private mapConnections(attendeeId: string, meetings: Awaited<ReturnType<SummaryService["connectionRows"]>>): ExportConnection[] {
-    return meetings.map((meeting) => {
+  private async mapConnections(attendeeId: string, meetings: Awaited<ReturnType<SummaryService["connectionRows"]>>): Promise<ExportConnection[]> {
+    return Promise.all(meetings.map(async (meeting) => {
       const viewerIsA = meeting.attendeeAId === attendeeId;
-      const { chapter, ...other } = viewerIsA ? meeting.attendeeB : meeting.attendeeA;
-      return { ...other, chapterName: chapter?.name ?? null, metAt: meeting.createdAt, note: (viewerIsA ? meeting.attendeeANote : meeting.attendeeBNote) ?? "" };
-    });
+      const { chapter, photoUrl, ...other } = viewerIsA ? meeting.attendeeB : meeting.attendeeA;
+      return {
+        ...other,
+        chapterName: chapter?.name ?? null,
+        photoUrl: photoUrl ? await this.uploads.resolveProfilePhotoUrl(photoUrl) : null,
+        metAt: meeting.createdAt,
+        note: (viewerIsA ? meeting.attendeeANote : meeting.attendeeBNote) ?? "",
+      };
+    }));
   }
 }
 
