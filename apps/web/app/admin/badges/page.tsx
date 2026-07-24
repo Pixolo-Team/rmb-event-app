@@ -13,6 +13,7 @@ interface Attendee {
   chapterName: string | null;
   tableNumbers: string[];
   qrToken: string;
+  delegateNumber: number | null;
 }
 
 export default function AdminBadgesPage() {
@@ -206,6 +207,9 @@ export default function AdminBadgesPage() {
           <div className="badge-grid">
             {selectedAttendees.map((a) => (
               <div className="badge-card" key={a.id}>
+                {a.delegateNumber != null && (
+                  <div className="badge-delegate-no">{String(a.delegateNumber).padStart(3, "0")}</div>
+                )}
                 {qrDataUrls[a.id] && <img src={qrDataUrls[a.id]} alt={`QR code for ${a.name}`} className="badge-qr" />}
                 <div className="badge-name">{a.name}</div>
                 {a.businessName && <div className="badge-sub">{a.businessName}</div>}
@@ -222,6 +226,9 @@ export default function AdminBadgesPage() {
           <div className="badge-print-offscreen" aria-hidden="true">
             {selectedAttendees.map((a) => (
               <div className="badge-card-print" key={a.id} ref={(el) => { badgeRefs.current[a.id] = el; }}>
+                {a.delegateNumber != null && (
+                  <div className="badge-delegate-no">{String(a.delegateNumber).padStart(3, "0")}</div>
+                )}
                 {qrDataUrls[a.id] && <img src={qrDataUrls[a.id]} alt={`QR code for ${a.name}`} className="badge-qr" />}
                 <div className="badge-name">{a.name}</div>
                 {a.businessName && <div className="badge-sub">{a.businessName}</div>}
