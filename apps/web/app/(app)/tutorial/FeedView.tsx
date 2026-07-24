@@ -588,7 +588,12 @@ export function FeedView({
       <main className="app-content">
         <section className="feed-composer" aria-label="Create a post">
           <div className="composer-person">
-            <span className="directory-avatar fallback composer-avatar" aria-hidden="true">{getInitials(attendee.name)}</span>
+            {attendee.photoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="directory-avatar composer-avatar" src={attendee.photoUrl} alt="" loading="lazy" decoding="async" />
+            ) : (
+              <span className="directory-avatar fallback composer-avatar" aria-hidden="true">{getInitials(attendee.name)}</span>
+            )}
             <button className="composer-start-button" type="button" onClick={() => setComposerOpen(true)}>
               Start a post
             </button>

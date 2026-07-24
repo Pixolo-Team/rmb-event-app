@@ -126,8 +126,9 @@ export function PublicProfile({ id }: { id: string }) {
           <a className="btn-primary" href={`tel:${profile.phone}`} style={{ marginTop: 0 }}>
             Call {profile.phone}
           </a>
-          <a className="btn-secondary" href={`mailto:${profile.email}`}>
-            Email {profile.email}
+          <a className="btn-secondary public-profile-email" href={`mailto:${profile.email}`}>
+            <span className="public-profile-email-label">Email</span>
+            <span className="public-profile-email-value">{profile.email}</span>
           </a>
           {profile.websiteUrl ? (
             <a className="btn-secondary" href={profile.websiteUrl} target="_blank" rel="noopener noreferrer">
