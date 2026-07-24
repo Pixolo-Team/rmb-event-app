@@ -100,6 +100,7 @@ model Attendee {
   chapter      Chapter? @relation(fields: [chapterId], references: [id])
   chapterId    String?
   photoUrl     String?
+  delegateNumber Int?
 
   // Profile — filled in during onboarding (Screen 1.1), empty until then.
   // city/businessCategory may also arrive pre-filled from the import file.

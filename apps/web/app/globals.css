@@ -1365,6 +1365,7 @@ p.copy {
   gap: 16px;
 }
 .badge-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1408,22 +1409,33 @@ p.copy {
   color: #000000;
   letter-spacing: 0.02em;
 }
+.badge-delegate-no {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.02em;
+}
 
 /* Full-size badge used only for offscreen PDF capture, not shown in the preview grid */
 .badge-card-print {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 4.6in;
+  width: 4.2in;
   border: 1.5px solid var(--border-strong);
   border-radius: var(--radius-md);
-  padding: 0.3in;
+  padding: 0.55in 0.3in 0.3in;
   text-align: center;
   box-sizing: border-box;
 }
 .badge-card-print .badge-qr {
-  width: 4.0in;
-  height: 4.0in;
+  width: 3.6in;
+  height: 3.6in;
   margin: 0 auto 0;
   display: block;
 }
@@ -1454,6 +1466,11 @@ p.copy {
   font-weight: 800;
   color: #000000;
   letter-spacing: 0.02em;
+}
+.badge-card-print .badge-delegate-no {
+  top: 0.2in;
+  right: 0.2in;
+  font-size: 1rem;
 }
 .badge-print-offscreen {
   position: fixed;

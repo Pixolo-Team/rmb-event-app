@@ -372,7 +372,8 @@ export class UploadsService {
     category: UploadCategories,
     extension: string,
   ): string {
-    const objectId = randomUUID();
+    const isAdminProfile = attendeeId === ADMIN_UPLOAD_OWNER && category === UploadCategories.Profile;
+    const objectId = isAdminProfile ? randomUUID().split('-')[0] : randomUUID();
 
     return `${category}/${attendeeId}/${objectId}.${extension}`;
   }
