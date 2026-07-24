@@ -115,7 +115,6 @@ export default function SummaryPage() {
                         <div>
                           <b>{person.name}</b>
                           <span>{infoLine || `Met ${formatMetDate(person.metAt)}`}</span>
-                          {person.tableNumber ? <small>Table {person.tableNumber}</small> : null}
                         </div>
                         <span className="summary-person-arrow" aria-hidden="true">›</span>
                       </Link>

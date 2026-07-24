@@ -2525,8 +2525,17 @@ p.copy {
   border: 1.5px solid var(--border-strong);
   background: var(--surface);
   color: var(--ink);
+  /* Explicit fill + caret: on mobile WebKit the input text and cursor were
+     rendering invisible (only becoming visible after a value forced a repaint)
+     because color alone doesn't set -webkit-text-fill-color / caret-color. */
+  -webkit-text-fill-color: var(--ink);
+  caret-color: var(--brand-500);
   font-family: var(--font-body);
   font-size: 0.85rem;
+}
+.comment-form input::placeholder {
+  color: var(--ink-faint);
+  -webkit-text-fill-color: var(--ink-faint);
 }
 .upload-progress-bar {
   width: 100%;
@@ -4447,7 +4456,7 @@ a.contact-row:active { background: var(--brand-100); }
 .post-carousel-slide { flex: 0 0 100%; width: 100%; }
 .post-carousel .photo-card-media { width: 100%; border-radius: 0; aspect-ratio: 16 / 10; }
 @media (prefers-reduced-motion: reduce) { .post-carousel-track { transition: none; } }
-.carousel-dots { position: absolute; left: 50%; bottom: 10px; display: flex; gap: 5px; transform: translateX(-50%); }.carousel-dots span{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.55)}.carousel-dots span.active{background:#fff;transform:scale(1.25)}
+.carousel-dots { position: absolute; left: 50%; bottom: 10px; display: flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 999px; background: rgba(11, 18, 32, 0.5); backdrop-filter: blur(4px); transform: translateX(-50%); }.carousel-dots span{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.55);transition:background .2s ease,transform .2s ease}.carousel-dots span.active{width:7px;height:7px;background:#fff;transform:scale(1.25)}
 .post-caption { display: flex; min-width: 0; gap: 5px; margin: 0; padding: 0 16px 7px; color: var(--ink); font-size: .92rem; line-height: 1.4; }.post-caption span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.post-caption.expanded span{white-space:normal}.post-caption button{flex:0 0 auto;border:0;background:transparent;color:var(--ink-muted);font:inherit;font-weight:700;cursor:pointer}
 .feed-page .photo-card > .person-bio { margin: 0; padding: 14px 16px 10px; color: var(--ink); font-size: .94rem; line-height: 1.5; }
 .feed-page .photo-card > .person-actions { margin: 0 16px; padding: 9px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); display: flex; justify-content: flex-start; gap: 8px; }
@@ -5421,18 +5430,54 @@ a.contact-row:active { background: var(--brand-100); }
   width: 110px;
   aspect-ratio: 1 / 1;
 }
+.public-profile-screen {
+  gap: 0;
+}
+.public-profile-logo {
+  display: block;
+  width: min(72%, 260px);
+  height: auto;
+  margin: 0 auto 18px;
+}
 .public-profile-card {
   max-width: 420px;
 }
-.public-profile-card .profile-hero {
+.public-profile-hero {
+  display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   text-align: center;
-  border: none;
-  background: none;
-  padding: 0;
+}
+/* Fixed-size, always-round avatar — flex: none stops it being squeezed into an
+   oval when the name/company wrap to several lines. */
+.public-profile-avatar {
+  flex: none;
+  width: 96px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--brand-100);
+  color: var(--brand-700);
+  font: 800 1.7rem var(--font-display);
+}
+.public-profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.public-profile-name {
+  margin: 0;
+  font: 700 1.4rem var(--font-display);
+}
+.public-profile-company {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 1rem;
+  font-weight: 600;
 }
 .public-profile-actions {
   display: flex;
@@ -5441,7 +5486,8 @@ a.contact-row:active { background: var(--brand-100); }
   margin-top: 20px;
 }
 .public-profile-actions .btn-primary,
-.public-profile-actions .btn-secondary {
+.public-profile-actions .btn-secondary,
+.public-profile-actions .save-contact-button {
   margin-top: 0;
   text-decoration: none;
 }
@@ -5703,7 +5749,11 @@ a.contact-row:active { background: var(--brand-100); }
 .photo-crop-container .reactEasyCrop_Container {
   position: relative;
   width: 100%;
-  height: 300px;
+  /* Square container (was a fixed 300px height on a wider box) so the round crop
+     area fills it edge-to-edge and the circle touches all four sides, instead of
+     sitting letterboxed with dark bands on the left/right. */
+  aspect-ratio: 1 / 1;
+  height: auto;
   background: var(--paper);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -5873,7 +5923,8 @@ a.contact-row:active { background: var(--brand-100); }
   }
 
   .photo-crop-container .reactEasyCrop_Container {
-    height: 250px;
+    aspect-ratio: 1 / 1;
+    height: auto;
   }
 }
 
