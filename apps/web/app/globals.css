@@ -1494,7 +1494,6 @@ p.copy {
   right: 0;
   z-index: 40;
   min-height: var(--app-header-h);
-  height: var(--app-header-h);
   padding: 8px 16px;
   display: flex;
   align-items: center;
