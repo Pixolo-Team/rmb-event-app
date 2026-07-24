@@ -5421,18 +5421,54 @@ a.contact-row:active { background: var(--brand-100); }
   width: 110px;
   aspect-ratio: 1 / 1;
 }
+.public-profile-screen {
+  gap: 0;
+}
+.public-profile-logo {
+  display: block;
+  width: min(72%, 260px);
+  height: auto;
+  margin: 0 auto 18px;
+}
 .public-profile-card {
   max-width: 420px;
 }
-.public-profile-card .profile-hero {
+.public-profile-hero {
+  display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   text-align: center;
-  border: none;
-  background: none;
-  padding: 0;
+}
+/* Fixed-size, always-round avatar — flex: none stops it being squeezed into an
+   oval when the name/company wrap to several lines. */
+.public-profile-avatar {
+  flex: none;
+  width: 96px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--brand-100);
+  color: var(--brand-700);
+  font: 800 1.7rem var(--font-display);
+}
+.public-profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.public-profile-name {
+  margin: 0;
+  font: 700 1.4rem var(--font-display);
+}
+.public-profile-company {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 1rem;
+  font-weight: 600;
 }
 .public-profile-actions {
   display: flex;
@@ -5441,7 +5477,8 @@ a.contact-row:active { background: var(--brand-100); }
   margin-top: 20px;
 }
 .public-profile-actions .btn-primary,
-.public-profile-actions .btn-secondary {
+.public-profile-actions .btn-secondary,
+.public-profile-actions .save-contact-button {
   margin-top: 0;
   text-decoration: none;
 }
@@ -5703,7 +5740,11 @@ a.contact-row:active { background: var(--brand-100); }
 .photo-crop-container .reactEasyCrop_Container {
   position: relative;
   width: 100%;
-  height: 300px;
+  /* Square container (was a fixed 300px height on a wider box) so the round crop
+     area fills it edge-to-edge and the circle touches all four sides, instead of
+     sitting letterboxed with dark bands on the left/right. */
+  aspect-ratio: 1 / 1;
+  height: auto;
   background: var(--paper);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -5873,7 +5914,8 @@ a.contact-row:active { background: var(--brand-100); }
   }
 
   .photo-crop-container .reactEasyCrop_Container {
-    height: 250px;
+    aspect-ratio: 1 / 1;
+    height: auto;
   }
 }
 

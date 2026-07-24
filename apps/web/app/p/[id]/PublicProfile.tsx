@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { SaveContactButton } from "../../components/SaveContactButton";
 
 type PublicProfileData = {
   id: string;
@@ -87,19 +88,17 @@ export function PublicProfile({ id }: { id: string }) {
   const tags = [profile.businessCategory, profile.city, profile.chapterName].filter(Boolean);
 
   return (
-    <div className="screen app-shell-screen">
-      <div className="card public-profile-card">
-        <div className="wordmark">
-          <span className="dot" />
-          Evento
-        </div>
+    <div className="screen app-shell-screen public-profile-screen">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="public-profile-logo" src="/images/rotary-rmb-lockup.jpg" alt="Rotary Means Business Fellowship" />
 
-        <div className="profile-hero" style={{ marginTop: 8 }}>
-          <div className="hero-avatar profile-hero-avatar" aria-hidden="true">
+      <div className="card public-profile-card">
+        <div className="public-profile-hero">
+          <div className="public-profile-avatar" aria-hidden="true">
             {profile.photoUrl ? <img src={profile.photoUrl} alt="" /> : getInitials(profile.name)}
           </div>
-          <h1 className="profile-hero-name">{profile.name}</h1>
-          {profile.businessName ? <p className="profile-hero-business">{profile.businessName}</p> : null}
+          <h1 className="public-profile-name">{profile.name}</h1>
+          {profile.businessName ? <p className="public-profile-company">{profile.businessName}</p> : null}
         </div>
 
         {tags.length > 0 ? (
@@ -115,6 +114,15 @@ export function PublicProfile({ id }: { id: string }) {
         {profile.bio ? <p className="person-bio" style={{ marginTop: 14, textAlign: "center" }}>{profile.bio}</p> : null}
 
         <div className="public-profile-actions">
+          <SaveContactButton
+            contact={{
+              name: profile.name,
+              phone: profile.phone,
+              email: profile.email,
+              company: profile.businessName,
+              note: "Connected through Evento",
+            }}
+          />
           <a className="btn-primary" href={`tel:${profile.phone}`} style={{ marginTop: 0 }}>
             Call {profile.phone}
           </a>

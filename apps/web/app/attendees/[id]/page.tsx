@@ -164,7 +164,6 @@ function ProfileContent({ profile }: { profile: AttendeeProfile }) {
               {[profile.businessCategory, profile.city, profile.chapterName].filter(Boolean).join(" · ")}
             </p>
           ) : null}
-          {profile.tableNumber && <span className="table-chip">Table {profile.tableNumber}</span>}
         </div>
       </section>
 
@@ -237,6 +236,7 @@ function ProfileContent({ profile }: { profile: AttendeeProfile }) {
               navigator.share({
                 title: profile.name,
                 text: `${profile.name} · ${profile.businessName ?? "Evento attendee"}`,
+                url: `${window.location.origin}/p/${profile.id}`,
               })
             }
           >
@@ -267,7 +267,7 @@ function ProfileContent({ profile }: { profile: AttendeeProfile }) {
       )}
       <div className="profile-details-grid">
         <ProfileSection title="Contact">
-          <ContactRows phone={profile.phone} email={profile.email} tableNumber={profile.tableNumber} showChevron>
+          <ContactRows phone={profile.phone} email={profile.email} showChevron>
             {profile.websiteUrl ? (
               <a className="contact-row" href={profile.websiteUrl} target="_blank" rel="noreferrer">
                 <span className="contact-row-icon"><WebsiteIcon /></span>
