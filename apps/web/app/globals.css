@@ -4104,6 +4104,9 @@ a.contact-row:active { background: var(--brand-100); }
   font-size: 0.8rem;
   font-weight: 700;
 }
+.home-match-avatar-photo {
+  object-fit: cover;
+}
 .home-match-text {
   min-width: 0;
   flex: 1;

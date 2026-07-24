@@ -726,14 +726,19 @@ function PeopleToMeet({ matches, loading }: { matches: MatchSuggestion[]; loadin
           {matches.map((match) => (
             <li key={match.id}>
               <Link href={`/attendees/${match.id}`} className="home-match">
-                <span className="home-match-avatar" aria-hidden="true">
-                  {match.name
-                    .split(" ")
-                    .slice(0, 2)
-                    .map((part) => part[0])
-                    .join("")
-                    .toUpperCase()}
-                </span>
+                {match.photoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img className="home-match-avatar home-match-avatar-photo" src={match.photoUrl} alt="" loading="lazy" decoding="async" />
+                ) : (
+                  <span className="home-match-avatar" aria-hidden="true">
+                    {match.name
+                      .split(" ")
+                      .slice(0, 2)
+                      .map((part) => part[0])
+                      .join("")
+                      .toUpperCase()}
+                  </span>
+                )}
                 <span className="home-match-text">
                   <b>{match.name}</b>
                   <em>{match.headline || match.businessName || ""}</em>
