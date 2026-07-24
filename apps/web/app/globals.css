@@ -181,6 +181,7 @@ body {
   width: min(78%, 280px);
   max-width: 100%;
   height: auto;
+  border-radius: 12px;
 }
 /* Full-bleed loading state (no form content) — centers its content vertically
    too, unlike the regular onboarding-card which top-aligns a tall form. */
