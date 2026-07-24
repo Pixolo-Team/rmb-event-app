@@ -1349,61 +1349,112 @@ p.copy {
 
 .badge-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(2.4in, 1fr));
-  gap: 0.2in;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
 }
 .badge-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   border: 1.5px solid var(--border-strong);
   border-radius: var(--radius-md);
-  padding: 0.2in;
+  padding: 16px;
   text-align: center;
   break-inside: avoid;
 }
 .badge-qr {
-  width: 1.2in;
-  height: 1.2in;
-  margin: 0 auto 0.12in;
+  width: 130px;
+  height: 130px;
+  margin: 0 auto 10px;
   display: block;
 }
 .badge-name {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: var(--ink);
 }
 .badge-sub {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--ink-muted);
-  margin-top: 2px;
-}
-.badge-chapter {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--accent-700);
   margin-top: 4px;
 }
 .badge-tables {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(0.28in, 1fr));
-  gap: 3px;
-  margin-top: 6px;
+  margin-top: 10px;
 }
-.badge-table-chip {
-  background: #ffffff;
-  color: #000000;
-  border: 0.8px solid #000000;
-  border-radius: var(--radius-sm);
-  padding: 2px 4px;
+.badge-tables-label {
   font-size: 0.65rem;
-  font-weight: 700;
+  font-weight: 800;
+  color: var(--accent-700);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+.badge-tables-sequence {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #000000;
+  letter-spacing: 0.02em;
+}
+
+/* Full-size badge used only for offscreen PDF capture, not shown in the preview grid */
+.badge-card-print {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 4.2in;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 0.3in;
   text-align: center;
+}
+.badge-card-print .badge-qr {
+  width: 3.5in;
+  height: 3.5in;
+  margin: 0 auto 0.2in;
+  display: block;
+}
+.badge-card-print .badge-name {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.6rem;
+  color: var(--ink);
+}
+.badge-card-print .badge-sub {
+  font-size: 1rem;
+  color: var(--ink-muted);
+  margin-top: 4px;
+}
+.badge-card-print .badge-tables {
+  margin-top: 14px;
+}
+.badge-card-print .badge-tables-label {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--accent-700);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+.badge-card-print .badge-tables-sequence {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #000000;
+  letter-spacing: 0.02em;
+}
+.badge-print-offscreen {
+  position: fixed;
+  top: 0;
+  left: -9999px;
+  pointer-events: none;
 }
 
 @media print {
   .badge-print-page .no-print {
     display: none !important;
   }
-  .badge-card {
+  .badge-card,
+  .badge-card-print {
     border-color: #000;
   }
   .admin-sidebar,

@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas-pro";
+import JSZip from "jszip";
 
 interface Attendee {
   id: string;
@@ -18,6 +21,8 @@ export default function AdminBadgesPage() {
   const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
   const [generating, setGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const badgeRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
     fetch("/api/admin/attendees")
@@ -50,11 +55,67 @@ export default function AdminBadgesPage() {
   async function generatePreview() {
     setGenerating(true);
     const entries = await Promise.all(
-      selectedAttendees.map(async (a) => [a.id, await QRCode.toDataURL(a.qrToken, { margin: 1, width: 240 })] as const),
+      selectedAttendees.map(async (a) => [a.id, await QRCode.toDataURL(a.qrToken, { margin: 1, width: 600 })] as const),
     );
     setQrDataUrls(Object.fromEntries(entries));
     setGenerating(false);
     setShowPreview(true);
+  }
+
+  function triggerDownload(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function downloadBadgesZip() {
+    setDownloading(true);
+    try {
+      const pdfs: { name: string; blob: Blob }[] = [];
+
+      for (const a of selectedAttendees) {
+        const node = badgeRefs.current[a.id];
+        if (!node) continue;
+
+        const canvas = await html2canvas(node, {
+          scale: 3,
+          backgroundColor: "#ffffff",
+          width: node.offsetWidth,
+          height: node.offsetHeight,
+          windowWidth: node.offsetWidth,
+        });
+        const imgData = canvas.toDataURL("image/png");
+
+        const pdf = new jsPDF({
+          orientation: "portrait",
+          unit: "px",
+          format: [canvas.width, canvas.height],
+        });
+        pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
+
+        const safeName = a.name.trim().replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "") || a.id;
+        pdfs.push({ name: `${safeName}.pdf`, blob: pdf.output("blob") });
+      }
+
+      if (pdfs.length === 1) {
+        triggerDownload(pdfs[0].blob, pdfs[0].name);
+        return;
+      }
+
+      const zip = new JSZip();
+      for (const { name, blob } of pdfs) {
+        zip.file(name, blob);
+      }
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      triggerDownload(zipBlob, "badges.zip");
+    } finally {
+      setDownloading(false);
+    }
   }
 
   if (!attendees) {
@@ -124,10 +185,16 @@ export default function AdminBadgesPage() {
           </>
         ) : (
           <div style={{ marginBottom: 20, display: "flex", gap: 10 }}>
-            <button className="btn-primary" style={{ width: "auto", padding: "0 24px" }} onClick={() => window.print()}>
-              Print
+            <button className="btn-primary" style={{ width: "auto", padding: "0 24px" }} disabled={downloading} onClick={downloadBadgesZip}>
+              {downloading ? (
+                <>
+                  <span className="spinner" /> Preparing&hellip;
+                </>
+              ) : (
+                "Print"
+              )}
             </button>
-            <button className="btn-secondary" style={{ width: "auto", padding: "0 24px" }} onClick={() => setShowPreview(false)}>
+            <button className="btn-secondary" style={{ width: "auto", padding: "0 24px", marginTop: 0 }} onClick={() => setShowPreview(false)}>
               Back to selection
             </button>
           </div>
@@ -135,25 +202,39 @@ export default function AdminBadgesPage() {
       </div>
 
       {showPreview && (
-        <div className="badge-grid">
-          {selectedAttendees.map((a) => (
-            <div className="badge-card" key={a.id}>
-              {qrDataUrls[a.id] && <img src={qrDataUrls[a.id]} alt={`QR code for ${a.name}`} className="badge-qr" />}
-              <div className="badge-name">{a.name}</div>
-              {a.businessName && <div className="badge-sub">{a.businessName}</div>}
-              {a.chapterName && <div className="badge-chapter">{a.chapterName}</div>}
-              {a.tableNumbers.length > 0 && (
-                <div className="badge-tables">
-                  {a.tableNumbers.slice(0, 6).map((table, idx) => (
-                    <div key={idx} className="badge-table-chip">
-                      {table}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="badge-grid">
+            {selectedAttendees.map((a) => (
+              <div className="badge-card" key={a.id}>
+                {qrDataUrls[a.id] && <img src={qrDataUrls[a.id]} alt={`QR code for ${a.name}`} className="badge-qr" />}
+                <div className="badge-name">{a.name}</div>
+                {a.businessName && <div className="badge-sub">{a.businessName}</div>}
+                {a.tableNumbers.length > 0 && (
+                  <div className="badge-tables">
+                    <div className="badge-tables-label">Round Tables</div>
+                    <div className="badge-tables-sequence">{a.tableNumbers.join(" → ")}</div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="badge-print-offscreen" aria-hidden="true">
+            {selectedAttendees.map((a) => (
+              <div className="badge-card-print" key={a.id} ref={(el) => { badgeRefs.current[a.id] = el; }}>
+                {qrDataUrls[a.id] && <img src={qrDataUrls[a.id]} alt={`QR code for ${a.name}`} className="badge-qr" />}
+                <div className="badge-name">{a.name}</div>
+                {a.businessName && <div className="badge-sub">{a.businessName}</div>}
+                {a.tableNumbers.length > 0 && (
+                  <div className="badge-tables">
+                    <div className="badge-tables-label">Round Tables</div>
+                    <div className="badge-tables-sequence">{a.tableNumbers.join(" → ")}</div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
