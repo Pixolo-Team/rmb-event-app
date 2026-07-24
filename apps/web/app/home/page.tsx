@@ -744,7 +744,7 @@ function PeopleToMeet({ matches, loading }: { matches: MatchSuggestion[]; loadin
                   <em>{match.headline || match.businessName || ""}</em>
                 </span>
                 {match.met ? (
-                  <span className="badge badge-success">Met</span>
+                  <span className="badge met-badge">Met</span>
                 ) : match.checkedIn ? (
                   <span className="badge badge-success">Present</span>
                 ) : null}
