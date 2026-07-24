@@ -2525,8 +2525,17 @@ p.copy {
   border: 1.5px solid var(--border-strong);
   background: var(--surface);
   color: var(--ink);
+  /* Explicit fill + caret: on mobile WebKit the input text and cursor were
+     rendering invisible (only becoming visible after a value forced a repaint)
+     because color alone doesn't set -webkit-text-fill-color / caret-color. */
+  -webkit-text-fill-color: var(--ink);
+  caret-color: var(--brand-500);
   font-family: var(--font-body);
   font-size: 0.85rem;
+}
+.comment-form input::placeholder {
+  color: var(--ink-faint);
+  -webkit-text-fill-color: var(--ink-faint);
 }
 .upload-progress-bar {
   width: 100%;
