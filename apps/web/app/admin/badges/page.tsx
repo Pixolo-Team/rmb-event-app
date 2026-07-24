@@ -55,7 +55,7 @@ export default function AdminBadgesPage() {
   async function generatePreview() {
     setGenerating(true);
     const entries = await Promise.all(
-      selectedAttendees.map(async (a) => [a.id, await QRCode.toDataURL(a.qrToken, { margin: 1, width: 600 })] as const),
+      selectedAttendees.map(async (a) => [a.id, await QRCode.toDataURL(a.qrToken, { margin: 0, width: 600 })] as const),
     );
     setQrDataUrls(Object.fromEntries(entries));
     setGenerating(false);
