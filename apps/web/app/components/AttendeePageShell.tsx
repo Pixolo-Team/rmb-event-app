@@ -13,7 +13,7 @@ import { loadMyProfile, profileCache, type MyProfile } from "../lib/profileCache
 const PAGE_TITLES: Record<string, string> = {
   "/home": "Home",
   "/directory": "People",
-  "/matches": "Want to Meet",
+  "/matches": "Bookmark",
   "/profile": "Profile",
   "/scan": "Scan",
   "/connections": "My Connections",

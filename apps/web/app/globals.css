@@ -176,6 +176,12 @@ body {
   display: block;
   margin-bottom: 8px;
 }
+.login-event-logo {
+  display: block;
+  width: min(78%, 280px);
+  max-width: 100%;
+  height: auto;
+}
 /* Full-bleed loading state (no form content) — centers its content vertically
    too, unlike the regular onboarding-card which top-aligns a tall form. */
 .onboarding-card-center {

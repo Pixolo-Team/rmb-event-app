@@ -59,8 +59,8 @@ export function BookmarkButton({ attendeeId, initialBookmarked, compact = false,
     }
   }
 
-  return <button className={`bookmark-button${bookmarked ? " is-bookmarked" : ""}${compact ? " compact" : ""}`} type="button" onClick={change} aria-pressed={bookmarked} aria-label={bookmarked ? "Remove from Want to Meet" : "Add to Want to Meet"}>
-    <BookmarkIcon />{(!compact || compactLabel) && <span>{compact ? (bookmarked ? "Saved" : "Save") : (bookmarked ? "Saved to Want to Meet" : "Want to meet")}</span>}
+  return <button className={`bookmark-button${bookmarked ? " is-bookmarked" : ""}${compact ? " compact" : ""}`} type="button" onClick={change} aria-pressed={bookmarked} aria-label={bookmarked ? "Remove bookmark" : "Add bookmark"}>
+    <BookmarkIcon />{(!compact || compactLabel) && <span>{compact ? (bookmarked ? "Saved" : "Save") : (bookmarked ? "Bookmarked" : "Bookmark")}</span>}
   </button>;
 }
 

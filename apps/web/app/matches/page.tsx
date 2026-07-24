@@ -116,11 +116,11 @@ export default function MatchesPage() {
     <AttendeePageShell>
       <main className="attendee-page matches-page">
         <div className="matches-top-actions" aria-label="Recommendation actions"><Link className="matches-browse-top" href="/directory"><DirectoryListIcon /><span>Browse directory</span></Link><button className={`matches-refresh${refreshing ? " is-refreshing" : ""}`} type="button" disabled={refreshing} onClick={() => load(true)} aria-label={refreshing ? "Refreshing attendees" : "Refresh attendees"}><RefreshIcon /><span>{refreshing ? "Refreshing..." : "Refresh"}</span></button></div>
-        {offline && <div className="banner info"><div><b>Showing saved attendees</b>You are offline. Your Want to Meet list will refresh when you reconnect.</div></div>}
+        {offline && <div className="banner info"><div><b>Showing saved attendees</b>You are offline. Your Bookmark list will refresh when you reconnect.</div></div>}
         {loading && <MatchesSkeleton />}
         {!loading && error && !data && bookmarks.length === 0 && <MatchState title="Can't load attendees" body="Check your connection and try again." />}
         {!loading && bookmarks.length === 0 && visibleRecommendations.length === 0 && !data?.profileComplete && <MatchState title="Complete your profile" body="Add what you're looking for and offering to receive useful recommendations." profileAction />}
-        {!loading && !error && data?.profileComplete && bookmarks.length === 0 && visibleRecommendations.length === 0 && <MatchState title="Your Want to Meet list is empty" body="Save attendees from People and they'll appear here." directoryAction />}
+        {!loading && !error && data?.profileComplete && bookmarks.length === 0 && visibleRecommendations.length === 0 && <MatchState title="Your Bookmark list is empty" body="Save attendees from People and they'll appear here." directoryAction />}
 
         {!loading && (bookmarks.length > 0 || (data?.profileComplete && visibleRecommendations.length > 0)) && (
           <section className="matches-section" aria-label="Your saved list">

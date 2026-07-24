@@ -111,6 +111,8 @@ export function LoginForm() {
 
   return (
     <>
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img className="login-event-logo" src="/images/rotary-rmb-lockup.jpg" alt="Rotary Means Business Fellowship" />
     <div className="card">
       <div className="wordmark">
         <span className="dot" />
