@@ -1370,24 +1370,24 @@ p.copy {
   align-items: center;
   border: 1.5px solid var(--border-strong);
   border-radius: var(--radius-md);
-  padding: 28px 16px 16px;
+  padding: 40px 16px 16px;
   text-align: center;
   break-inside: avoid;
 }
 .badge-qr {
-  width: 130px;
-  height: 130px;
+  width: 110px;
+  height: 110px;
   margin: 0 auto 10px;
   display: block;
 }
 .badge-name {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: var(--ink);
 }
 .badge-sub {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   color: var(--ink-muted);
   margin-top: 4px;
 }
@@ -1395,7 +1395,7 @@ p.copy {
   margin-top: 10px;
 }
 .badge-tables-label {
-  font-size: 0.65rem;
+  font-size: 0.55rem;
   font-weight: 800;
   color: var(--accent-700);
   text-transform: uppercase;
@@ -1417,7 +1417,7 @@ p.copy {
   padding: 2px 4px;
   border: 1px solid var(--border);
   border-radius: 6px;
-  font-size: 0.8rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: #000000;
   line-height: 1.1;
@@ -1431,10 +1431,11 @@ p.copy {
 .badge-delegate-no {
   position: absolute;
   top: 8px;
-  right: 8px;
+  left: 50%;
+  transform: translateX(-50%);
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 0.7rem;
+  font-size: 1.15rem;
   color: var(--ink-muted);
   letter-spacing: 0.02em;
 }
@@ -1446,36 +1447,37 @@ p.copy {
   flex-direction: column;
   align-items: center;
   width: 4.2in;
-  border: 1.5px solid var(--border-strong);
+  border: 1.5px solid #000;
   border-radius: var(--radius-md);
-  padding: 0.55in 0.3in 0.3in;
+  padding: 0.65in 0.3in 0.3in;
   text-align: center;
   box-sizing: border-box;
+  background: #fff;
+  font-family: Arial, Helvetica, sans-serif;
 }
 .badge-card-print .badge-qr {
-  width: 3.6in;
-  height: 3.6in;
+  width: 3.1in;
+  height: 3.1in;
   margin: 0 auto 0;
   display: block;
 }
 .badge-card-print .badge-name {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.6rem;
-  color: var(--ink);
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: #000;
 }
 .badge-card-print .badge-sub {
-  font-size: 1rem;
-  color: var(--ink-muted);
+  font-size: 0.85rem;
+  color: #000;
   margin-top: 4px;
 }
 .badge-card-print .badge-tables {
   margin-top: 14px;
 }
 .badge-card-print .badge-tables-label {
-  font-size: 0.85rem;
+  font-size: 0.7rem;
   font-weight: 800;
-  color: var(--accent-700);
+  color: #000;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 4px;
@@ -1487,15 +1489,20 @@ p.copy {
   min-width: 0.5in;
   padding: 0.04in 0.08in;
   border-radius: 0.08in;
-  font-size: 1.15rem;
+  border-color: #000;
+  font-size: 1.5rem;
+  color: #000;
 }
 .badge-card-print .badge-table-chip-round {
-  font-size: 0.7rem;
+  font-size: 0.6rem;
+  color: #000;
 }
 .badge-card-print .badge-delegate-no {
   top: 0.2in;
-  right: 0.2in;
-  font-size: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.7rem;
+  color: #000;
 }
 .badge-print-offscreen {
   position: fixed;
