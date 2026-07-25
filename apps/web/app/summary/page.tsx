@@ -111,7 +111,7 @@ export default function SummaryPage() {
                       .join(" · ");
                     return (
                       <Link href={`/attendees/${person.id}`} className="summary-person" key={person.id}>
-                        <DirectoryAvatar name={person.name} photoUrl={null} />
+                        <DirectoryAvatar name={person.name} photoUrl={person.photoUrl} />
                         <div>
                           <b>{person.name}</b>
                           <span>{infoLine || `Met ${formatMetDate(person.metAt)}`}</span>
