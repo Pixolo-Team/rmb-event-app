@@ -10,13 +10,6 @@ import { AppModule } from "./app.module";
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // Behind a reverse proxy/load balancer in production, Express must be told to
-  // trust X-Forwarded-For, otherwise req.ip resolves to the proxy's IP for every
-  // request, collapsing all users into one shared rate-limit bucket.
-  if (process.env.NODE_ENV === "production") {
-    app.set("trust proxy", 1);
-  }
-
   app.use(cookieParser());
   app.use(csrfCookieMiddleware);
   app.useGlobalPipes(
