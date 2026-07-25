@@ -216,7 +216,14 @@ export default function AdminBadgesPage() {
                 {a.tableNumbers.length > 0 && (
                   <div className="badge-tables">
                     <div className="badge-tables-label">Round Tables</div>
-                    <div className="badge-tables-sequence">{a.tableNumbers.join(" → ")}</div>
+                    <div className="badge-tables-sequence">
+                      {a.tableNumbers.map((t, i) => (
+                        <span className="badge-table-chip" key={i}>
+                          <span className="badge-table-chip-round">R{i + 1}</span>
+                          {t}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -235,7 +242,14 @@ export default function AdminBadgesPage() {
                 {a.tableNumbers.length > 0 && (
                   <div className="badge-tables">
                     <div className="badge-tables-label">Round Tables</div>
-                    <div className="badge-tables-sequence">{a.tableNumbers.join(" → ")}</div>
+                    <div className="badge-tables-sequence">
+                      {a.tableNumbers.map((t, i) => (
+                        <span className="badge-table-chip" key={i}>
+                          <span className="badge-table-chip-round">R{i + 1}</span>
+                          {t}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
