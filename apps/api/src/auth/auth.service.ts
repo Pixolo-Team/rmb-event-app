@@ -6,8 +6,7 @@ import { RateLimiterService } from "../common/rate-limit/rate-limiter.service";
 import { generateOpaqueToken, hashToken } from "../common/tokens";
 
 const TOKEN_TTL_MS = 30 * 60 * 1000; // 30 minutes, per SCREENS.md Screen 2.0
-const MAX_SENDS_PER_EMAIL_PER_HOUR = 5;
-const MAX_SENDS_PER_IP_PER_HOUR = 15; // coarse device proxy — see SCREENS.md's "~3/hour per requesting device"
+const MAX_SENDS_PER_IP_PER_HOUR = 3; // coarse device proxy — see SCREENS.md's "~3/hour per requesting device"
 
 export type RequestMagicLinkResult =
   | { kind: "sent"; devLink?: string }
@@ -40,12 +39,11 @@ export class AuthService {
   ): Promise<RequestMagicLinkResult> {
     const email = rawEmail.trim().toLowerCase();
 
-    const perEmail = this.rateLimiter.consume(`email:${email}`, MAX_SENDS_PER_EMAIL_PER_HOUR);
     const perIp = this.rateLimiter.consume(`ip:${requestIp}`, MAX_SENDS_PER_IP_PER_HOUR);
-    if (!perEmail.allowed || !perIp.allowed) {
+    if (!perIp.allowed) {
       return {
         kind: "rate_limited",
-        retryAfterSeconds: Math.max(perEmail.retryAfterSeconds, perIp.retryAfterSeconds),
+        retryAfterSeconds: perIp.retryAfterSeconds,
       };
     }
 
