@@ -9,6 +9,7 @@ import { PoweredByFooter } from "./PoweredByFooter";
 import { RotaryLoader } from "../../components/RotaryLoader";
 import { BookmarkTabIcon, HomeIcon, PeopleIcon, ProfileIcon, ScanIcon } from "./icons";
 import { withCsrfHeaders } from "../../lib/csrf";
+import { apiFetch } from "../../lib/apiFetch";
 
 type AppView = "home" | "people" | "wantToMeet" | "profile";
 
@@ -197,7 +198,7 @@ export function TutorialPage() {
 
     async function load() {
       try {
-        const meRes = await fetch("/api/attendees/me", { credentials: "include" });
+        const meRes = await apiFetch("/attendees/me", { credentials: "include" });
         if (!meRes.ok) {
           router.replace("/login");
           return;
@@ -209,7 +210,7 @@ export function TutorialPage() {
           return;
         }
 
-        const directoryRes = await fetch("/api/attendees/directory", { credentials: "include" });
+        const directoryRes = await apiFetch("/attendees/directory", { credentials: "include" });
         if (!directoryRes.ok) {
           setState("error");
           return;
@@ -287,7 +288,7 @@ export function TutorialPage() {
     setDirectory(nextDirectory);
 
     try {
-      const response = await fetch("/api/bookmarks", withCsrfHeaders({
+      const response = await apiFetch("/bookmarks", withCsrfHeaders({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

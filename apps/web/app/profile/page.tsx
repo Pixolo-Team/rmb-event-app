@@ -11,6 +11,7 @@ import { PoweredByFooter } from "../components/PoweredByFooter";
 import { withCsrfHeaders } from "../lib/csrf";
 import { loadMyProfile, profileCache, type MyProfile } from "../lib/profileCache";
 import { ProfileSkeleton } from "./ProfileSkeleton";
+import { apiFetch } from "../lib/apiFetch";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<MyProfile | null>(null);
@@ -40,7 +41,7 @@ export default function ProfilePage() {
     try {
       const contentType = file.type as "image/jpeg" | "image/png" | "image/webp";
 
-      const urlRes = await fetch("/api/uploads/upload-url", withCsrfHeaders({
+      const urlRes = await apiFetch("/uploads/upload-url", withCsrfHeaders({
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -66,7 +67,7 @@ export default function ProfilePage() {
         throw new Error("Upload to storage failed");
       }
 
-      const saveRes = await fetch("/api/attendees/me/photo", withCsrfHeaders({
+      const saveRes = await apiFetch("/attendees/me/photo", withCsrfHeaders({
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -91,7 +92,7 @@ export default function ProfilePage() {
   const handlePhotoRemove = async () => {
     setPhotoUploading(true);
     try {
-      const res = await fetch("/api/attendees/me/photo/remove", withCsrfHeaders({
+      const res = await apiFetch("/attendees/me/photo/remove", withCsrfHeaders({
         method: "PATCH",
         credentials: "include",
       }));
@@ -110,7 +111,7 @@ export default function ProfilePage() {
   // Cache-first so the screen (and QR) appear instantly and work offline, then
   // refresh from the network when reachable. loadMyProfile is shared with
   // AttendeePageShell's own header fetch — this used to be an independent
-  // fetch("/api/attendees/me") duplicating the shell's request on every
+  // apiFetch("/attendees/me") duplicating the shell's request on every
   // Profile load; now it dedupes/throttles onto the same in-flight or
   // recently-cached result instead of a second DB round trip.
   useEffect(() => {

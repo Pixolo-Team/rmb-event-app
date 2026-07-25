@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { GallerySkeleton } from "./GallerySkeleton";
 import type { FeedPhotoData } from "../lib/feedTypes";
+import { apiFetch } from "../lib/apiFetch";
 
 type FeedPageResponse = {
   photos: FeedPhotoData[];
@@ -52,7 +53,7 @@ export default function GalleryPage() {
   const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
-    fetch("/api/photos", { credentials: "include" })
+    apiFetch("/photos", { credentials: "include" })
       .then(async (response) => {
         if (!response.ok) throw new Error();
         const data = (await response.json()) as FeedPageResponse;
@@ -70,7 +71,7 @@ export default function GalleryPage() {
     if (!nextCursor || loadingMore) return;
     setLoadingMore(true);
     try {
-      const response = await fetch(`/api/photos?cursor=${encodeURIComponent(nextCursor)}`, { credentials: "include" });
+      const response = await apiFetch(`/photos?cursor=${encodeURIComponent(nextCursor)}`, { credentials: "include" });
       if (!response.ok) return;
       const data = (await response.json()) as FeedPageResponse;
       setPhotos((current) => [...current, ...data.photos]);

@@ -37,19 +37,21 @@ export class AdminSessionService {
   }
 
   setCookie(res: Response, token: string): void {
+    const secure = process.env.NODE_ENV === "production";
     res.cookie(ADMIN_SESSION_COOKIE, token, {
       httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      sameSite: secure ? "none" : "lax",
+      secure,
       maxAge: ADMIN_IDLE_MS,
     });
   }
 
   clearCookie(res: Response): void {
+    const secure = process.env.NODE_ENV === "production";
     res.clearCookie(ADMIN_SESSION_COOKIE, {
       httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      sameSite: secure ? "none" : "lax",
+      secure,
     });
   }
 }

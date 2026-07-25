@@ -4,6 +4,7 @@ import { type FormEvent, type KeyboardEvent, type MouseEvent, useEffect, useMemo
 import { useRouter } from "next/navigation";
 import { withCsrfHeaders } from "../../lib/csrf";
 import { useAdminRole } from "../../components/AdminRoleContext";
+import { apiFetch } from "../../lib/apiFetch";
 
 type AdminAttendee = {
   id: string;
@@ -71,7 +72,7 @@ export default function AdminAttendeesPage() {
   async function loadAttendees() {
     setState("loading");
     try {
-      const response = await fetch("/api/admin/attendees/manage", { credentials: "include" });
+      const response = await apiFetch("/admin/attendees/manage", { credentials: "include" });
       if (!response.ok) throw new Error("Failed to load attendees");
       setAttendees((await response.json()) as AdminAttendee[]);
       setState("ready");
@@ -84,7 +85,7 @@ export default function AdminAttendeesPage() {
     setDeletingId(attendee.id);
     setMessage(null);
     try {
-      const response = await fetch(`/api/admin/attendees/${attendee.id}`, withCsrfHeaders({
+      const response = await apiFetch(`/admin/attendees/${attendee.id}`, withCsrfHeaders({
         method: "DELETE",
         credentials: "include",
       }));
@@ -108,7 +109,7 @@ export default function AdminAttendeesPage() {
       ? { ...item, checkedInAt: optimisticCheckedInAt, checkInMethod: "MANUAL" }
       : item));
     try {
-      const response = await fetch(`/api/admin/checkin/manual/${attendee.id}`, withCsrfHeaders({
+      const response = await apiFetch(`/admin/checkin/manual/${attendee.id}`, withCsrfHeaders({
         method: "POST",
         credentials: "include",
       }));
@@ -155,7 +156,7 @@ export default function AdminAttendeesPage() {
       ? { ...item, checkedInAt: null, checkInMethod: null }
       : item));
     try {
-      const response = await fetch(`/api/admin/checkin/${attendee.id}`, withCsrfHeaders({
+      const response = await apiFetch(`/admin/checkin/${attendee.id}`, withCsrfHeaders({
         method: "DELETE",
         credentials: "include",
       }));
@@ -188,7 +189,7 @@ export default function AdminAttendeesPage() {
     setAdding(true);
     setMessage(null);
     try {
-      const response = await fetch("/api/admin/attendees/manage", withCsrfHeaders({
+      const response = await apiFetch("/admin/attendees/manage", withCsrfHeaders({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

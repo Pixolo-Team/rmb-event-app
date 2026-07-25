@@ -3,6 +3,7 @@
 import { FormEvent, KeyboardEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { withCsrfHeaders } from "../../lib/csrf";
+import { apiFetch } from "../../lib/apiFetch";
 
 type State = "checking" | "idle" | "submitting";
 
@@ -17,7 +18,7 @@ export function AdminLoginForm() {
   // Session already active → skip straight to the hub (Screen 3.1 edge case).
   useEffect(() => {
     let active = true;
-    fetch("/api/admin/auth/me", { credentials: "include" })
+    apiFetch("/admin/auth/me", { credentials: "include" })
       .then((res) => {
         if (!active) return;
         if (res.ok) router.replace("/admin");
@@ -34,7 +35,7 @@ export function AdminLoginForm() {
     setState("submitting");
     setError(null);
     try {
-      const res = await fetch("/api/admin/auth/login", withCsrfHeaders({
+      const res = await apiFetch("/admin/auth/login", withCsrfHeaders({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

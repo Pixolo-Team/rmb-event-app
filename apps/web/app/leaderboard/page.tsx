@@ -7,6 +7,7 @@ import { PageIntro } from "../components/PageIntro";
 import { PoweredByFooter } from "../components/PoweredByFooter";
 import { leaderboardCache, type LeaderboardResponse } from "../lib/leaderboardCache";
 import { LeaderboardSkeleton } from "./LeaderboardSkeleton";
+import { apiFetch } from "../lib/apiFetch";
 
 const REFRESH_MS = 30_000;
 
@@ -19,7 +20,7 @@ export default function LeaderboardPage() {
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
     try {
-      const response = await fetch("/api/leaderboard", { credentials: "include" });
+      const response = await apiFetch("/leaderboard", { credentials: "include" });
       if (!response.ok) throw new Error();
       const result = await response.json() as LeaderboardResponse;
       leaderboardCache.set(result);

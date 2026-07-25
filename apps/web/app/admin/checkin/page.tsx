@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { useOfflineSync } from "../../lib/offlineQueue";
+import { apiFetch } from "../../lib/apiFetch";
 
 type Method = "GEOLOCATION" | "MANUAL" | "STAFF_QR" | "VENUE_QR";
 
@@ -28,7 +29,7 @@ export default function AdminCheckinPage() {
   const [venueConfigured, setVenueConfigured] = useState(true);
 
   async function loadStatus() {
-    const res = await fetch("/api/admin/checkin/status");
+    const res = await apiFetch("/admin/checkin/status", { credentials: "include" });
     if (res.ok) setStatus(await res.json());
   }
 
@@ -36,7 +37,7 @@ export default function AdminCheckinPage() {
 
   useEffect(() => {
     loadStatus();
-    fetch("/api/admin/event")
+    apiFetch("/admin/event", { credentials: "include" })
       .then((r) => r.json())
       .then((e) => setVenueConfigured(e.venueLat != null && e.venueLng != null));
     const interval = setInterval(loadStatus, POLL_MS);
@@ -132,7 +133,7 @@ function VenueQrCard() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/admin/event/venue-qr")
+    apiFetch("/admin/event/venue-qr", { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => data?.token && render(data.token))
       .catch(() => undefined);

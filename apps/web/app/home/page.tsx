@@ -29,6 +29,7 @@ import { homeCache } from "../lib/homeCache";
 import { profileCache, type MyProfile } from "../lib/profileCache";
 import { withCsrfHeaders } from "../lib/csrf";
 import { stopAndClearScanner } from "../lib/html5QrCode";
+import { apiFetch } from "../lib/apiFetch";
 
 // F3.6/F3.7 — Home is one constant dashboard. The event's start/end times decide
 // the top block (pre-event countdown · check-in · checked-in · ended); the rest —
@@ -134,7 +135,7 @@ export default function HomePage() {
     }
 
     try {
-      const res = await fetch("/api/matches", { credentials: "include" });
+      const res = await apiFetch("/matches", { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
         matchesCache.set(data);
@@ -170,9 +171,9 @@ export default function HomePage() {
     const deadline = AbortSignal.timeout(12_000);
 
     Promise.all([
-      fetch("/api/attendees/me", { credentials: "include", signal: deadline }),
-      fetch("/api/checkin/me", { credentials: "include", signal: deadline }),
-      fetch("/api/event", { signal: deadline })
+      apiFetch("/attendees/me", { credentials: "include", signal: deadline }),
+      apiFetch("/checkin/me", { credentials: "include", signal: deadline }),
+      apiFetch("/event", { signal: deadline })
         .then((res) => (res.ok ? res.json() : null))
         .catch(() => null),
     ])
@@ -271,7 +272,7 @@ export default function HomePage() {
       }
 
       try {
-        const res = await fetch(
+        const res = await apiFetch(
           url,
           withCsrfHeaders({
             method: "POST",
@@ -323,7 +324,7 @@ export default function HomePage() {
         coords.current = { lat, lng };
         const distanceM = distanceMeters(lat, lng, config.venueLat!, config.venueLng!);
         if (distanceM <= config.checkinRadiusM) {
-          submitCheckin("GEOLOCATION", "/api/checkin/geolocation", { lat, lng }, "checkin-geolocation");
+          submitCheckin("GEOLOCATION", "/checkin/geolocation", { lat, lng }, "checkin-geolocation");
         } else {
           setCheckinError("You're outside the venue radius. Move closer or scan the venue QR.");
           setCheckinPhase("scanning");
@@ -354,7 +355,7 @@ export default function HomePage() {
     } catch {
       /* not a URL — treat the whole payload as the token */
     }
-    submitCheckin("VENUE_QR", "/api/checkin/venue-qr", { token }, "checkin-venue-qr");
+    submitCheckin("VENUE_QR", "/checkin/venue-qr", { token }, "checkin-venue-qr");
   };
 
   useEffect(() => {

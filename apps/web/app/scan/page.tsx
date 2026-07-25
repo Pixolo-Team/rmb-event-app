@@ -10,6 +10,7 @@ import { withCsrfHeaders } from "../lib/csrf";
 import { trackEvent } from "../lib/gtag";
 import { pauseScanner, resumeScanner, stopAndClearScanner } from "../lib/html5QrCode";
 import { refreshPersonalStats } from "../lib/statsCache";
+import { apiFetch } from "../lib/apiFetch";
 
 type ScanApiResult =
   | { status: "not_found" }
@@ -48,11 +49,11 @@ export default function ScanPage() {
 
       try {
         if (!navigator.onLine) {
-          await enqueueWrite("meeting-scan", "/api/meetings/scan", { qrToken });
+          await enqueueWrite("meeting-scan", "/meetings/scan", { qrToken });
           showResult({ kind: "offline" });
           return;
         }
-        const res = await fetch("/api/meetings/scan", withCsrfHeaders({
+        const res = await apiFetch("/meetings/scan", withCsrfHeaders({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -80,7 +81,7 @@ export default function ScanPage() {
         }
       } catch {
         // Network dropped mid-scan — queue rather than losing the meeting.
-        await enqueueWrite("meeting-scan", "/api/meetings/scan", { qrToken });
+        await enqueueWrite("meeting-scan", "/meetings/scan", { qrToken });
         showResult({ kind: "offline" });
       } finally {
         lockRef.current = false;

@@ -5,6 +5,7 @@ import type { AttendeeMe } from "./TutorialPage";
 import { PoweredByFooter } from "./PoweredByFooter";
 import { MultiSelectDropdown } from "../../components/MultiSelectDropdown";
 import { SingleSelectDropdown } from "../../components/SingleSelectDropdown";
+import { apiFetch } from "../../lib/apiFetch";
 
 type CityOption = {
   name: string;
@@ -122,7 +123,7 @@ export function EditProfileForm({
   }, []);
 
   useEffect(() => {
-    fetch("/api/attendees/profile-options", { credentials: "include" })
+    apiFetch("/attendees/profile-options", { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data) {
@@ -268,7 +269,7 @@ export function EditProfileForm({
 
     setSaving(true);
     try {
-      const res = await fetch("/api/attendees/me/profile", withCsrfHeaders({
+      const res = await apiFetch("/attendees/me/profile", withCsrfHeaders({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

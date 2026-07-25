@@ -11,6 +11,7 @@ import { ScanConnect } from "./ScanConnect";
 import { PoweredByFooter } from "./PoweredByFooter";
 import { withCsrfHeaders } from "../../lib/csrf";
 import { profileCache } from "../../lib/profileCache";
+import { apiFetch } from "../../lib/apiFetch";
 
 function TagGroup({ label, values }: { label: string; values: string[] | undefined }) {
   if (!values?.length) return null;
@@ -59,7 +60,7 @@ export function ProfileView({
     }
 
     try {
-      const res = await fetch("/api/connections/scan", withCsrfHeaders({
+      const res = await apiFetch("/connections/scan", withCsrfHeaders({
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -81,7 +82,7 @@ export function ProfileView({
   async function handleLogout() {
     if (!TEMP_BYPASS_LOGIN) {
       try {
-        await fetch("/api/auth/logout", withCsrfHeaders({ method: "POST", credentials: "include" }));
+        await apiFetch("/auth/logout", withCsrfHeaders({ method: "POST", credentials: "include" }));
       } catch {
         // Even if the network call fails, still send the user to the login screen.
       }

@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useState } from "react";
 import { withCsrfHeaders } from "../../lib/csrf";
+import { apiFetch } from "../../lib/apiFetch";
 
 type AdminUserRow = {
   id: string;
@@ -51,7 +52,7 @@ export default function AdminUsersPage() {
   async function loadUsers() {
     setState("loading");
     try {
-      const response = await fetch("/api/admin/users", { credentials: "include" });
+      const response = await apiFetch("/admin/users", { credentials: "include" });
       if (!response.ok) throw new Error("Failed to load admin users");
       setUsers((await response.json()) as AdminUserRow[]);
       setState("ready");
@@ -73,7 +74,7 @@ export default function AdminUsersPage() {
     setCreating(true);
     setMessage(null);
     try {
-      const response = await fetch("/api/admin/users", withCsrfHeaders({
+      const response = await apiFetch("/admin/users", withCsrfHeaders({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -102,7 +103,7 @@ export default function AdminUsersPage() {
     setBusyId(user.id);
     setMessage(null);
     try {
-      const response = await fetch(`/api/admin/users/${user.id}`, withCsrfHeaders({
+      const response = await apiFetch(`/admin/users/${user.id}`, withCsrfHeaders({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -131,7 +132,7 @@ export default function AdminUsersPage() {
     setBusyId(user.id);
     setMessage(null);
     try {
-      const response = await fetch(`/api/admin/users/${user.id}`, withCsrfHeaders({
+      const response = await apiFetch(`/admin/users/${user.id}`, withCsrfHeaders({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

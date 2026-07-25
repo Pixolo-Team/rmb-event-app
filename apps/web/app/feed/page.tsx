@@ -7,6 +7,7 @@ import { AttendeePageShell } from "../components/AttendeePageShell";
 import { trackEvent } from "../lib/gtag";
 import { loadMyProfile, profileCache } from "../lib/profileCache";
 import type { FeedPhotoData } from "../lib/feedTypes";
+import { apiFetch } from "../lib/apiFetch";
 
 const PREVIEW_ATTENDEE: AttendeeMe = {
   id: "preview-me",
@@ -55,10 +56,10 @@ export default function FeedPage() {
     }
 
     // loadMyProfile is shared with AttendeePageShell's own header fetch — this
-    // used to be an independent fetch("/api/attendees/me") duplicating the
+    // used to be an independent apiFetch("/attendees/me") duplicating the
     // shell's request on every Feed load; now it dedupes/throttles onto the
     // same in-flight or recently-cached result instead of a second DB round trip.
-    Promise.allSettled([loadMyProfile(), fetch("/api/photos", { credentials: "include" })])
+    Promise.allSettled([loadMyProfile(), apiFetch("/photos", { credentials: "include" })])
       .then(async ([attendeeResult, feedResult]) => {
         let resolvedAttendee: AttendeeMe | null = cachedProfile?.profileCompletedAt ? cachedProfile : null;
 

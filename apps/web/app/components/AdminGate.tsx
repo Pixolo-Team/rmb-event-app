@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AdminRoleContext, AdminRole } from "./AdminRoleContext";
+import { apiFetch } from "../lib/apiFetch";
 
 const LOGIN_PATH = "/admin/login";
 const STAFF_DEFAULT_PATH = "/admin/attendees";
@@ -31,7 +32,7 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isLogin) return;
     let active = true;
-    fetch("/api/admin/auth/me", { credentials: "include" })
+    apiFetch("/admin/auth/me", { credentials: "include" })
       .then(async (res) => {
         if (!active) return;
         if (!res.ok) {

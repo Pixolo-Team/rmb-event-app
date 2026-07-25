@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { withCsrfHeaders } from "../lib/csrf";
+import { apiFetch } from "../lib/apiFetch";
 
 // F3.7 — deep-link target encoded in the venue attendance QR
 // (`/checkin?venue=<token>`). The in-app scanner posts the token directly, but if
@@ -22,7 +23,7 @@ export default function VenueCheckinPage() {
       return;
     }
 
-    fetch("/api/checkin/venue-qr", withCsrfHeaders({
+    apiFetch("/checkin/venue-qr", withCsrfHeaders({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",

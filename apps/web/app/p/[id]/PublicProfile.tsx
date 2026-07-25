@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { SaveContactButton } from "../../components/SaveContactButton";
+import { apiFetch } from "../../lib/apiFetch";
 
 type PublicProfileData = {
   id: string;
@@ -31,7 +32,7 @@ export function PublicProfile({ id }: { id: string }) {
     let cancelled = false;
     async function load() {
       try {
-        const res = await fetch(`/api/attendees/public/${id}`);
+        const res = await apiFetch(`/attendees/public/${id}`);
         if (!res.ok) {
           if (!cancelled) setState("error");
           return;

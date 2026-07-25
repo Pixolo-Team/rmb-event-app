@@ -6,6 +6,7 @@ import { AttendeePageShell } from "../components/AttendeePageShell";
 import { DirectoryAvatar } from "../components/DirectoryAvatar";
 import { PoweredByFooter } from "../components/PoweredByFooter";
 import { EventSummary, summaryCache } from "../lib/summaryCache";
+import { apiFetch } from "../lib/apiFetch";
 
 function formatMetDate(iso: string): string {
   return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(new Date(iso));
@@ -27,7 +28,7 @@ export default function SummaryPage() {
       setLoading(false);
     }
 
-    fetch("/api/attendees/me/summary", { credentials: "include" })
+    apiFetch("/attendees/me/summary", { credentials: "include" })
       .then(async (response) => {
         if (!response.ok) throw new Error();
         const result = (await response.json()) as EventSummary;

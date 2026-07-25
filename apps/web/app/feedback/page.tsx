@@ -6,6 +6,7 @@ import { AttendeePageShell } from "../components/AttendeePageShell";
 import { PoweredByFooter } from "../components/PoweredByFooter";
 import { withCsrfHeaders } from "../lib/csrf";
 import { trackEvent } from "../lib/gtag";
+import { apiFetch } from "../lib/apiFetch";
 
 export default function FeedbackPage() {
   const [rating, setRating] = useState(0);
@@ -27,8 +28,7 @@ export default function FeedbackPage() {
 
     try {
       if (!preview) {
-        const response = await fetch(
-          "/api/feedback",
+        const response = await apiFetch("/feedback",
           withCsrfHeaders({
             method: "POST",
             credentials: "include",

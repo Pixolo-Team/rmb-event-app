@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { apiFetch } from "../lib/apiFetch";
 
 const TOOLS = [
   { href: "/admin/import", title: "Attendee Import", desc: "Upload the guest list (CSV / Excel)" },
@@ -76,7 +77,7 @@ export default function AdminHome() {
 
     async function load() {
       try {
-        const response = await fetch("/api/admin/analytics", { credentials: "include" });
+        const response = await apiFetch("/admin/analytics", { credentials: "include" });
         if (!response.ok) throw new Error("Failed to load analytics");
         const next = (await response.json()) as DashboardData;
         if (cancelled) return;

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ContactRows } from "../../../components/ContactRows";
 import { DirectoryAvatar } from "../../../components/DirectoryAvatar";
+import { apiFetch } from "../../../lib/apiFetch";
 
 type AdminAttendeeProfile = {
   id: string;
@@ -35,7 +36,7 @@ export default function AdminAttendeeProfilePage({ params }: { params: { id: str
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/admin/attendees/manage/${params.id}`, { credentials: "include" })
+    apiFetch(`/admin/attendees/manage/${params.id}`, { credentials: "include" })
       .then(async (response) => {
         if (!response.ok) throw new Error("profile unavailable");
         setProfile((await response.json()) as AdminAttendeeProfile);

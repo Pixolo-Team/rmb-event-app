@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { withCsrfHeaders } from "../lib/csrf";
 import { useAdminRole } from "./AdminRoleContext";
+import { apiFetch } from "../lib/apiFetch";
 
 type AdminMenuItem = {
   label: string;
@@ -91,7 +92,7 @@ export function AdminMenu({ title }: { title?: string }) {
   async function signOut() {
     setSigningOut(true);
     try {
-      await fetch("/api/admin/auth/logout", withCsrfHeaders({ method: "POST", credentials: "include" }));
+      await apiFetch("/admin/auth/logout", withCsrfHeaders({ method: "POST", credentials: "include" }));
     } finally {
       router.replace("/admin/login");
     }

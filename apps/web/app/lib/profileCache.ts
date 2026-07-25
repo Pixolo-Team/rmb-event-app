@@ -1,3 +1,4 @@
+import { apiFetch } from "./apiFetch";
 // F4.1 — caches the attendee's own profile (including their signed qrToken) so
 // the Settings/Profile screen and its QR code render offline with no network
 // call (PRD US4.1A: "generated/cached locally — no network call to display it").
@@ -73,7 +74,7 @@ export function loadMyProfile(options?: { force?: boolean }): Promise<{ status: 
 
   if (!inFlight) {
     lastFetchedAt = Date.now();
-    inFlight = fetch("/api/attendees/me", { credentials: "include" })
+    inFlight = apiFetch("/attendees/me", { credentials: "include" })
       .then(async (response) => {
         if (!response.ok) return { status: response.status, profile: null };
         const profile = (await response.json()) as MyProfile;

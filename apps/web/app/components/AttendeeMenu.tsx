@@ -8,6 +8,7 @@ import { withCsrfHeaders } from "../lib/csrf";
 import { PoweredByFooter } from "./PoweredByFooter";
 import { usePwaInstall } from "./PwaInstallProvider";
 import { profileCache } from "../lib/profileCache";
+import { apiFetch } from "../lib/apiFetch";
 
 export interface MenuAttendee {
   name: string;
@@ -160,7 +161,7 @@ export function AttendeeMenu({ attendee }: { attendee: MenuAttendee }) {
   async function signOut() {
     setSigningOut(true);
     try {
-      await fetch("/api/auth/logout", withCsrfHeaders({ method: "POST", credentials: "include" }));
+      await apiFetch("/auth/logout", withCsrfHeaders({ method: "POST", credentials: "include" }));
     } finally {
       profileCache.clear();
       removeMenuHistoryMarker();

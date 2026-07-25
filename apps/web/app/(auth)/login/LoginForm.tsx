@@ -6,6 +6,7 @@ import { withCsrfHeaders, getCsrfToken } from "../../lib/csrf";
 import { profileCache } from "../../lib/profileCache";
 import { RotaryLoader } from "../../components/RotaryLoader";
 import { PoweredByFooter } from "../../components/PoweredByFooter";
+import { apiFetch } from "../../lib/apiFetch";
 
 export function LoginForm() {
   const router = useRouter();
@@ -19,7 +20,7 @@ export function LoginForm() {
   // The cookie is set by API middleware, so we need at least one API round-trip.
   useEffect(() => {
     if (!getCsrfToken()) {
-      fetch("/api/attendees/profile-options").catch(() => {});
+      apiFetch("/attendees/profile-options").catch(() => {});
     }
   }, []);
 
@@ -36,7 +37,7 @@ export function LoginForm() {
     // With no local hint, show Login immediately and verify any cookie session
     // in the background. The server remains authoritative for authentication.
     setCheckingSession(false);
-    fetch("/api/attendees/me", { credentials: "include" })
+    apiFetch("/attendees/me", { credentials: "include" })
       .then(async (response) => {
         if (cancelled) return;
         if (!response.ok) {
@@ -61,7 +62,7 @@ export function LoginForm() {
     setDevLink(null);
 
     try {
-      const response = await fetch("/api/auth/magic-link", withCsrfHeaders({
+      const response = await apiFetch("/auth/magic-link", withCsrfHeaders({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

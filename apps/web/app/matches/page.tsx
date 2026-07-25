@@ -9,6 +9,7 @@ import { type BookmarkConnection, connectionsCache } from "../lib/connectionsCac
 import { trackEvent } from "../lib/gtag";
 import { matchesCache, type MatchesResponse, type MatchSuggestion } from "../lib/matchesCache";
 import { MatchesSkeleton } from "./MatchesSkeleton";
+import { apiFetch } from "../lib/apiFetch";
 
 // How many suggestions to show before the "Show more" reveal, so the first paint
 // isn't a wall of cards.
@@ -30,8 +31,8 @@ export default function MatchesPage() {
 
     try {
       const [matchesResult, bookmarksResult] = await Promise.allSettled([
-        fetch(`/api/matches${refresh ? "?refresh=1" : ""}`, { credentials: "include" }),
-        fetch("/api/bookmarks", { credentials: "include" }),
+        apiFetch(`/matches${refresh ? "?refresh=1" : ""}`, { credentials: "include" }),
+        apiFetch("/bookmarks", { credentials: "include" }),
       ]);
 
       let nextMatches = data;

@@ -24,19 +24,21 @@ export class SessionService {
   }
 
   setSessionCookie(res: Response, token: string): void {
+    const secure = process.env.NODE_ENV === "production";
     res.cookie(SESSION_COOKIE, token, {
       httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      sameSite: secure ? "none" : "lax",
+      secure,
       maxAge: SESSION_COOKIE_MAX_AGE_MS,
     });
   }
 
   clearSessionCookie(res: Response): void {
+    const secure = process.env.NODE_ENV === "production";
     res.clearCookie(SESSION_COOKIE, {
       httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      sameSite: secure ? "none" : "lax",
+      secure,
     });
   }
 }

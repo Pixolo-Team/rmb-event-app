@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { withCsrfHeaders } from "../../../lib/csrf";
+import { apiFetch } from "../../../lib/apiFetch";
 
 type Tab = "all" | "deleted";
 
@@ -48,7 +49,7 @@ export default function AdminFeedPage() {
   }, [previews]);
 
   const refreshPhotos = useCallback(async () => {
-    const res = await fetch("/api/admin/photos");
+    const res = await apiFetch("/admin/photos", { credentials: "include" });
     if (!res.ok) throw new Error();
     setPhotos((await res.json()) as AdminPhoto[]);
   }, []);
@@ -60,8 +61,8 @@ export default function AdminFeedPage() {
       setLoading(true);
       setError(null);
       try {
-        const path = tab === "all" ? "/api/admin/photos" : "/api/admin/photos/deleted";
-        const res = await fetch(path);
+        const path = tab === "all" ? "/admin/photos" : "/admin/photos/deleted";
+        const res = await apiFetch(path, { credentials: "include" });
         if (!res.ok) {
           if (!cancelled) setError("Couldn't reach the server. Please try again.");
           return;
@@ -94,7 +95,7 @@ export default function AdminFeedPage() {
     setUploadMessage(null);
 
     try {
-      const urlRes = await fetch("/api/admin/photos/upload-urls", withCsrfHeaders({
+      const urlRes = await apiFetch("/admin/photos/upload-urls", withCsrfHeaders({
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -117,7 +118,7 @@ export default function AdminFeedPage() {
         ),
       );
 
-      const res = await fetch("/api/admin/photos", withCsrfHeaders({
+      const res = await apiFetch("/admin/photos", withCsrfHeaders({
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -148,7 +149,7 @@ export default function AdminFeedPage() {
     setDeletingId(photoId);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/photos/${photoId}`, withCsrfHeaders({ method: "DELETE" }));
+      const res = await apiFetch(`/admin/photos/${photoId}`, withCsrfHeaders({ method: "DELETE" }));
       if (!res.ok) {
         setError("Couldn't delete photo. Please try again.");
         return;

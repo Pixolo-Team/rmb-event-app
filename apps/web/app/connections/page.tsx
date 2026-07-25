@@ -8,6 +8,7 @@ import { SaveContactButton } from "../components/SaveContactButton";
 import { type Connection, type ConnectionsResponse, connectionsCache } from "../lib/connectionsCache";
 import { withCsrfHeaders } from "../lib/csrf";
 import { getCachedVenueConfig } from "../lib/offlineQueue";
+import { apiFetch } from "../lib/apiFetch";
 
 type SortOption = "recent" | "name";
 
@@ -23,7 +24,7 @@ export default function ConnectionsPage() {
     getCachedVenueConfig().then((cached) => {
       if (cached?.name) setEventName(cached.name);
     });
-    fetch("/api/event")
+    apiFetch("/event")
       .then((res) => (res.ok ? res.json() : null))
       .then((next: { name?: string } | null) => {
         if (next?.name) setEventName(next.name);
@@ -39,7 +40,7 @@ export default function ConnectionsPage() {
       if (cached.connections.length > 0) setLoading(false);
     }
 
-    fetch("/api/attendees/me/connections", { credentials: "include" })
+    apiFetch("/attendees/me/connections", { credentials: "include" })
       .then(async (connectionsResponse) => {
         if (!connectionsResponse.ok) throw new Error("connections unavailable");
         const result = {
@@ -192,8 +193,7 @@ function ConnectionCard({
     setSaving(true);
     setMessage("");
     try {
-      const response = await fetch(
-        `/api/attendees/me/connections/${connection.id}/note`,
+      const response = await apiFetch(`/attendees/me/connections/${connection.id}/note`,
         withCsrfHeaders({
           method: "PATCH",
           credentials: "include",

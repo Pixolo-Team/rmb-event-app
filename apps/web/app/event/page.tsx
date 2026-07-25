@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AttendeePageShell } from "../components/AttendeePageShell";
 import { cacheVenueConfig, getCachedVenueConfig, type CachedVenueConfig } from "../lib/offlineQueue";
+import { apiFetch } from "../lib/apiFetch";
 
 function formatEventDate(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
@@ -89,7 +90,7 @@ export default function EventDetailsPage() {
       }
     });
 
-    fetch("/api/event")
+    apiFetch("/event")
       .then((res) => (res.ok ? res.json() : null))
       .then((data: CachedVenueConfig | null) => {
         if (data) {

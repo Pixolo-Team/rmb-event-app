@@ -6,6 +6,7 @@ import { trackEvent } from "../lib/gtag";
 import { enqueueWrite } from "../lib/offlineQueue";
 import { directoryCache } from "../lib/directoryCache";
 import { matchesCache } from "../lib/matchesCache";
+import { apiFetch } from "../lib/apiFetch";
 
 export function BookmarkButton({ attendeeId, initialBookmarked, compact = false, compactLabel = false, onChange }: { attendeeId: string; initialBookmarked: boolean; compact?: boolean; compactLabel?: boolean; onChange?: (value: boolean) => void }) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
@@ -28,8 +29,7 @@ export function BookmarkButton({ attendeeId, initialBookmarked, compact = false,
     setSaving(true);
     const method = next ? "PUT" : "DELETE";
     try {
-      const response = await fetch(
-        `/api/bookmarks/${attendeeId}`,
+      const response = await apiFetch(`/bookmarks/${attendeeId}`,
         withCsrfHeaders({ method, credentials: "include" }),
       );
       if (!response.ok) throw new Error("server rejected bookmark");
@@ -40,7 +40,7 @@ export function BookmarkButton({ attendeeId, initialBookmarked, compact = false,
       });
     } catch (error) {
       if (error instanceof TypeError || !navigator.onLine) {
-        await enqueueWrite(next ? "bookmark-add" : "bookmark-remove", `/api/bookmarks/${attendeeId}`, {}, method);
+        await enqueueWrite(next ? "bookmark-add" : "bookmark-remove", `/bookmarks/${attendeeId}`, {}, method);
         trackEvent(next ? "bookmark_added" : "bookmark_removed", {
           feature: "bookmarks",
           target_type: "attendee",

@@ -9,6 +9,7 @@ import { BookmarkButton } from "../components/BookmarkButton";
 import { DirectorySkeleton } from "./DirectorySkeleton";
 import { DirectoryToolbar } from "./DirectoryToolbar";
 import { SingleSelectDropdown } from "../components/SingleSelectDropdown";
+import { apiFetch } from "../lib/apiFetch";
 
 type CheckinFilter = "all" | "checked-in" | "not-checked-in";
 
@@ -21,7 +22,7 @@ let directoryRequest: Promise<DirectoryResponse> | null = null;
 function loadDirectory() {
   if (!directoryRequest) {
     lastDirectoryRevalidatedAt = Date.now();
-    directoryRequest = fetch("/api/attendees", { credentials: "include" })
+    directoryRequest = apiFetch("/attendees", { credentials: "include" })
       .then(async (response) => {
         if (!response.ok) throw new Error("directory unavailable");
         return (await response.json()) as DirectoryResponse;

@@ -8,6 +8,7 @@ import { RotaryLoader } from "../../components/RotaryLoader";
 import { ChevronDownIcon, SingleSelectDropdown } from "../../components/SingleSelectDropdown";
 import { MultiSelectDropdown } from "../../components/MultiSelectDropdown";
 import { withCsrfHeaders } from "../../lib/csrf";
+import { apiFetch } from "../../lib/apiFetch";
 
 type Step = "loading" | "form" | "install" | "thanks";
 type FormStep = 1 | 2 | 3;
@@ -92,8 +93,8 @@ export function OnboardingFlow() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/attendees/me", { credentials: "include" }),
-      fetch("/api/attendees/profile-options"),
+      apiFetch("/attendees/me", { credentials: "include" }),
+      apiFetch("/attendees/profile-options"),
     ])
       .then(async ([meRes, optionsRes]) => {
         if (!meRes.ok) {
@@ -143,7 +144,7 @@ export function OnboardingFlow() {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const res = await fetch("/api/attendees/me/profile", withCsrfHeaders({
+      const res = await apiFetch("/attendees/me/profile", withCsrfHeaders({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

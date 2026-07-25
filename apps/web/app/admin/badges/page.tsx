@@ -5,6 +5,7 @@ import QRCode from "qrcode";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas-pro";
 import JSZip from "jszip";
+import { apiFetch } from "../../lib/apiFetch";
 
 interface Attendee {
   id: string;
@@ -26,7 +27,7 @@ export default function AdminBadgesPage() {
   const badgeRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
-    fetch("/api/admin/attendees")
+    apiFetch("/admin/attendees", { credentials: "include" })
       .then((res) => res.json())
       .then((data: Attendee[]) => {
         setAttendees(data);

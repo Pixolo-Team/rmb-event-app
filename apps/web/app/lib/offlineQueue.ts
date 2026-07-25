@@ -3,6 +3,7 @@
 import Dexie, { Table } from "dexie";
 import { useCallback, useEffect, useState } from "react";
 import { withCsrfHeaders } from "./csrf";
+import { apiFetch } from "./apiFetch";
 
 // PF4 — Offline Sync Engine. A small IndexedDB (via Dexie) write queue: writes
 // that can't reach the server (offline, mid-session network drop) are stored
@@ -59,7 +60,7 @@ export async function flushQueue(onSynced?: (kind: QueueKind, response: unknown)
   for (const item of items) {
     let res: Response;
     try {
-      res = await fetch(
+      res = await apiFetch(
         item.url,
         withCsrfHeaders({
           method: item.method ?? "POST",

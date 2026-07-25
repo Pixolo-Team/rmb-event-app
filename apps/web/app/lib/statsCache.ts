@@ -1,3 +1,4 @@
+import { apiFetch } from "./apiFetch";
 export type PersonalStats = {
   peopleMet: number;
   rank: number | null;
@@ -40,7 +41,7 @@ export const statsCache = {
 };
 
 export async function refreshPersonalStats() {
-  const res = await fetch("/api/attendees/me/stats", { credentials: "include" });
+  const res = await apiFetch("/attendees/me/stats", { credentials: "include" });
   if (!res.ok) throw new Error("stats unavailable");
   const data = (await res.json()) as PersonalStats;
   statsCache.set(data);

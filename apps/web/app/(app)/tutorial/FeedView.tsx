@@ -9,6 +9,7 @@ import { DirectoryAvatar } from "../../components/DirectoryAvatar";
 import { withCsrfHeaders } from "../../lib/csrf";
 import { trackEvent } from "../../lib/gtag";
 import { compressFeedImage } from "../../lib/imageCompression";
+import { apiFetch } from "../../lib/apiFetch";
 type FeedPageResponse = {
   photos: FeedPhotoData[];
   nextCursor: string | null;
@@ -53,7 +54,7 @@ async function uploadPhotoWithProgress(
   caption: string,
   onProgress: (percent: number) => void,
 ): Promise<FeedPhotoData> {
-  const urlRes = await fetch("/api/uploads/upload-urls", withCsrfHeaders({
+  const urlRes = await apiFetch("/uploads/upload-urls", withCsrfHeaders({
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -87,7 +88,7 @@ async function uploadPhotoWithProgress(
     ),
   );
 
-  const postRes = await fetch("/api/photos", withCsrfHeaders({
+  const postRes = await apiFetch("/photos", withCsrfHeaders({
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -423,7 +424,7 @@ export function FeedView({
     async function load() {
       setFeedState("loading");
       try {
-        const response = await fetch("/api/photos", { credentials: "include" });
+        const response = await apiFetch("/photos", { credentials: "include" });
         if (!response.ok) {
           if (!cancelled) setFeedState("error");
           return;
@@ -468,7 +469,7 @@ export function FeedView({
     );
 
     try {
-      const response = await fetch(`/api/photos/${photo.id}/like`, withCsrfHeaders({
+      const response = await apiFetch(`/photos/${photo.id}/like`, withCsrfHeaders({
         method: "POST",
         credentials: "include",
       }));
@@ -510,7 +511,7 @@ export function FeedView({
     setActionError(null);
     setPendingComments((current) => [...current, photoId]);
     try {
-      const response = await fetch(`/api/photos/${photoId}/comments`, withCsrfHeaders({
+      const response = await apiFetch(`/photos/${photoId}/comments`, withCsrfHeaders({
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -548,7 +549,7 @@ export function FeedView({
 
     setActionError(null);
     try {
-      const response = await fetch(`/api/photos/${photoId}`, withCsrfHeaders({ method: "DELETE", credentials: "include" }));
+      const response = await apiFetch(`/photos/${photoId}`, withCsrfHeaders({ method: "DELETE", credentials: "include" }));
       if (!response.ok) {
         setActionError("Couldn't delete photo. Try again.");
         return;
@@ -564,7 +565,7 @@ export function FeedView({
     if (!nextCursor || loadingMore) return;
     setLoadingMore(true);
     try {
-      const response = await fetch(`/api/photos?cursor=${encodeURIComponent(nextCursor)}`, {
+      const response = await apiFetch(`/photos?cursor=${encodeURIComponent(nextCursor)}`, {
         credentials: "include",
       });
       if (!response.ok) {

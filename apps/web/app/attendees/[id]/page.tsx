@@ -12,6 +12,7 @@ import { trackEvent } from "../../lib/gtag";
 import { directoryCache, type AttendeeProfile } from "../../lib/directoryCache";
 import { getCachedVenueConfig } from "../../lib/offlineQueue";
 import { profileCache } from "../../lib/profileCache";
+import { apiFetch } from "../../lib/apiFetch";
 
 export default function AttendeeProfilePage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -37,7 +38,7 @@ export default function AttendeeProfilePage({ params }: { params: { id: string }
       setLoading(false);
     }
 
-    fetch(`/api/attendees/${params.id}`, { credentials: "include" })
+    apiFetch(`/attendees/${params.id}`, { credentials: "include" })
       .then(async (response) => {
         if (!response.ok) throw new Error("profile unavailable");
         const result = (await response.json()) as AttendeeProfile;
@@ -141,7 +142,7 @@ function ProfileContent({ profile }: { profile: AttendeeProfile }) {
     getCachedVenueConfig().then((cached) => {
       if (cached?.name) setEventName(cached.name);
     });
-    fetch("/api/event")
+    apiFetch("/event")
       .then((res) => (res.ok ? res.json() : null))
       .then((data: { name?: string } | null) => {
         if (data?.name) setEventName(data.name);

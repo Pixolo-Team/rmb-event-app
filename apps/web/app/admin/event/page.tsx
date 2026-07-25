@@ -5,6 +5,7 @@ import Link from "next/link";
 import { PhotoUploadModal } from "../../components/PhotoUploadModal";
 import { distanceMeters } from "../../lib/geo";
 import { withCsrfHeaders } from "../../lib/csrf";
+import { apiFetch } from "../../lib/apiFetch";
 
 const RADIUS_OPTIONS = [100, 250, 500, 1000, 5000];
 
@@ -93,7 +94,7 @@ export default function AdminEventSettingsPage() {
   }
 
   useEffect(() => {
-    fetch("/api/admin/event")
+    apiFetch("/admin/event", { credentials: "include" })
       .then((res) => res.json())
       .then(hydrate);
   }, []);
@@ -104,9 +105,10 @@ export default function AdminEventSettingsPage() {
     setSaveState("saving");
     setFieldError(null);
     try {
-      const res = await fetch("/api/admin/event", withCsrfHeaders({
+      const res = await apiFetch("/admin/event", withCsrfHeaders({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(body),
       }));
       if (!res.ok) {
@@ -127,7 +129,7 @@ export default function AdminEventSettingsPage() {
     try {
       const contentType = file.type as "image/jpeg" | "image/png" | "image/webp";
 
-      const urlRes = await fetch("/api/admin/event/chair-photo/upload-url", withCsrfHeaders({
+      const urlRes = await apiFetch("/admin/event/chair-photo/upload-url", withCsrfHeaders({
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -148,7 +150,7 @@ export default function AdminEventSettingsPage() {
       });
       if (!putRes.ok) throw new Error("Upload to storage failed");
 
-      const res = await fetch("/api/admin/event/chair-photo", withCsrfHeaders({
+      const res = await apiFetch("/admin/event/chair-photo", withCsrfHeaders({
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -168,7 +170,7 @@ export default function AdminEventSettingsPage() {
   async function handleChairPhotoRemove() {
     setChairPhotoUploading(true);
     try {
-      const res = await fetch("/api/admin/event/chair-photo/remove", withCsrfHeaders({
+      const res = await apiFetch("/admin/event/chair-photo/remove", withCsrfHeaders({
         method: "PATCH",
         credentials: "include",
       }));
