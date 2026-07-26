@@ -6,6 +6,7 @@ import { SessionService } from "../session/session.service";
 import { MatchingService } from "../matching/matching.service";
 import type { MatchProfile } from "../matching/matching.types";
 import { hashToken } from "../common/tokens";
+import { generateUniqueQrCode } from "../common/qr-code";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { UpdateLinksDto } from "./dto/update-links.dto";
 import { GOALS_TAGS, OFFERING_TAGS } from "./profile-options";
@@ -650,6 +651,8 @@ export class AttendeesService {
     const phone = dto.phone.trim();
     if (!name || !email || !phone) throw new BadRequestException("Name, email and phone are required");
 
+    const qrToken = await generateUniqueQrCode(this.prisma);
+
     try {
       return await this.prisma.attendee.create({
         data: {
@@ -657,7 +660,7 @@ export class AttendeesService {
           name,
           email,
           phone,
-          qrToken: randomUUID(),
+          qrToken,
         },
         select: {
           id: true,

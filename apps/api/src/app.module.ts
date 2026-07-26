@@ -22,7 +22,6 @@ import { HealthModule } from "./health/health.module";
 import { SummaryModule } from "./summary/summary.module";
 import { StatsModule } from "./stats/stats.module";
 import { FeedbackModule } from "./feedback/feedback.module";
-import { QRModule } from "./qr/qr.module";
 import { UploadsModule } from "./uploads/uploads.module";
 import { ConfigModule } from "@nestjs/config";
 
@@ -38,7 +37,6 @@ import { ConfigModule } from "@nestjs/config";
     SessionModule,
     AuthModule,
     AdminAuthModule,
-    QRModule,
     AdminImportModule,
     AttendeesModule,
     BookmarksModule,
