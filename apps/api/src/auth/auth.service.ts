@@ -6,7 +6,7 @@ import { RateLimiterService } from "../common/rate-limit/rate-limiter.service";
 import { generateOpaqueToken, hashToken } from "../common/tokens";
 
 const TOKEN_TTL_MS = 30 * 60 * 1000; // 30 minutes, per SCREENS.md Screen 2.0
-const MAX_SENDS_PER_IP_PER_HOUR = 3; // coarse device proxy — see SCREENS.md's "~3/hour per requesting device"
+const MAX_SENDS_PER_IP_PER_HOUR = 100; // coarse device proxy — see SCREENS.md's "~3/hour per requesting device"
 
 export type RequestMagicLinkResult =
   | { kind: "sent"; devLink?: string }
@@ -19,7 +19,12 @@ export type VerifyMagicLinkResult =
       sessionToken: string;
       // profileCompletedAt drives post-login routing (SCREENS.md Screen 2.0):
       // null → Profile Setup (1.1), set → Home (2.1).
-      attendee: { id: string; name: string; email: string; profileCompletedAt: Date | null };
+      attendee: {
+        id: string;
+        name: string;
+        email: string;
+        profileCompletedAt: Date | null;
+      };
     }
   | { kind: "expired" };
 
@@ -39,7 +44,10 @@ export class AuthService {
   ): Promise<RequestMagicLinkResult> {
     const email = rawEmail.trim().toLowerCase();
 
-    const perIp = this.rateLimiter.consume(`ip:${requestIp}`, MAX_SENDS_PER_IP_PER_HOUR);
+    const perIp = this.rateLimiter.consume(
+      `ip:${requestIp}`,
+      MAX_SENDS_PER_IP_PER_HOUR,
+    );
     if (!perIp.allowed) {
       return {
         kind: "rate_limited",
@@ -50,7 +58,9 @@ export class AuthService {
     // The pilot deliberately reports an unknown address so a legitimate attendee
     // can correct it or ask the organizer for help instead of waiting indefinitely.
     // Rate limits still constrain automated account-discovery attempts.
-    const attendee = await this.prisma.attendee.findUnique({ where: { email } });
+    const attendee = await this.prisma.attendee.findUnique({
+      where: { email },
+    });
     if (!attendee || attendee.deletedAt) {
       return { kind: "not_registered" };
     }
@@ -77,7 +87,12 @@ export class AuthService {
       include: { attendee: true },
     });
 
-    if (!record || record.usedAt || record.expiresAt < new Date() || record.attendee.deletedAt) {
+    if (
+      !record ||
+      record.usedAt ||
+      record.expiresAt < new Date() ||
+      record.attendee.deletedAt
+    ) {
       return { kind: "expired" };
     }
 
@@ -86,7 +101,9 @@ export class AuthService {
       data: { usedAt: new Date() },
     });
 
-    const sessionToken = await this.session.issueSessionToken(record.attendee.id);
+    const sessionToken = await this.session.issueSessionToken(
+      record.attendee.id,
+    );
 
     return {
       kind: "ok",

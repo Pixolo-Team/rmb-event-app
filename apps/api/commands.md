@@ -50,3 +50,10 @@ gcloud run deploy "$SERVICE_NAME" \
  --timeout=300 \
  --env-vars-file=cloud-run.env.yaml \
  --set-secrets="DATABASE_URL=DATABASE_URL:latest,DIRECT_URL=DIRECT_URL:latest,SMTP_PASS=SMTP_PASS:latest,SESSION_JWT_SECRET=SESSION_JWT_SECRET:latest"
+
+To change Secret Value:
+
+printf '%s' 'postgresql://postgres.qlahvkurrpgsaapoeyib:F46gFErTwR8zlbbQirZZehn9@aws-1-ap-south-1.pooler.supabase.com:5432/postgres' | \
+gcloud secrets versions add DIRECT_URL \
+ --project=evento-502713 \
+ --data-file=-
