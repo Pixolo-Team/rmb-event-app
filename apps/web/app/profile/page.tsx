@@ -135,7 +135,10 @@ export default function ProfilePage() {
     // effect needs, so it shouldn't sit in Profile's initial JS bundle.
     let cancelled = false;
     import("qrcode").then(({ default: QRCode }) =>
-      QRCode.toDataURL(qrToken, { margin: 1, width: 512, errorCorrectionLevel: "M" }),
+      // "Q" (25% recovery) rather than "M": the token is short enough that the
+      // stronger error correction costs no extra QR version, and the redundancy
+      // buys tolerance for glare and camera shake on a phone screen.
+      QRCode.toDataURL(qrToken, { margin: 1, width: 512, errorCorrectionLevel: "Q" }),
     )
       .then((url) => { if (!cancelled) setQrDataUrl(url); })
       .catch(() => { if (!cancelled) setQrDataUrl(null); });
